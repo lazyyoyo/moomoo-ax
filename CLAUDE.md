@@ -1,91 +1,81 @@
 # moomoo-ax
 
-team-ax 엔진 — auto-research 패턴 기반 자율 제품 개발 파이프라인. team-product를 대체.
+auto-research 루프로 단계별 최적화 스크립트를 만드는 엔진.
 
 ## 핵심 개념
 
-- **오너는 CPS만 던진다** — 페르소나, 평가, 구현, 재작업 전부 시스템이 자율 실행
-- **코드가 강제한다** — Python/Shell 오케스트레이터가 루프/평가/판정을 결정적으로 제어
-- **2-Level 루프** — meta-loop: 시스템 자체 개선 (버전 단위, 수동) / ax-loop: 산출물 품질 개선 (기능 단위, 자동)
+- **루프가 개선하는 건 "산출물"이 아니라 "스크립트"** — PRD를 잘 쓰는 방법, 디자인을 잘 뽑는 방법 자체를 최적화
+- **labs/에서 실험 → plugin/으로 승격** — 검증된 스크립트만 프로덕션에 편입
+- **오너는 규칙(program.md)과 평가 기준(rubric.yml)만 정의** — 나머지는 루프가 자율 실행
 
-## 아키텍처
+## auto-research 매핑
+
+| auto-research | moomoo-ax | 누가 관리 |
+|---------------|----------|----------|
+| program.md | `program.md` — 오너 규칙 | 오너 |
+| train.py | `script.md` — 생성 스크립트 | AI (루프에서 개선) |
+| prepare.py | `rubric.yml` — 평가 체크리스트 | 오너 (루프 안 불변) |
+| results.tsv | `logs/` + Supabase | 자동 |
+
+## 루프 흐름
+
+```
+script.md로 산출물 생성 → rubric으로 eval → 점수
+  → 점수 > best → keep (script + 산출물 저장)
+  → 점수 ≤ best → discard (실패 항목 → script 수정 피드백)
+→ 종료: 점수 ≥ 임계값 or max iteration
+```
+
+## 디렉토리 구조
 
 ```
 moomoo-ax/
-├── .claude-plugin/        # 플러그인 정의 + marketplace
-├── agents/                # 워커 역할 정의 (designer.md, coder.md, judge.md)
-├── skills/ax-loop/        # 스킬 진입점 + 오케스트레이터 스크립트
-│   └── scripts/           # orchestrator.py, gate_*.sh/.py, worker.py
-├── harness/               # 공통 평가 인프라
-│   ├── rubrics/           #   고정 루브릭 (base.yml)
-│   ├── schemas/           #   워커 산출물 JSON 스키마
-│   ├── templates/         #   CPS/PRD 템플릿 + 검증 체크리스트
-│   └── linters/           #   커스텀 ESLint 룰
-├── hooks/                 # ax-loop 전용 hooks
-├── docs/specs/            # 스펙 (SSOT)
-├── dashboard/             # 레벨 1 지표 시각화
-└── notes/                 # 설계 논의 기록
+├── loop.py              # 범용 오케스트레이터
+├── judge.py             # 루브릭 → LLM Judge → 점수
+├── db.py                # Supabase 로그 래퍼
+├── labs/                # 실험 (루프 돌리는 곳)
+│   └── {experiment}/
+│       ├── program.md   #   오너 규칙 (불변)
+│       ├── script.md    #   AI가 개선하는 스크립트
+│       ├── rubric.yml   #   평가 기준 (불변)
+│       ├── input/       #   입력 파일
+│       ├── best/        #   최적 산출물 + script
+│       └── logs/        #   iteration 로그
+├── plugin/              # 프로덕션 (검증된 스킬)
+│   ├── .claude-plugin/
+│   ├── skills/
+│   └── agents/
+├── dashboard/           # Vercel 대시보드
+├── versions/            # 버전별 plan + 기록
+└── notes/               # 설계 논의
 ```
 
-프로젝트별 평가 환경은 대상 프로젝트 루트의 `.harness/`에 배치. 실행 시 공통(harness/) + 프로젝트별(.harness/) merge.
+## 단계별 루프
 
-## 스펙 (SSOT)
+| 단계 | input | output | eval |
+|------|-------|--------|------|
+| define | CPS/아이디어 | PRD | LLM Judge (루브릭) |
+| design | PRD | 디자인 명세 + 코드 | LLM Judge + 시각 diff |
+| implement | 디자인 명세 | 코드 | 정적 게이트 + LLM Judge |
 
-| 파일 | 내용 |
+## 버전 계획
+
+| 버전 | 목표 |
 |------|------|
-| `docs/specs/architecture.md` | 시스템 아키텍처, 2-Level 루프, Phase 0→3, 코드/AI 영역 분리 |
-| `docs/specs/skills.md` | CLI 커맨드, composable stages, 체크포인트, 구현 로드맵 |
-| `docs/specs/gates.md` | 게이트 4계층 (정적→시각→구조→Judge), 루브릭, keep/discard/crash |
-| `docs/specs/meta-loop.md` | meta-loop 실행 프로세스, Level 1 지표, 관측성, 리포트 구조 |
+| **v0.2** | 루프 엔진 + define 실험 + Supabase 로그 + 대시보드 |
+| v0.3 | design 루프 + 시각 eval |
+| v0.4 | implement 루프 + 정적 게이트 |
+| v0.5~0.9 | 실전 적용 + 강화 |
+| v1.0 | 출시 + 남편 공유 |
 
-## Phase 흐름
+## 인프라
 
-```
-Phase 0: Define  — 러프 입력 → CPS 구조화
-Phase 1: Plan    — CPS → PRD + 페르소나 + 루브릭
-Phase 2: Build   — ax-loop (워커 → 게이트 → keep/discard → 반복)
-Phase 3: Ship    — 문서 갱신 + PR + 배포
-```
-
-## CLI 커맨드
-
-```
-/ax define   — 러프 입력 → CPS 구조화
-/ax plan     — CPS → PRD + 페르소나 + 루브릭
-/ax design   — 디자인 exploration + 시각 게이트
-/ax run      — ax-loop 실행 (워커 → 게이트 → 반복)
-/ax fix      — 실패 게이트 기준 재작업
-/ax gate     — 게이트만 단독 실행
-/ax ship     — 문서 갱신 + PR + 배포
-/ax status   — 현재 루프 상태 조회
-```
-
-## 게이트 순서 (비용순)
-
-① 정적 (lint/typecheck/build) → ② 시각 (스크린샷 diff) → ③ 구조 (ARIA) → ④ Judge (LLM 체크리스트)
-
-①②③ 이진 판정, ④만 합성 점수. 앞 게이트 통과해야 다음 실행.
-
-## 구현 로드맵
-
-| 버전 | 스코프 | 게이트 | 모델 |
-|------|--------|--------|------|
-| **MVP (v0.1)** | `run` (Phase 2만) + `status` | ① 정적만 | Claude 단일 |
-| v0.2 | + `fix` + `gate` + `ship` | ① + ④ Judge | Claude 단일 |
-| v0.3 | + `design` + exploration rail | ① + ② + ④ | Claude + Gemini |
-| v0.4 | + `define` + `plan` + 동적 루브릭 | 전체 | 전체 멀티모델 |
-
-## 멀티모델 워커
-
-| 모델 | 역할 | 호출 |
-|------|------|------|
-| Claude | 설계, 판정, 재작업 프롬프트 | `claude -p "..." --output-format json` |
-| Codex | 코드 생성, 패치 | `codex exec --output-schema schema.json` |
-| Gemini | UI/비전, 스크린샷 평가 | `gemini -p "..." --output-format json` |
+- **Supabase**: moomoo-ax (ap-northeast-2), project id: aqwhjtlpzpcizatvchfb
+- **대시보드**: Vercel + Next.js (dashboard/)
+- **GitHub**: https://github.com/lazyyoyo/moomoo-ax
 
 ## Gotchas
 
-- 게이트 정의는 ax-loop 안에서 변경 불가 — 변경은 meta-loop(버전 단위)에서만
-- 기존 team-product/team-design hooks는 프로젝트 터미널에서 이미 활성 — team-ax가 중복 정의하지 않음
-- 정적 게이트가 기존 lint/format hooks를 포함하므로 ax-loop 안에서는 게이트가 hooks 역할 대체
-- Normal Form 검증 (하네스 멱등성 테스트)은 하네스 설정 변경 후에만 실행, 매 빌드마다 X
+- rubric은 루프 안에서 불변. 변경은 meta-loop(버전 단위)에서만
+- 루프 엔진(loop.py)은 범용. 단계별 차이는 program.md + rubric.yml로 표현
+- subprocess.run으로 Claude 호출. tmux 없음
