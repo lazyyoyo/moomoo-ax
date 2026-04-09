@@ -6,7 +6,7 @@ team-ax 엔진 — auto-research 패턴 기반 자율 제품 개발 파이프라
 
 - **오너는 CPS만 던진다** — 페르소나, 평가, 구현, 재작업 전부 시스템이 자율 실행
 - **코드가 강제한다** — Python/Shell 오케스트레이터가 루프/평가/판정을 결정적으로 제어
-- **2-Level 루프** — 루프 1: 시스템 자체 개선 (스프린트 단위, 수동) / 루프 2: 산출물 품질 개선 (기능 단위, 자동)
+- **2-Level 루프** — meta-loop: 시스템 자체 개선 (버전 단위, 수동) / ax-loop: 산출물 품질 개선 (기능 단위, 자동)
 
 ## 아키텍처
 
@@ -36,6 +36,7 @@ moomoo-ax/
 | `docs/specs/architecture.md` | 시스템 아키텍처, 2-Level 루프, Phase 0→3, 코드/AI 영역 분리 |
 | `docs/specs/skills.md` | CLI 커맨드, composable stages, 체크포인트, 구현 로드맵 |
 | `docs/specs/gates.md` | 게이트 4계층 (정적→시각→구조→Judge), 루브릭, keep/discard/crash |
+| `docs/specs/meta-loop.md` | meta-loop 실행 프로세스, Level 1 지표, 관측성, 리포트 구조 |
 
 ## Phase 흐름
 
@@ -84,7 +85,7 @@ Phase 3: Ship    — 문서 갱신 + PR + 배포
 
 ## Gotchas
 
-- 게이트 정의는 루프 2(ax-loop) 안에서 변경 불가 — 변경은 루프 1(스프린트 단위)에서만
+- 게이트 정의는 ax-loop 안에서 변경 불가 — 변경은 meta-loop(버전 단위)에서만
 - 기존 team-product/team-design hooks는 프로젝트 터미널에서 이미 활성 — team-ax가 중복 정의하지 않음
 - 정적 게이트가 기존 lint/format hooks를 포함하므로 ax-loop 안에서는 게이트가 hooks 역할 대체
 - Normal Form 검증 (하네스 멱등성 테스트)은 하네스 설정 변경 후에만 실행, 매 빌드마다 X
