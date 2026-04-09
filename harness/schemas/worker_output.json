@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "워커 산출물",
+  "description": "worker.py가 stdout으로 출력하는 JSON 형식",
+  "type": "object",
+  "required": ["success"],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "워커 실행 성공 여부"
+    },
+    "error": {
+      "type": "string",
+      "description": "실패 시 에러 메시지"
+    },
+    "output": {
+      "type": "object",
+      "description": "Claude CLI JSON 출력"
+    },
+    "raw": {
+      "type": "string",
+      "description": "JSON 파싱 실패 시 원문 (truncated)"
+    }
+  }
+}

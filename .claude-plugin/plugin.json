@@ -1,0 +1,8 @@
+{
+  "name": "team-ax",
+  "description": "AX 품질 자동화 엔진",
+  "version": "0.1.0",
+  "skills": ["skills/ax-loop"],
+  "harness": "harness/",
+  "hooks": "hooks/"
+}
