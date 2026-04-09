@@ -1,7 +1,21 @@
 {
   "name": "team-ax",
-  "description": "AX 품질 자동화 엔진",
   "version": "0.1.0",
+  "description": "AX 품질 자동화 엔진",
+  "author": {
+    "name": "lazyyoyo"
+  },
+  "repository": "https://github.com/lazyyoyo/moomoo-ax",
+  "homepage": "https://github.com/lazyyoyo/moomoo-ax",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "auto-research",
+    "harness",
+    "quality-gate",
+    "autonomous-loop"
+  ],
   "skills": ["skills/ax-loop"],
   "harness": "harness/",
   "hooks": "hooks/"
