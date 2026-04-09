@@ -1,0 +1,107 @@
+"""
+db.py — Supabase 로그 래퍼
+
+iterations 테이블에 로그 insert.
+환경 변수: SUPABASE_URL, SUPABASE_KEY
+"""
+
+import json
+import os
+from datetime import datetime, timezone
+
+# Supabase REST API로 직접 호출 (의존성 최소화)
+import urllib.request
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://aqwhjtlpzpcizatvchfb.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+
+AX_VERSION = "v0.2"
+
+
+def insert_log(
+    user: str,
+    project: str,
+    detail: dict,
+    ax_version: str = AX_VERSION,
+) -> bool:
+    """iterations 테이블에 로그 1건 insert."""
+    if not SUPABASE_KEY:
+        print("[db] SUPABASE_KEY 미설정 — 로그 스킵")
+        return False
+
+    url = f"{SUPABASE_URL}/rest/v1/iterations"
+    payload = json.dumps({
+        "ax_version": ax_version,
+        "user": user,
+        "project": project,
+        "detail": detail,
+    }).encode()
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Prefer": "return=minimal",
+        },
+    )
+
+    try:
+        urllib.request.urlopen(req)
+        return True
+    except Exception as e:
+        print(f"[db] insert 실패: {e}")
+        return False
+
+
+def log_iteration(
+    user: str,
+    project: str,
+    experiment: str,
+    iteration: int,
+    score: float,
+    verdict: str,
+    failed_items: list | None = None,
+    tokens_input: int = 0,
+    tokens_output: int = 0,
+    duration_sec: float = 0,
+    model: str = "claude-sonnet-4",
+    script_version: str = "",
+) -> bool:
+    """iteration 로그."""
+    return insert_log(user, project, {
+        "type": "iteration",
+        "experiment": experiment,
+        "iteration": iteration,
+        "score": score,
+        "verdict": verdict,
+        "failed_items": failed_items or [],
+        "tokens_input": tokens_input,
+        "tokens_output": tokens_output,
+        "duration_sec": duration_sec,
+        "model": model,
+        "script_version": script_version,
+    })
+
+
+def log_summary(
+    user: str,
+    project: str,
+    experiment: str,
+    final_score: float,
+    total_iterations: int,
+    total_tokens: int,
+    status: str = "completed",
+) -> bool:
+    """run 종료 시 summary 로그."""
+    return insert_log(user, project, {
+        "type": "summary",
+        "experiment": experiment,
+        "final_score": final_score,
+        "total_iterations": total_iterations,
+        "total_tokens": total_tokens,
+        "status": status,
+    })
