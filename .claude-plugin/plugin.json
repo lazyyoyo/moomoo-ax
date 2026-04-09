@@ -16,7 +16,7 @@
     "quality-gate",
     "autonomous-loop"
   ],
-  "skills": ["skills/ax-loop"],
+  "skills": "./skills/",
   "harness": "harness/",
   "hooks": "hooks/"
 }
