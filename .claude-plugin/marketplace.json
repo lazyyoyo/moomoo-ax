@@ -1,27 +1,14 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "moomoo-ax",
-  "description": "auto-research 패턴 기반 자율 제품 개발 파이프라인",
   "owner": {
     "name": "lazyyoyo"
   },
   "plugins": [
     {
       "name": "moomoo-ax",
-      "description": "AX 품질 자동화 엔진 — 워커 → 게이트 → keep/discard 자율 루프",
+      "description": "AX 품질 자동화 엔진",
       "version": "0.1.0",
-      "author": {
-        "name": "lazyyoyo"
-      },
-      "source": "./",
-      "homepage": "https://github.com/lazyyoyo/moomoo-ax",
-      "category": "productivity",
-      "tags": [
-        "auto-research",
-        "harness",
-        "quality-gate",
-        "autonomous-loop"
-      ]
+      "source": "./"
     }
   ],
   "version": "0.1.0"

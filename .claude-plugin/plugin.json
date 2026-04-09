@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "description": "AX 품질 자동화 엔진",
   "author": {
-    "name": "lazyyoyo"
+    "name": "lazyyoyo",
+    "email": "yoyo.in.moomoo@gmail.com"
   },
   "repository": "https://github.com/lazyyoyo/moomoo-ax",
-  "homepage": "https://github.com/lazyyoyo/moomoo-ax",
-  "license": "MIT",
+  "license":"MIT",
   "keywords": [
     "claude-code",
     "plugin",
@@ -15,7 +15,5 @@
     "harness",
     "quality-gate",
     "autonomous-loop"
-  ],
-  "skills": "./skills/",
-  "agents": "./agents/"
+  ]
 }
