@@ -25,16 +25,31 @@ OUTPUT_DIR = Path("/tmp/ax-outputs")
 # ── tmux 워커 ────────────────────────────────────────
 
 def ensure_session():
-    """tmux 세션 없으면 생성."""
+    """tmux 세션 없으면 생성. 서버가 안 떠있어도 처리."""
+    r = subprocess.run(
+        ["tmux", "has-session", "-t", AX_SESSION],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        # tmux 서버가 없거나 세션이 없는 경우 모두 처리
+        result = subprocess.run(
+            ["tmux", "new-session", "-d", "-s", AX_SESSION],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print(f"[worker] tmux 세션 생성 실패: {result.stderr.strip()}", file=sys.stderr)
+            return False
+
+    # 세션 생성 확인
     r = subprocess.run(
         ["tmux", "has-session", "-t", AX_SESSION],
         capture_output=True,
     )
     if r.returncode != 0:
-        subprocess.run(
-            ["tmux", "new-session", "-d", "-s", AX_SESSION],
-            capture_output=True,
-        )
+        print(f"[worker] tmux 세션 '{AX_SESSION}' 확인 불가", file=sys.stderr)
+        return False
+
+    return True
 
 
 def call_worker(worker_id: str, cli_cmd: list[str], cwd: Path, timeout: int = 300) -> dict:
@@ -53,7 +68,12 @@ def call_worker(worker_id: str, cli_cmd: list[str], cwd: Path, timeout: int = 30
         if f.exists():
             f.unlink()
 
-    ensure_session()
+    if not ensure_session():
+        return {
+            "success": False,
+            "error": "tmux 세션 생성 실패. tmux가 설치되어 있는지 확인.",
+            "tokens": {"input": 0, "output": 0},
+        }
 
     # tmux 새 창에서 워커 실행
     # 결과 → output_file, 종료코드 → exit_file
@@ -62,11 +82,19 @@ def call_worker(worker_id: str, cli_cmd: list[str], cwd: Path, timeout: int = 30
         f'cd {cwd} && {cmd_str} > {output_file} 2>&1; '
         f'echo $? > {exit_file}'
     )
-    subprocess.run([
+    r = subprocess.run([
         "tmux", "new-window", "-t", AX_SESSION,
         "-n", worker_id,
         "bash", "-c", shell_cmd,
-    ], capture_output=True)
+    ], capture_output=True, text=True)
+
+    if r.returncode != 0:
+        print(f"[worker] tmux new-window 실패: {r.stderr.strip()}", file=sys.stderr)
+        return {
+            "success": False,
+            "error": f"tmux new-window 실패: {r.stderr.strip()}",
+            "tokens": {"input": 0, "output": 0},
+        }
 
     # 완료 대기 (폴링)
     elapsed = 0
