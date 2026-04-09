@@ -17,6 +17,6 @@
     "autonomous-loop"
   ],
   "skills": "./skills/",
-  "harness": "harness/",
-  "hooks": "hooks/"
+  "harness": "./harness/",
+  "hooks": "./hooks/"
 }
