@@ -7,7 +7,7 @@
   },
   "plugins": [
     {
-      "name": "team-ax",
+      "name": "moomoo-ax",
       "description": "AX 품질 자동화 엔진 — 워커 → 게이트 → keep/discard 자율 루프",
       "version": "0.1.0",
       "author": {
