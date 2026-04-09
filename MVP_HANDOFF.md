@@ -381,7 +381,7 @@ tmux attach -t ax-workers
 ## 구현 순서 (권장)
 
 1. [x] **gate_static.sh** — 가장 독립적. 단독 테스트 가능.
-2. [ ] **worker.py** — tmux 세션 관리 + Claude CLI 호출 + JSON 파싱. 단독 테스트 가능. *(현재 subprocess 방식 구현됨. tmux 전환 미적용)*
+2. [x] **worker.py** — tmux 세션 관리 + Claude CLI 호출 + JSON 파싱. 단독 테스트 가능.
 3. [x] **orchestrator.py** — 위 둘을 엮는 루프. `run` + `status` 서브커맨드.
 4. [x] **agents/coder.md** + **harness/schemas/code_patch.json** — 파일 생성만.
 5. [x] **SKILL.md** — 스킬 진입점.

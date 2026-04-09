@@ -41,7 +41,7 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/ax-loop/scripts/orchestrator.py status \
 
 - **`scripts/orchestrator.py`** — CLI 진입점. `run`(빌드 루프)과 `status`(현황 조회) 커맨드. `--project` 필수. 루프 제어, CPS/PRD 탐색, 체크포인트, keep/discard 판정, git commit/checkout.
 - **`scripts/gate_static.sh`** — 정적 게이트. `$1`=프로젝트경로, `$2`=결과JSON경로. tsc → eslint → build → prettier. 결과를 `{"passed": bool, "errors": [...]}` JSON으로 출력.
-- **`scripts/worker.py`** — Claude headless CLI 래퍼. CPS/PRD + `agents/*.md` → 프롬프트 조립 → `claude -p` → `{files, summary}` 패치 생성 → 프로젝트에 적용.
+- **`scripts/worker.py`** — tmux 기반 Claude 워커. tmux 세션 `ax-workers`에서 `claude -p` 실행. CPS/PRD + `agents/*.md` → 프롬프트 조립 → `{files, summary}` 패치 생성 → 프로젝트에 적용. 실행 중 `tmux attach -t ax-workers`로 관찰 가능.
 
 ## 에이전트
 
@@ -59,6 +59,7 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/ax-loop/scripts/orchestrator.py status \
 - 대상 프로젝트에 `package.json` 존재
 - 대상 프로젝트에 CPS/PRD 파일 존재 (`.harness/checkpoints/`, `docs/specs/`, `CPS.md`, `PRD.md` 중 하나)
 - `claude` CLI 설치 및 인증 완료
+- tmux 설치
 - Node.js + npm 환경
 - git 초기화된 프로젝트
 
