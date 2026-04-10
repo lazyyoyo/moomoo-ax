@@ -8,9 +8,22 @@ iterations 테이블에 로그 insert.
 import json
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 # Supabase REST API로 직접 호출 (의존성 최소화)
 import urllib.request
+
+# .env 로드 (외부 의존성 없이)
+def _load_env():
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                os.environ.setdefault(key.strip(), value.strip())
+
+_load_env()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://aqwhjtlpzpcizatvchfb.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
