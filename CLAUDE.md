@@ -63,7 +63,7 @@ moomoo-ax/
 ## 인프라
 
 - **Supabase**: moomoo-ax (ap-northeast-2), project id: aqwhjtlpzpcizatvchfb
-- **대시보드**: Vercel + Next.js (dashboard/)
+- **대시보드**: https://moomoo-ax.vercel.app (Vercel + Next.js, root: dashboard/)
 - **GitHub**: https://github.com/lazyyoyo/moomoo-ax
 
 ## Gotchas
