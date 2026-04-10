@@ -164,10 +164,17 @@ def run(
     project: str,
     user: str,
     input_file: Path | None = None,
+    output_file: Path | None = None,
     max_iter: int = 10,
     threshold: float = 0.85,
 ) -> dict:
-    """단일 stage 루프 실행."""
+    """
+    단일 stage 루프 실행.
+
+    output_file 지정:
+      - 주어지면: 프로젝트 산출물로 간주. best 도달 시 해당 경로에 저장.
+      - 없으면: 실험 모드. labs/{stage}/best/에 저장.
+    """
     lab_dir = LABS_DIR / stage
 
     if not lab_dir.is_dir():
@@ -189,6 +196,9 @@ def run(
     best_dir = lab_dir / "best"
     logs_dir.mkdir(exist_ok=True)
     best_dir.mkdir(exist_ok=True)
+
+    if output_file:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
 
     best_score = 0.0
     best_output = ""
@@ -247,6 +257,9 @@ def run(
             (best_dir / "output.md").write_text(output)
             (best_dir / "script.py").write_text(script_py.read_text())
             (best_dir / "score.txt").write_text(str(score))
+            # 프로젝트 산출물 경로 지정된 경우 해당 파일에도 저장
+            if output_file:
+                output_file.write_text(output)
         else:
             verdict = "discard"
 
@@ -311,12 +324,15 @@ def main():
     parser.add_argument("--project", "-p", required=True)
     parser.add_argument("--user", "-u", required=True, help="yoyo / jojo")
     parser.add_argument("--input", "-i", help="입력 파일/디렉토리")
+    parser.add_argument("--output", "-o", help="산출물 저장 경로 (프로젝트 모드)")
     parser.add_argument("--max-iter", "-n", type=int, default=10)
     parser.add_argument("--threshold", "-t", type=float, default=0.85)
 
     args = parser.parse_args()
     input_file = Path(args.input).resolve() if args.input else None
-    run(args.stage, args.project, args.user, input_file, args.max_iter, args.threshold)
+    output_file = Path(args.output).resolve() if args.output else None
+    run(args.stage, args.project, args.user, input_file, output_file,
+        args.max_iter, args.threshold)
 
 
 if __name__ == "__main__":

@@ -5,19 +5,19 @@
   "failed_items": [],
   "tokens": {
     "script": {
-      "input": 6,
-      "output": 1780
+      "input": 12,
+      "output": 2044
     },
     "judge": {
-      "input": 3,
-      "output": 105
+      "input": 6,
+      "output": 137
     },
     "improve": {
       "input": 0,
       "output": 0
     }
   },
-  "cost_usd": 0.789293,
-  "duration_sec": 51.6,
+  "cost_usd": 0.88957,
+  "duration_sec": 42.3,
   "script_version": "1552c008"
 }

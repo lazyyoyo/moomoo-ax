@@ -1,16 +1,12 @@
 """
 seed-gen script.py — 러프 아이디어 → seed.md
 
-stdin: 러프 아이디어
-stdout: seed.md
-stderr: 토큰 메타 (JSON)
+stdin으로 러프 아이디어를 받아 구조화된 seed.md를 stdout으로 출력.
 """
 
+import json
+import subprocess
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
-from claude import call_for_script
 
 
 def generate(idea: str) -> str:
@@ -43,8 +39,20 @@ def generate(idea: str) -> str:
 - 추정은 "추정:" 접두사로 명시
 - 서론/요약 없이 바로 본문"""
 
-    output, _ = call_for_script(prompt)
-    return output
+    result = subprocess.run(
+        ["claude", "-p", prompt, "--output-format", "json"],
+        capture_output=True, text=True, timeout=120,
+    )
+
+    if result.returncode != 0:
+        print(f"Claude 호출 실패: {result.stderr[:300]}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        data = json.loads(result.stdout)
+        return data.get("result", result.stdout)
+    except json.JSONDecodeError:
+        return result.stdout.strip()
 
 
 if __name__ == "__main__":
