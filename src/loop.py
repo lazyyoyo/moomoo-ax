@@ -1,8 +1,11 @@
 """
 loop.py — 범용 오케스트레이터
 
-labs/{experiment}/ 디렉토리에서 루프 실행.
-script.md를 반복 개선하여 rubric 점수를 올린다.
+labs/{stage}/ 디렉토리의 script.py를 반복 실행 + 개선하여 rubric 점수를 올린다.
+
+사용법:
+    python src/loop.py seed-gen --project moomoo-ax --user yoyo
+    python src/loop.py seed-gen --project moomoo-ax --user yoyo --max-iter 5 --threshold 0.9
 """
 
 import argparse
@@ -11,15 +14,15 @@ import json
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
-# 같은 src/ 안의 모듈
 sys.path.insert(0, str(Path(__file__).parent))
 from judge import evaluate
 from db import log_iteration, log_summary
 
 AX_VERSION = "v0.2"
+LABS_DIR = Path(__file__).resolve().parent.parent / "labs"
+PYTHON = sys.executable
 
 
 def read_file(path: Path) -> str:
@@ -28,23 +31,14 @@ def read_file(path: Path) -> str:
     return ""
 
 
-def read_dir(path: Path) -> str:
-    """디렉토리 안의 모든 파일 내용을 합쳐서 반환."""
-    if not path.is_dir():
-        return ""
-    parts = []
-    for f in sorted(path.iterdir()):
-        if f.is_file() and not f.name.startswith("."):
-            parts.append(f"## {f.name}\n\n{f.read_text().strip()}")
-    return "\n\n---\n\n".join(parts)
-
-
-def script_hash(script: str) -> str:
-    return hashlib.md5(script.encode()).hexdigest()[:8]
+def file_hash(path: Path) -> str:
+    if path.exists():
+        return hashlib.md5(path.read_bytes()).hexdigest()[:8]
+    return "none"
 
 
 def call_claude(prompt: str) -> dict:
-    """Claude CLI 호출. {success, output, tokens}"""
+    """Claude CLI 호출."""
     start = time.monotonic()
     result = subprocess.run(
         ["claude", "-p", prompt, "--output-format", "json"],
@@ -66,7 +60,6 @@ def call_claude(prompt: str) -> dict:
             "input": data.get("input_tokens", 0),
             "output": data.get("output_tokens", 0),
         }
-        # result 키에서 텍스트 추출
         text = data.get("result", result.stdout)
         return {
             "success": True,
@@ -83,46 +76,56 @@ def call_claude(prompt: str) -> dict:
         }
 
 
-def generate_output(program: str, script: str, input_ctx: str, feedback: list | None) -> dict:
-    """script.md 기반으로 산출물 생성."""
-    prompt = f"""{program}
+def run_script(script_py: Path, input_file: Path) -> dict:
+    """script.py 실행. stdin으로 input 전달, stdout에서 산출물 수신."""
+    input_text = read_file(input_file) if input_file.is_file() else ""
 
-## 생성 스크립트
+    # input 디렉토리인 경우 모든 파일 합치기
+    if input_file.is_dir():
+        parts = []
+        for f in sorted(input_file.iterdir()):
+            if f.is_file() and not f.name.startswith("."):
+                parts.append(f.read_text().strip())
+        input_text = "\n\n---\n\n".join(parts)
 
-{script}
+    start = time.monotonic()
+    result = subprocess.run(
+        [PYTHON, str(script_py)],
+        input=input_text,
+        capture_output=True, text=True,
+        timeout=300,
+        cwd=script_py.parent,
+    )
+    duration = time.monotonic() - start
 
-## 입력
+    if result.returncode != 0:
+        return {
+            "success": False,
+            "error": result.stderr.strip()[:500] or f"exit {result.returncode}",
+            "duration_sec": round(duration, 1),
+        }
 
-{input_ctx}"""
-
-    if feedback:
-        feedback_text = "\n".join(f"- {item['question']}" for item in feedback)
-        prompt += f"""
-
-## 이전 시도에서 실패한 항목 (반드시 개선)
-
-{feedback_text}"""
-
-    prompt += """
-
-## 지시
-
-위 생성 스크립트의 절차를 따라 산출물을 생성해. 스크립트에 정의된 출력 형식을 준수해."""
-
-    return call_claude(prompt)
+    return {
+        "success": True,
+        "output": result.stdout.strip(),
+        "duration_sec": round(duration, 1),
+    }
 
 
-def improve_script(program: str, script: str, failed_items: list, output: str) -> dict:
-    """실패 항목 기반으로 script.md 개선."""
+def improve_script(program: str, script_py: Path, failed_items: list, output: str) -> bool:
+    """실패 항목 기반으로 script.py 개선. 성공 시 True."""
+    script_code = script_py.read_text()
     feedback_text = "\n".join(f"- {item['question']}" for item in failed_items)
 
     prompt = f"""{program}
 
-## 현재 스크립트
+## 현재 script.py
 
-{script}
+```python
+{script_code}
+```
 
-## 이 스크립트로 생성한 산출물 (일부)
+## 이 스크립트가 생성한 산출물
 
 {output[:2000]}
 
@@ -132,35 +135,62 @@ def improve_script(program: str, script: str, failed_items: list, output: str) -
 
 ## 지시
 
-위 실패 항목을 통과하도록 스크립트를 개선해.
-스크립트의 절차, 규칙, 출력 형식을 수정해서 다음에 더 나은 산출물이 나오도록 해.
-개선된 스크립트 전체를 출력해. 마크다운 형식."""
+위 실패 항목을 통과하도록 script.py를 개선해.
+프롬프트 내용, 후처리 로직, 출력 형식 등을 수정해서 다음에 더 나은 산출물이 나오도록 해.
+개선된 script.py 전체 코드를 출력해. ```python``` 코드 블록으로 감싸줘."""
 
-    return call_claude(prompt)
+    result = call_claude(prompt)
+    if not result.get("success"):
+        print(f"[개선] Claude 호출 실패: {result.get('error', '?')}")
+        return False
+
+    # Python 코드 블록 추출
+    text = result["output"]
+    import re
+    match = re.search(r'```python\s*\n(.*?)```', text, re.DOTALL)
+    if match:
+        new_code = match.group(1).strip()
+        script_py.write_text(new_code + "\n")
+        return True
+
+    # 코드 블록 없으면 전체가 코드인지 시도
+    if "def " in text and "import " in text:
+        script_py.write_text(text.strip() + "\n")
+        return True
+
+    print("[개선] script.py 코드 추출 실패")
+    return False
 
 
 def run(
-    lab_dir: Path,
+    stage: str,
     project: str,
     user: str,
+    input_file: Path | None = None,
     max_iter: int = 10,
     threshold: float = 0.85,
-):
-    """루프 실행."""
-    program = read_file(lab_dir / "program.md")
-    script = read_file(lab_dir / "script.md")
-    rubric_path = lab_dir / "rubric.yml"
-    input_ctx = read_dir(lab_dir / "input")
+) -> dict:
+    """단일 stage 루프 실행. 결과 dict 반환."""
+    lab_dir = LABS_DIR / stage
 
-    if not program:
-        print("[loop] program.md 없음")
+    if not lab_dir.is_dir():
+        print(f"[loop] labs/{stage}/ 없음")
         sys.exit(1)
-    if not script:
-        print("[loop] script.md 없음")
+
+    program = read_file(lab_dir / "program.md")
+    script_py = lab_dir / "script.py"
+    rubric_path = lab_dir / "rubric.yml"
+
+    if not script_py.exists():
+        print(f"[loop] {script_py} 없음")
         sys.exit(1)
     if not rubric_path.exists():
-        print("[loop] rubric.yml 없음")
+        print(f"[loop] {rubric_path} 없음")
         sys.exit(1)
+
+    # input: 명시적 파일 > lab_dir/input/
+    if input_file is None:
+        input_file = lab_dir / "input"
 
     # 디렉토리 준비
     logs_dir = lab_dir / "logs"
@@ -168,31 +198,43 @@ def run(
     logs_dir.mkdir(exist_ok=True)
     best_dir.mkdir(exist_ok=True)
 
-    experiment = lab_dir.name
     best_score = 0.0
-    feedback = None
+    best_output = ""
     total_tokens = 0
 
-    print(f"[loop] 실험: {experiment}")
-    print(f"[loop] 프로젝트: {project}, 유저: {user}")
-    print(f"[loop] 최대 반복: {max_iter}, 임계값: {threshold}")
+    print(f"[loop] stage: {stage}")
+    print(f"[loop] project: {project}, user: {user}")
+    print(f"[loop] max_iter: {max_iter}, threshold: {threshold}")
     print()
 
     for i in range(1, max_iter + 1):
         print(f"── iteration {i}/{max_iter} ──────────────────────")
 
-        # 1. 산출물 생성
-        print("[생성] Claude 호출 중...")
-        gen_result = generate_output(program, script, input_ctx, feedback)
+        # 1. script.py 실행
+        print("[실행] script.py 실행 중...")
+        run_result = run_script(script_py, input_file)
 
-        if not gen_result.get("success"):
-            print(f"[생성] 실패: {gen_result.get('error', '?')}")
+        if not run_result.get("success"):
+            print(f"[실행] 실패: {run_result.get('error', '?')}")
+            # 로그
+            log_data = {
+                "iteration": i, "score": 0.0, "verdict": "crash",
+                "failed_items": [{"question": run_result.get("error", "script 실행 실패")}],
+                "tokens_input": 0, "tokens_output": 0,
+                "duration_sec": run_result.get("duration_sec", 0),
+                "script_version": file_hash(script_py),
+            }
+            (logs_dir / f"{i:03d}.json").write_text(json.dumps(log_data, indent=2, ensure_ascii=False))
+            log_iteration(user=user, project=project, experiment=stage, **log_data)
+
+            # script.py 수정 시도
+            if program:
+                print("[개선] crash 복구 중...")
+                improve_script(program, script_py, [{"question": run_result.get("error", "")}], "")
             continue
 
-        output = gen_result["output"]
-        tokens = gen_result["tokens"]
-        duration = gen_result["duration_sec"]
-        total_tokens += tokens.get("input", 0) + tokens.get("output", 0)
+        output = run_result["output"]
+        duration = run_result["duration_sec"]
 
         # 2. 평가
         print("[평가] 루브릭 판정 중...")
@@ -201,10 +243,10 @@ def run(
         # 3. 판정
         if score > best_score:
             best_score = score
+            best_output = output
             verdict = "keep"
-            # best 저장
             (best_dir / "output.md").write_text(output)
-            (best_dir / "script.md").write_text(script)
+            (best_dir / "script.py").write_text(script_py.read_text())
             (best_dir / "score.txt").write_text(str(score))
         else:
             verdict = "discard"
@@ -217,75 +259,61 @@ def run(
 
         # 4. 로그
         log_data = {
-            "iteration": i,
-            "score": score,
-            "verdict": verdict,
+            "iteration": i, "score": score, "verdict": verdict,
             "failed_items": failed,
-            "tokens_input": tokens.get("input", 0),
-            "tokens_output": tokens.get("output", 0),
+            "tokens_input": 0, "tokens_output": 0,
             "duration_sec": duration,
-            "script_version": script_hash(script),
+            "script_version": file_hash(script_py),
         }
-
-        # 로컬 로그
-        log_file = logs_dir / f"{i:03d}.json"
-        log_file.write_text(json.dumps(log_data, indent=2, ensure_ascii=False))
-
-        # Supabase 로그
-        log_iteration(
-            user=user, project=project, experiment=experiment,
-            **{k: v for k, v in log_data.items()},
-        )
+        (logs_dir / f"{i:03d}.json").write_text(json.dumps(log_data, indent=2, ensure_ascii=False))
+        log_iteration(user=user, project=project, experiment=stage, **log_data)
 
         # 5. 종료 체크
         if score >= threshold:
             print(f"\n[loop] 임계값 도달 ({score} >= {threshold}) — 루프 종료")
             break
 
-        # 6. 스크립트 개선
-        if failed:
-            print("[개선] 스크립트 수정 중...")
-            improve_result = improve_script(program, script, failed, output)
-            if improve_result.get("success"):
-                script = improve_result["output"]
-                # 개선된 스크립트를 lab에도 저장
-                (lab_dir / "script.md").write_text(script)
-                total_tokens += (
-                    improve_result["tokens"].get("input", 0)
-                    + improve_result["tokens"].get("output", 0)
-                )
+        # 6. script.py 개선
+        if failed and program:
+            print("[개선] script.py 수정 중...")
+            improved = improve_script(program, script_py, failed, output)
+            if improved:
+                print(f"[개선] script.py 업데이트 ({file_hash(script_py)})")
 
-        feedback = failed
         print()
 
-    # summary 로그
+    # summary
     log_summary(
-        user=user, project=project, experiment=experiment,
-        final_score=best_score,
-        total_iterations=i,
-        total_tokens=total_tokens,
+        user=user, project=project, experiment=stage,
+        final_score=best_score, total_iterations=i, total_tokens=total_tokens,
     )
 
-    print(f"\n[loop] 완료 — best score: {best_score}, iterations: {i}, tokens: {total_tokens}")
-    return best_score
+    print(f"\n[loop] 완료 — best: {best_score}, iterations: {i}")
+
+    return {
+        "stage": stage,
+        "best_score": best_score,
+        "best_output": best_output,
+        "iterations": i,
+    }
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="loop", description="ax-loop 오케스트레이터")
-    parser.add_argument("lab_dir", help="실험 디렉토리 (labs/cps-gen 등)")
-    parser.add_argument("--project", "-p", required=True, help="프로젝트명")
-    parser.add_argument("--user", "-u", required=True, help="실행자 (yoyo/jojo)")
+    parser = argparse.ArgumentParser(
+        prog="loop",
+        description="ax-loop: 단일 stage의 script.py를 루프로 개선",
+    )
+    parser.add_argument("stage", help="stage 이름 (labs/ 하위 디렉토리)")
+    parser.add_argument("--project", "-p", required=True)
+    parser.add_argument("--user", "-u", required=True, help="yoyo / jojo")
+    parser.add_argument("--input", "-i", help="입력 파일/디렉토리 (기본: labs/{stage}/input/)")
     parser.add_argument("--max-iter", "-n", type=int, default=10)
     parser.add_argument("--threshold", "-t", type=float, default=0.85)
 
     args = parser.parse_args()
-    lab_dir = Path(args.lab_dir).resolve()
+    input_file = Path(args.input).resolve() if args.input else None
 
-    if not lab_dir.is_dir():
-        print(f"[loop] 디렉토리 없음: {lab_dir}")
-        sys.exit(1)
-
-    run(lab_dir, args.project, args.user, args.max_iter, args.threshold)
+    run(args.stage, args.project, args.user, input_file, args.max_iter, args.threshold)
 
 
 if __name__ == "__main__":

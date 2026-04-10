@@ -1,0 +1,27 @@
+{
+  "iteration": 1,
+  "score": 0.0,
+  "verdict": "discard",
+  "failed_items": [
+    {
+      "question": "Problem이 한 문장으로 명확히 정의되어 있는가?",
+      "critical": true
+    },
+    {
+      "question": "Solution의 범위가 명확한가 (뭘 하고 뭘 안 하는지)?",
+      "critical": true
+    },
+    {
+      "question": "500자 이내인가?",
+      "critical": false
+    },
+    {
+      "question": "불필요한 서론/배경 없이 바로 본론인가?",
+      "critical": false
+    }
+  ],
+  "tokens_input": 0,
+  "tokens_output": 0,
+  "duration_sec": 20.7,
+  "script_version": "7738a5ad"
+}
