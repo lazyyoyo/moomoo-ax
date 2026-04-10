@@ -119,7 +119,14 @@ def improve_script(program: str, script_py: Path, failed_items: list, output: st
 
 위 실패 항목을 통과하도록 script.py를 개선해.
 프롬프트 내용, 후처리 로직, 출력 형식 등을 수정.
-개선된 script.py 전체 코드를 ```python``` 코드 블록으로 출력해."""
+개선된 script.py 전체 코드를 ```python``` 코드 블록으로 출력해.
+
+## 절대 규칙 (위반 시 무효)
+
+- 산출물은 반드시 stdout (print)으로만 출력해야 한다
+- 파일 저장 (open, write, Path.write_text 등)을 절대 하지 마
+- stdin으로 입력 받고 stdout으로 출력하는 구조를 유지해
+- call_for_script import 구조를 유지해"""
 
     result = claude_api.call(prompt)
 
