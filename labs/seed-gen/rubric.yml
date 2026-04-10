@@ -1,17 +1,15 @@
 items:
   - question: "한줄 아이디어가 원본 입력의 핵심을 담고 있는가?"
-    critical: true
+    priority: critical
   - question: "대상 사용자가 구체적으로 추정되어 있는가?"
-    critical: true
+    priority: high
   - question: "핵심 불만/동기가 명시되어 있는가?"
-    critical: true
+    priority: high
   - question: "관련 도메인이 식별되어 있는가?"
-    critical: false
+    priority: medium
   - question: "제약 조건이 있다면 명시되어 있는가?"
-    critical: false
-  - question: "입력에 없는 정보를 지어내지 않았는가 (합리적 추론 범위 내)?"
-    critical: true
+    priority: low
   - question: "각 항목이 1~3문장으로 간결한가?"
-    critical: false
+    priority: low
   - question: "마크다운 형식이 올바른가?"
-    critical: false
+    priority: low

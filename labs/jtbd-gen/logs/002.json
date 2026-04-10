@@ -1,0 +1,32 @@
+{
+  "iteration": 2,
+  "score": 0.0,
+  "verdict": "discard",
+  "failed_items": [
+    {
+      "question": "seed.md의 핵심 내용이 반영되어 있는가?",
+      "critical": true
+    },
+    {
+      "question": "입력에 없는 정보를 지어내지 않았는가?",
+      "critical": true
+    }
+  ],
+  "tokens": {
+    "script": {
+      "input": 3,
+      "output": 1464
+    },
+    "judge": {
+      "input": 25,
+      "output": 357
+    },
+    "improve": {
+      "input": 0,
+      "output": 0
+    }
+  },
+  "cost_usd": 1.670591,
+  "duration_sec": 32.3,
+  "script_version": "cec6a290"
+}

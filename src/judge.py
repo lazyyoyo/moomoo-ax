@@ -1,11 +1,11 @@
 """
 judge.py — 루브릭 → LLM Judge → 점수
 
-rubric.yml 항목마다 Claude에게 Yes/No 판정.
-점수 = Yes 비율 (0.0 ~ 1.0). critical No → 강제 0점.
-토큰 사용량을 집계하여 반환.
+rubric.yml 전체를 1회 Claude 호출로 판정.
+priority별 가중치: critical(No→즉시 0.0), high(3), medium(2), low(1).
 """
 
+import json
 import sys
 import yaml
 from pathlib import Path
@@ -13,84 +13,129 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import claude as claude_api
 
+PRIORITY_WEIGHTS = {
+    "critical": 0,  # 별도 처리 (No → 0.0)
+    "high": 3,
+    "medium": 2,
+    "low": 1,
+}
+
 
 def load_rubric(path: Path) -> list[dict]:
     return yaml.safe_load(path.read_text()).get("items", [])
 
 
-def judge_item(question: str, output: str) -> tuple[bool, dict]:
-    """단일 항목 판정. (passed, tokens_meta) 반환."""
-    prompt = f"""아래 산출물을 평가해.
-
-## 산출물
-
-{output}
-
-## 질문
-
-{question}
-
-## 규칙
-
-- Yes 또는 No로만 답해. 다른 말 하지 마.
-- 산출물에 해당 내용이 명확히 존재하면 Yes, 아니면 No."""
-
-    result = claude_api.call(prompt, timeout=60)
-
-    tokens_meta = {
-        "tokens": result["tokens"],
-        "cost_usd": result["cost_usd"],
-    }
-
-    if not result["success"]:
-        return False, tokens_meta
-
-    return result["output"].strip().lower().startswith("yes"), tokens_meta
-
-
 def evaluate(rubric_path: Path, output: str) -> tuple[float, list[dict], dict]:
     """
-    루브릭 전체 평가.
+    루브릭 전체 평가 (1회 호출).
 
     Returns:
-        (score, failed_items, judge_tokens)
-        score: 0.0 ~ 1.0
+        (score, failed_items, judge_meta)
+        score: 0.0 ~ 1.0 (priority 가중 점수. critical No → 0.0)
         failed_items: No 판정 항목 리스트
-        judge_tokens: {"tokens": {"input": N, "output": N}, "cost_usd": N}
+        judge_meta: {"tokens": {...}, "cost_usd": N}
     """
     items = load_rubric(rubric_path)
     if not items:
         return 0.0, [], {"tokens": {"input": 0, "output": 0}, "cost_usd": 0}
 
-    results = []
+    # 번호 매겨서 프롬프트 구성
+    questions_text = ""
+    for idx, item in enumerate(items, 1):
+        pri = item.get("priority", "medium")
+        questions_text += f"{idx}. [{pri}] {item['question']}\n"
+
+    prompt = f"""아래 산출물을 루브릭 항목별로 평가해.
+
+## 산출물
+
+{output}
+
+## 루브릭 항목
+
+{questions_text}
+
+## 규칙
+
+각 항목에 대해 Yes 또는 No로 판정해.
+아래 JSON 형식으로만 답해. 다른 말 하지 마.
+
+```json
+{{
+  "results": [
+    {{"index": 1, "answer": "Yes"}},
+    {{"index": 2, "answer": "No"}}
+  ]
+}}
+```"""
+
+    result = claude_api.call(prompt, timeout=120)
+
+    judge_meta = {
+        "tokens": result["tokens"],
+        "cost_usd": result["cost_usd"],
+    }
+
+    if not result["success"]:
+        return 0.0, items, judge_meta
+
+    # JSON 파싱
+    answers = _parse_answers(result["output"], len(items))
+
+    # 점수 계산
     failed = []
     critical_fail = False
-    total_input = 0
-    total_output = 0
-    total_cost = 0
+    weighted_yes = 0
+    weighted_total = 0
 
-    for item in items:
-        passed, meta = judge_item(item["question"], output)
-        results.append(passed)
-        total_input += meta["tokens"]["input"]
-        total_output += meta["tokens"]["output"]
-        total_cost += meta["cost_usd"]
+    for idx, item in enumerate(items):
+        pri = item.get("priority", "medium")
+        passed = answers.get(idx, False)
 
         if not passed:
             failed.append(item)
-            if item.get("critical", False):
+            if pri == "critical":
                 critical_fail = True
 
-    judge_tokens = {
-        "tokens": {"input": total_input, "output": total_output},
-        "cost_usd": round(total_cost, 6),
-    }
+        if pri != "critical":
+            weight = PRIORITY_WEIGHTS.get(pri, 1)
+            weighted_total += weight
+            if passed:
+                weighted_yes += weight
 
     if critical_fail:
-        return 0.0, failed, judge_tokens
+        return 0.0, failed, judge_meta
 
-    score = round(sum(1 for r in results if r) / len(results), 3)
-    return score, failed, judge_tokens
+    score = round(weighted_yes / weighted_total, 3) if weighted_total > 0 else 0.0
+    return score, failed, judge_meta
+
+
+def _parse_answers(text: str, count: int) -> dict[int, bool]:
+    """Claude 응답에서 {index: bool} 딕셔너리 추출."""
+    import re
+
+    # JSON 블록 추출
+    match = re.search(r'```json\s*(\{.*?\})\s*```', text, re.DOTALL)
+    json_text = match.group(1) if match else text
+
+    try:
+        data = json.loads(json_text)
+        results = data.get("results", [])
+        return {
+            r["index"] - 1: r["answer"].lower().startswith("yes")
+            for r in results
+        }
+    except (json.JSONDecodeError, KeyError, TypeError):
+        pass
+
+    # fallback: 줄 단위 Yes/No 파싱
+    answers = {}
+    for i, line in enumerate(text.strip().splitlines()):
+        if i >= count:
+            break
+        answers[i] = "yes" in line.lower()
+
+    return answers
 
 
 if __name__ == "__main__":
@@ -98,11 +143,11 @@ if __name__ == "__main__":
         print("Usage: python judge.py <rubric.yml> <output_file>")
         sys.exit(1)
 
-    score, failed, tokens = evaluate(Path(sys.argv[1]), Path(sys.argv[2]).read_text())
+    score, failed, meta = evaluate(Path(sys.argv[1]), Path(sys.argv[2]).read_text())
     print(f"Score: {score}")
-    print(f"Tokens: {tokens}")
+    print(f"Tokens: {meta}")
     if failed:
         print(f"Failed ({len(failed)}):")
         for item in failed:
-            crit = " [CRITICAL]" if item.get("critical") else ""
-            print(f"  - {item['question']}{crit}")
+            pri = item.get("priority", "medium")
+            print(f"  [{pri}] {item['question']}")
