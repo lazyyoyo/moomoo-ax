@@ -70,51 +70,19 @@ def insert_log(
         return False
 
 
-def log_iteration(
-    user: str,
-    project: str,
-    experiment: str,
-    iteration: int,
-    score: float,
-    verdict: str,
-    failed_items: list | None = None,
-    tokens_input: int = 0,
-    tokens_output: int = 0,
-    duration_sec: float = 0,
-    model: str = "claude-sonnet-4",
-    script_version: str = "",
-) -> bool:
-    """iteration 로그."""
+def log_iteration(user: str, project: str, experiment: str, **kwargs) -> bool:
+    """iteration 로그. kwargs가 그대로 detail에 들어감."""
     return insert_log(user, project, {
         "type": "iteration",
         "experiment": experiment,
-        "iteration": iteration,
-        "score": score,
-        "verdict": verdict,
-        "failed_items": failed_items or [],
-        "tokens_input": tokens_input,
-        "tokens_output": tokens_output,
-        "duration_sec": duration_sec,
-        "model": model,
-        "script_version": script_version,
+        **kwargs,
     })
 
 
-def log_summary(
-    user: str,
-    project: str,
-    experiment: str,
-    final_score: float,
-    total_iterations: int,
-    total_tokens: int,
-    status: str = "completed",
-) -> bool:
+def log_summary(user: str, project: str, experiment: str, **kwargs) -> bool:
     """run 종료 시 summary 로그."""
     return insert_log(user, project, {
         "type": "summary",
         "experiment": experiment,
-        "final_score": final_score,
-        "total_iterations": total_iterations,
-        "total_tokens": total_tokens,
-        "status": status,
+        **kwargs,
     })

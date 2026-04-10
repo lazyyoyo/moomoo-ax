@@ -1,0 +1,15 @@
+items:
+  - question: "SLC(Simple/Lovable/Complete) 기준이 설명되어 있는가?"
+    critical: false
+  - question: "v1 기능 목록이 테이블로 정리되어 있는가?"
+    critical: true
+  - question: "각 기능에 S/L/C 체크가 되어 있는가?"
+    critical: true
+  - question: "Out of Scope이 명시적으로 나열되어 있는가?"
+    critical: true
+  - question: "핵심 사용자 플로우가 단계별로 작성되어 있는가?"
+    critical: true
+  - question: "problem-frame의 Selected Direction이 반영되어 있는가?"
+    critical: true
+  - question: "v1 스코프가 현실적으로 작은 단위인가?"
+    critical: false

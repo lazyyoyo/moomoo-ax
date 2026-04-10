@@ -1,0 +1,15 @@
+items:
+  - question: "Core Job Statement가 'When/I want/so I can' 형식으로 작성되어 있는가?"
+    critical: true
+  - question: "Job Map이 단계별로 구분되어 있는가?"
+    critical: false
+  - question: "Competing Solutions이 최소 2개 이상 나열되어 있는가?"
+    critical: true
+  - question: "각 대안의 장단점이 명시되어 있는가?"
+    critical: false
+  - question: "Underserved Needs가 도출되어 있는가?"
+    critical: true
+  - question: "seed.md의 핵심 내용이 반영되어 있는가?"
+    critical: true
+  - question: "입력에 없는 정보를 지어내지 않았는가?"
+    critical: true

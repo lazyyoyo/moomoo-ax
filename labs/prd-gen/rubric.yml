@@ -1,0 +1,21 @@
+items:
+  - question: "Overview에 제품명과 한줄 설명이 있는가?"
+    critical: true
+  - question: "Background에 Core Job Statement가 포함되어 있는가?"
+    critical: true
+  - question: "Goals에 측정 가능한 성공 지표가 있는가?"
+    critical: true
+  - question: "User Stories가 AS A/I WANT/SO THAT 형식인가?"
+    critical: false
+  - question: "Functional Requirements가 테이블로 정리되어 있는가?"
+    critical: true
+  - question: "각 요구사항에 수용 기준이 있는가?"
+    critical: false
+  - question: "Technical Constraints가 명시되어 있는가?"
+    critical: false
+  - question: "Out of Scope이 scope.md와 일치하는가?"
+    critical: true
+  - question: "앞 단계 문서(seed, jtbd, problem-frame, scope)의 내용이 일관되게 반영되어 있는가?"
+    critical: true
+  - question: "개발자가 이 문서만 보고 구현을 시작할 수 있는 수준인가?"
+    critical: false
