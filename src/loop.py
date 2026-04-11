@@ -1,11 +1,11 @@
 """
-loop.py — 범용 오케스트레이터
+loop.py — levelup loop 오케스트레이터
 
 labs/{stage}/의 script.py를 반복 실행 + 개선하여 rubric 점수를 올린다.
 
 사용법:
-    python src/loop.py seed-gen --project moomoo-ax --user yoyo
-    python src/loop.py seed-gen -p moomoo-ax -u yoyo -n 5 -t 0.9
+    python src/loop.py ax-qa --user yoyo --fixture rubato:0065654
+    python src/loop.py ax-qa -u yoyo -f rubato:0065654 -n 5 -t 0.9
 """
 
 import argparse
@@ -22,7 +22,7 @@ from judge import evaluate
 from db import log_iteration, log_summary
 import claude as claude_api
 
-AX_VERSION = "v0.2"
+AX_VERSION = "v0.1"
 LABS_DIR = Path(__file__).resolve().parent.parent / "labs"
 PYTHON = sys.executable
 
@@ -161,15 +161,15 @@ def get_input_text(lab_dir: Path, input_file: Path | None) -> str:
 
 def run(
     stage: str,
-    project: str,
-    user: str,
+    user_name: str,
+    fixture_id: str | None = None,
     input_file: Path | None = None,
     output_file: Path | None = None,
     max_iter: int = 10,
     threshold: float = 0.85,
 ) -> dict:
     """
-    단일 stage 루프 실행.
+    단일 stage 의 levelup loop 실행.
 
     output_file 지정:
       - 주어지면: 프로젝트 산출물로 간주. best 도달 시 해당 경로에 저장.
@@ -205,7 +205,7 @@ def run(
     total_cost = 0.0
 
     print(f"[loop] stage: {stage}")
-    print(f"[loop] project: {project}, user: {user}")
+    print(f"[loop] user: {user_name}, fixture: {fixture_id or '(none)'}")
     print(f"[loop] max_iter: {max_iter}, threshold: {threshold}")
     print()
 
@@ -233,8 +233,19 @@ def run(
             }
             (logs_dir / f"{i:03d}.json").write_text(
                 json.dumps(log_data, indent=2, ensure_ascii=False))
-            log_iteration(user=user, project=project, experiment=stage,
-                          **log_data)
+            log_iteration(
+                user_name=user_name,
+                stage=stage,
+                fixture_id=fixture_id,
+                iteration_num=i,
+                score=0.0,
+                verdict="crash",
+                failed_items=[{"question": sr.get("error", "")}],
+                tokens=iter_tokens,
+                cost_usd=round(iter_cost, 6),
+                duration_sec=sr["duration_sec"],
+                script_version=file_hash(script_py),
+            )
 
             if program:
                 imp = improve_script(program, script_py, [{"question": sr.get("error", "")}], "")
@@ -279,8 +290,19 @@ def run(
         }
         (logs_dir / f"{i:03d}.json").write_text(
             json.dumps(log_data, indent=2, ensure_ascii=False))
-        log_iteration(user=user, project=project, experiment=stage,
-                      **log_data)
+        log_iteration(
+            user_name=user_name,
+            stage=stage,
+            fixture_id=fixture_id,
+            iteration_num=i,
+            score=score,
+            verdict=verdict,
+            failed_items=failed,
+            tokens=iter_tokens,
+            cost_usd=round(iter_cost, 6),
+            duration_sec=sr["duration_sec"],
+            script_version=file_hash(script_py),
+        )
 
         total_cost += iter_cost
 
@@ -301,9 +323,11 @@ def run(
 
     # summary
     log_summary(
-        user=user, project=project, experiment=stage,
-        final_score=best_score, total_iterations=i,
-        total_tokens=0,  # deprecated, cost_usd로 대체
+        user_name=user_name,
+        stage=stage,
+        fixture_id=fixture_id,
+        best_score=best_score,
+        total_iterations=i,
         total_cost_usd=round(total_cost, 6),
     )
 
@@ -320,19 +344,27 @@ def run(
 
 def main():
     parser = argparse.ArgumentParser(prog="loop")
-    parser.add_argument("stage", help="stage 이름 (labs/ 하위)")
-    parser.add_argument("--project", "-p", required=True)
+    parser.add_argument("stage", help="stage 이름 (labs/ 하위, 예: ax-qa)")
     parser.add_argument("--user", "-u", required=True, help="yoyo / jojo")
+    parser.add_argument("--fixture", "-f",
+                        help="fixture 식별자 (예: rubato:0065654)")
     parser.add_argument("--input", "-i", help="입력 파일/디렉토리")
-    parser.add_argument("--output", "-o", help="산출물 저장 경로 (프로젝트 모드)")
+    parser.add_argument("--output", "-o", help="산출물 저장 경로 (product 모드)")
     parser.add_argument("--max-iter", "-n", type=int, default=10)
     parser.add_argument("--threshold", "-t", type=float, default=0.85)
 
     args = parser.parse_args()
     input_file = Path(args.input).resolve() if args.input else None
     output_file = Path(args.output).resolve() if args.output else None
-    run(args.stage, args.project, args.user, input_file, output_file,
-        args.max_iter, args.threshold)
+    run(
+        stage=args.stage,
+        user_name=args.user,
+        fixture_id=args.fixture,
+        input_file=input_file,
+        output_file=output_file,
+        max_iter=args.max_iter,
+        threshold=args.threshold,
+    )
 
 
 if __name__ == "__main__":
