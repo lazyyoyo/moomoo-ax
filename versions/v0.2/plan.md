@@ -196,31 +196,43 @@ v0.2 에서 B 는 단순 버그 조사가 아니라 **rubric "토큰 효율" 축
 - **improve tokens 로깅 bug** — `logs/{iter}.json` 의 `tokens.improve` 가 0 으로 찍힘 (loop.py 에서 log_data serialize 가 improve 호출보다 먼저). `total_cost_usd` 는 정상. fix 소요 작음.
 - **references/ 장식 상태** — 4개 파일 복사돼있지만 script.py 가 SKILL.md 만 주입. inline 합치기 or tool-based read 로 해결 필요.
 
-### F. haru 실전 첫 적용 (ax-qa, v0.1 labs 버전)
+### F. haru 실전 첫 적용 (ax-qa, v0.1 labs 버전)  ⏭ v0.3 이월
 
-- [ ] **haru** 최근 dev 작업 중 **아직 머지 안 된 브랜치 1개** 선정 (yoyo 확인)
-- [ ] 해당 브랜치 변경 파일을 fixture 형태로 `labs/ax-qa/input/` 에 주입
-- [ ] `labs/ax-qa` 실행 → QA Report 산출
-- [ ] 산출물을 haru 브랜치에 적용 (오너 수락/수정)
-- [ ] interventions row 자동 수집 확인 (C 완료 후)
-- [ ] `versions/v0.2/first-contact.md` — 체감 리포트, 오너 개입 원본 감각 기록
-- [ ] 주의: haru 는 yoyo+남편 2인 사용 private 제품. ax-qa 산출물이 부적절해도 이 자리에서는 적용/거부 판단 자유롭게.
+> **이월 사유**: team-product/product-qa SKILL.md 280줄 실 구조 확인 결과, qa 는 `[setup] → [plan] → [execute] → [signoff]` multi-step 이며 필수 도구가 **Playwright MCP / axe-core / Lighthouse / 서버 제어**. 현재 v0.1 labs/ax-qa 는 `loop.py → script.py → claude -p` one-shot 구조라 이 tool 들을 원천적으로 접근 못함. fixture text 보고 "diff 기반 코드 리뷰 요약" 만 뽑는 수준. rubato v1.6.0/landing-redesign 에 나란히 돌려도 레벨 차이가 커서 비교 데이터 가치 없음.
+>
+> 이는 v0.2 E 에서 발견한 "`claude -p` one-shot ≠ Claude Code tool loop" 한계의 두 번째 실증. v0.3 의 skill invoke 메커니즘 재설계 이후에만 의미 있는 F 를 돌릴 수 있음.
+>
+> 상세: `notes/2026-04-11-v0.2-e-f-codification-insight.md`
 
-### G. 대시보드 최소 업데이트
+- [ ] (이월) haru 미머지 브랜치 선정 / fixture 주입 / labs/ax-qa 실행 / 적용 / interventions 수집 / first-contact.md
+- rubato v1.6.0/landing-redesign 의 team-product /product-qa 진행은 moomoo-ax 와 분리되어 계속됨
 
-- [ ] Live 탭 30초 auto-poll (setInterval + revalidate)
-- [ ] 다른 탭 수정 없음
-- [ ] 빌드/배포
+### G. 대시보드 최소 업데이트  ⏭ v0.3 이월
+
+> **이월 사유**: F 가 이월되어 수집할 실전 interventions / product_runs / fresh feedback 데이터가 없음. Live 탭 auto-poll 만 단독으로 추가해도 표시할 새 데이터 없어 의미 제한적. v0.3 에서 skill invoke 재설계 + 실 데이터 수집과 묶어서 재검토.
+
+- [ ] (이월) Live 탭 30초 auto-poll
+
+## v0.2 최종 상태 (마감)
+
+**완료**: A R5 fix / B 토큰 집계 / C post-commit hook / D /ax-feedback / **E ax-implement (파이프 검증)**
+**이월**: F (haru 실전 ax-qa) / G (대시보드 Live poll) — 둘 다 v0.3 skill invoke 재설계 후 재검토
+
+**v0.2 의 진짜 수확은 두 구조 결함 실증**:
+1. 자연어 압축 ≠ codification (E 에서)
+2. `claude -p` one-shot ≠ Claude Code tool loop (F 에서)
+
+→ v0.3 착수 전 **리서치 phase** 필수. 상세: `notes/2026-04-11-v0.3-research-scope.md`
 
 ## Out of scope (v0.3+)
 
-- **ax-qa 포팅** (v0.1 labs 만 계속 사용) → v0.3
+- **ax-qa 포팅** (v0.1 labs 만 계속 사용) → v0.3 (skill invoke 재설계와 묶어서)
 - **ax-define / ax-design / ax-init / ax-deploy 포팅** → v0.3~0.5
 - **script 추출 자동화** — v0.2 는 식별만, 자동 분리는 v0.3+
 - **`/ax-diff` 수동 명령** → v0.3
 - **재현성 체크 / 기준선 숫자 확정** → v0.3
 - **LLM diff severity 분류** → v0.3~0.4
-- **대시보드 v2 재설계** → v0.3 판단
+- **대시보드 v2 재설계 + 플러그인 카탈로그 페이지** → v0.3 판단
 - **product_runs 자동 수집** (plugin 이 아직 skill 껍데기) → v0.3
 - **`ax-autopilot`** → v0.4
 - **하네스 진화 (rnd/)** → v1.x

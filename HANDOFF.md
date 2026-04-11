@@ -1,148 +1,130 @@
-# HANDOFF — v0.2 중반 → 다음 세션
+# HANDOFF — v0.2 마감 → 다음 세션 (v0.3 Phase 0 리서치)
 
-**작성 시점**: 2026-04-11 (v0.2 D 커밋 직후)
-**다음 작업**: v0.2 E (ax-implement (C') 패턴 정립) 준비 — **오너 sync 필요**
+**작성 시점**: 2026-04-11 (v0.2 E/F 마감 직후)
+**다음 작업**: **v0.3 Phase 0 — 리서치** (코드 구현 아님, 문서/실험 중심)
 
 ## 이전 세션 요약 (1줄)
 
-v0.2 를 (C') Progressive Codification 패턴으로 방향 전환하고 A (R5 fix + `improve_target` 추상화) / B (토큰 집계 조사) / C (자동 diff post-commit hook) / D (`/ax-feedback` CLI) 4 블록을 연속 완료. **4/7 완료**. 엔진 안전, 수집 인프라 2 채널 가동, 첫 실 피드백 row 1개 확보.
+v0.2 E 로 levelup loop 파이프 검증 성공 (iter 1 0.886 → improve → iter 2 1.0), **동시에 구조 결함 2개 실증**: (1) 자연어 압축 ≠ codification, (2) `claude -p` one-shot ≠ Claude Code tool loop. F/G 이월. v0.3 는 리서치부터.
 
 ## 반드시 먼저 읽을 문서 (순서대로)
 
-1. **`PROJECT_BRIEF.md`** — v0.2 방향(C' 패턴) 반영된 최신 로드맵. v1.0 성공 기준에 "SKILL.md deterministic 규칙의 script 추출" 항목 추가됨. 사용자 섹션에 "실험 vs 공개 제품" 가드라인 명문화 (**haru 우선, rubato 는 v0.5+**).
-2. **`versions/v0.2/plan.md`** — A/B/C/D 체크박스 전부 ✅, E/F/G 남음. **"(C') Progressive Codification" 섹션** 꼭 읽을 것. 여기에 SKILL.md 자체 개선 + deterministic 규칙의 script 추출 패턴이 설명돼 있음.
-3. **`CLAUDE.md`** — 3 레이어 / 6 stage 메뉴 / Gotchas
-4. **`notes/v0.2-token-investigation.md`** — 토큰 집계 조사 결과. **rubric 토큰 효율 축 설계안이 E 로 전달되는 지점** — E2 rubric.yml 작성 시 이 문서 참고.
-5. 메모리: `feedback_progressive_codification.md` — SKILL.md 자연어 vs script 의 원칙. E 작업 전체의 기둥.
-
-(선택) `versions/v0.1/report.md` 는 v0.1 종료 상태 스냅샷. 필요 시만.
+1. **`notes/2026-04-11-v0.2-e-f-codification-insight.md`** ⭐ 이번 세션 회고 본체. 두 결함의 정의 + 하이브리드 구조 제안.
+2. **`notes/2026-04-11-v0.3-research-scope.md`** ⭐ v0.3 Phase 0 리서치의 3 축 / 6 실험 / 산출물 / 종료 기준. **다음 세션 진입점.**
+3. **`versions/v0.2/plan.md`** — E 체크박스 모두 ✅, F/G 이월 사유 명시.
+4. **`BACKLOG.md`** — v0.3 Phase 0 (리서치) + Phase 1+ (재설계) 구조로 정돈됨.
+5. **`PROJECT_BRIEF.md`** — v1.0 까지의 로드맵.
+6. **`CLAUDE.md`** — 3 레이어 / 6 stage / Gotchas.
+7. 메모리: `feedback_progressive_codification.md` — SKILL.md 자연어 vs script 원칙 (이번 세션에서 "자연어 압축은 codification 아님" 으로 더 정교화됨).
 
 ## 현재 환경 상태
 
 ### git
 
-- 브랜치: `main` (origin 동기 X — 이번 세션 커밋 5개가 로컬. push 여부 오너 판단)
-- 이번 세션 커밋 5개:
+- 브랜치: `main`
+- 직전 커밋:
   ```
+  (예정) v0.2 마감 — F/G 이월 + 구조 결함 2개 실증 + v0.3 리서치 스코프
+  4764f1e v0.2 E — ax-implement (C') 파이프 검증 + codification 인사이트
+  0ae1f8d HANDOFF.md — v0.2 중반 세션 → 다음 세션 인계
   3174902 v0.2 D — /ax-feedback CLI + team-ax 첫 실제 skill
-  e60aff7 v0.2 C — 자동 diff 수집 post-commit hook
-  aa72722 v0.2 B — 토큰 집계 조사 + cache 필드 분리
-  d432bbe v0.2 A — R5 fix + improve_target 추상화 + 단위 테스트
-  0eab6f8 v0.2 방향 확정 — (C') Progressive Codification + haru 실험장
   ```
 
-### 코드
+### 코드 / 파일
 
-- `src/loop.py` — `improve_artifact` 경로 일반화 (python + markdown 지원, 구조 체크 + 백업 + skip 로그). `program.md` frontmatter 에서 `improve_target` 읽음. AX_VERSION v0.2.
-- `src/claude.py` — tokens dict 4 필드 shape (`input`/`output`/`cache_creation`/`cache_read`). 기존 input/output 키 유지 → 대시보드 호환.
-- `src/judge.py` — empty tokens 4 필드 shape.
-- `src/db.py` — `log_intervention()`, `log_feedback()` 추가. `AX_VERSION = "v0.2"`. `log_feedback` 는 `return=representation` 으로 row id 회수.
-- `labs/ax-qa/program.md` — frontmatter `improve_target: script.py` 추가 (기존 동작 명시).
-- `scripts/ax_generated.py` — `.ax-generated.jsonl` 매니페스트 + `.ax-artifacts/` 헬퍼.
-- `scripts/ax_post_commit.py` — post-commit hook 본체. `__file__` 기반 moomoo-ax 루트 해석. `MOOMOO_AX_DRY_RUN=1` 지원. hook 실패가 커밋 깨지 않도록 항상 0 exit.
-- `scripts/install_ax_diff_hook.sh` — 대상 프로젝트 설치. post-commit marker 블록 idempotent append + `.gitignore` 자동 갱신.
-- `scripts/ax_feedback.py` — `/ax-feedback` CLI 본체. arg / stdin / env / git 매핑 자동 추출.
-- `plugin/skills/ax-feedback/SKILL.md` — team-ax 의 **첫 실제 skill**. 나머지 `plugin/skills/ax-*/` 는 아직 빈 폴더.
-- `tests/` — pytest 52 케이스 (A 23 + C 15 + D 14), 전부 통과. 실행: `.venv/bin/python -m pytest tests/ -q`
+- `plugin/skills/ax-implement/SKILL.md` — **원본 295줄 복구** (hash `6a441acf`). team-product 포팅 상태.
+- `plugin/skills/ax-implement/SKILL.iter2-snapshot.md` — v0.2 E 에서 levelup loop 가 생성한 54줄 압축본. v0.3 비교 참고용 보관.
+- `labs/ax-implement/` — program.md + rubric.yml (범용) + script.py + `input/haru-7475bef/` + logs/ + best/
+- `labs/ax-qa/` — v0.1 동결 상태 (건드리지 않음)
+- 단위 테스트 52 케이스 모두 통과 (`.venv/bin/python -m pytest tests/ -q`)
 
 ### Supabase (project id `aqwhjtlpzpcizatvchfb`)
 
 | 테이블 | row 수 | 비고 |
 |---|---|---|
-| `levelup_runs` | 2 runs (iter + summary 다수) | v0.1 첫 run + v0.2 A 회귀 run (1.0 score) |
-| `interventions` | 0 | C 에서 smoke 후 정리. F (haru 실전) 에서 첫 실 row 예정 |
-| `feedback_backlog` | **1** | D smoke 로 남긴 첫 실 피드백 (id `2a412956-dd69-44fd-bc22-45efafd5de19`, content 에 "v0.2 D 스모크" 포함). 대시보드 empty state 해제 검증 겸 보존 중. |
-| `product_runs` | 0 | v0.3 에서 수집 시작 |
+| `levelup_runs` | v0.1 + v0.2 A (ax-qa) + v0.2 E (ax-implement) 2 run 총 누적 | E 의 iter 1 / iter 2 / summary 포함 |
+| `interventions` | 0 | F 이월로 실 수집은 v0.3 후 |
+| `feedback_backlog` | 1 | v0.2 D smoke row 보존 |
+| `product_runs` | 0 | v0.3 |
 
-### Vercel
+### Python / 환경
 
-- https://moomoo-ax.vercel.app — 이전 세션 배포 그대로. 이번 세션 dashboard 코드 변경 없음.
-- Feedback 탭 / North Star 탭이 실 feedback_backlog row 를 자동으로 읽음 → 새 세션 시작하기 전에 한 번 열어보면 empty state 해제 확인 가능.
+- `.venv/bin/python` 활성
+- `.env`: SUPABASE_URL + ANON_KEY + SERVICE_ROLE_KEY
+- 테스트: `.venv/bin/python -m pytest tests/ -q` → 52 통과
 
-### Python 환경
+## 이번 세션 (v0.2 E/F) 이 배운 것
 
-- `.venv/bin/python` — pyyaml, pytest 포함. 항상 venv 로 실행.
-- `.env`: `SUPABASE_URL` + `SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` 3개 세팅됨.
+### 결함 1 — 자연어 압축 ≠ codification (E)
 
-## 이번 세션이 배운 것
+- levelup loop 가 SKILL.md 를 295줄 → 54줄 로 압축 + HARD RULES R-LEN/R-DRY 섹션 추가
+- 하지만 R-LEN/R-DRY 는 여전히 자연어 — Claude 가 매번 해석
+- **진짜 codification** 은 자연어가 `[run: scripts/check_r_len.py]` 로 교체돼야 함
+- 이번 run 은 "자연어 → 자연어(압축)" 까지만. **codification 0 단계**.
 
-### 방향 전환 (가장 중요)
+### 결함 2 — `claude -p` one-shot ≠ Claude Code tool loop (F)
 
-**(C') Progressive Codification 패턴**이 v0.2 의 설계 기둥. 두 세션 대화의 수렴 결과:
-- team-product 스킬을 seed 로 포팅해서 쓰자 (밑바닥 발명 X)
-- levelup loop 가 SKILL.md 자체 개선 + **자연어 규칙의 script 추출** 둘 다 담당
-- 자연어는 AI 자의적 해석 + 토큰 낭비의 원인. deterministic 한 단계를 코드로 굳혀가는 게 "하네스 자기 진화"의 실체.
-- v0.2 범위는 **ax-implement 1 stage 만** 으로 축소 (패턴 정립이 과업).
-- v1.0 성공 기준에도 이 항목 추가됨.
+- `team-product/skills/product-qa/SKILL.md` (280줄) 은 `[setup] → [plan] → [execute] → [signoff]` multi-step
+- 필수 도구: Playwright MCP, axe-core, Lighthouse, 서버 제어, 스크린샷
+- v0.1 `labs/ax-qa` 는 `subprocess.run → claude -p` one-shot 이라 이 도구 전부 원천 접근 불가
+- fixture text 보고 "diff 기반 코드 리뷰 요약" 만 뽑음 → QA 가 아니라 "review summary 자동화" 수준
+- 이는 ax-qa 고유 문제가 아니라 **levelup loop 전체의 실행 환경 한계**
 
-**실험장 원칙**: private 제품 우선 (haru), public 제품(rubato) 은 v0.5+. 나쁜 AI 산출물이 public 으로 흘러가는 리스크 회피.
+### 공통 원인
 
-### 기술적 발견
+> `subprocess.run(["claude", "-p", prompt])` 는 Claude Code 의 tool loop 이 아니라 single-shot LLM 호출이다.
 
-- **"input 5 token" 미스터리는 버그가 아니라 필드 해석 오류**였음. Claude CLI 는 system prompt + 도구 정의를 자동으로 cache layer 에 분리 → `input_tokens` 는 "이번 호출에서 새로 흘러들어온 non-cached" 만 찍힘. "print hello" 최소 프롬프트에도 `cache_creation_input_tokens = 36,796` (세션 baseline). 이제 4 필드 전부 수집. `total_cost_usd` 가 가장 정확한 단일 지표.
-- **R5 fix 핵심 가드**: `extract_code_block` 이 여러 코드 블록 중 **가장 긴 것** 을 선택. 짧은 예시 블록이 전체 파일 덮어쓰는 사고 방지. + 언어별 구조 체크 (python: main/`__name__`, markdown: frontmatter name 또는 H2 2+). + 백업 (`.prev`).
-- **post-commit hook 의 `.gitignore` 자동 추가 는 필수**. smoke 1회차에서 `.ax-generated.jsonl` 과 `.ax-artifacts/` 가 커밋에 같이 들어가는 문제 발견. install 스크립트에서 `.gitignore` 블록 자동 갱신하도록 추가함.
-- **R6 해결**: post-commit hook 이 product_runs 에 의존하지 않도록 `.ax-generated.jsonl` 매니페스트 파일 기반으로 판정. v0.2 범위에 product_runs 자동 수집 없이도 동작.
-- **`lazyyoyo` → `yoyo` 매핑**: `ax_feedback.py:GIT_USER_TO_AX_USER` 에 등록. jojo 추가 예정.
+Claude Code 런타임 안에서만 되는 것 (`claude -p` 에서 불가):
+- Bash/Read/Write tool call
+- MCP server (Playwright, Supabase)
+- Agent tool (서브에이전트 호출)
+- Skill load / `/command` 호출
+- interactive tool loop
 
-### 테스트 패턴
+### 오너가 지적한 과거 경험
 
-- pytest 52 케이스 모두 실 Claude 호출 없는 mock 기반 — 빠르고 저렴 (0.64s).
-- subprocess 기반 임시 git repo fixture (`tmp_git_repo`) 로 post-commit hook end-to-end 검증.
-- `types.SimpleNamespace` 로 db 모듈 mock — argparse 주입 + monkeypatch 조합.
+my-agent-office 에서 Ralph loop 을 Python script 로 하려다 제약 많아 skill 로 풀었던 경험과 **동일한 벽**. moomoo-ax 가 "Python 만으로 가능" 가정한 v0.1~v0.2 의 전제가 깨진 지점.
 
-## 다음 액션: v0.2 E 시작 준비
+## 다음 세션 — v0.3 Phase 0 리서치 시작점
 
-### 오너 인터뷰 / sync 먼저 필요
+`notes/2026-04-11-v0.3-research-scope.md` 를 읽고 그대로 수행.
 
-1. **haru fixture 선정** — ax-implement 의 첫 cycle fixture 로 쓸 haru 의 **작은 feature 커밋 1건** (30~100 줄 수준). 후보 조건:
-   - 구현 의도가 명확 (decisions.md / BACKLOG.md 에 맥락 남아 있는 것)
-   - 단일 파일 또는 2~3 파일 미만
-   - 리팩토링 X, 순수 추가 또는 기능 추가
-   - refactor/fix 가 아닌 feature (implement 는 "없던 걸 만드는" 성격)
-   - 너무 단순(1-2줄 변경)이면 rubric 구분력 떨어짐
+**3 축**:
+1. `docs/claude-code-spec/` 레퍼런스 구축 (skill/plugin/command/agent/hook/cli/permissions)
+2. Claude Code CLI tool-enabled 호출 가능성 탐색 (`--allowedTools`, skill load, 재귀 호출 등)
+3. 하이브리드 loop 실험 6개 (echo / stateful / recursion / skill-load / cost / MCP)
 
-   **새 세션에서 할 일**: `~/hq/projects/journal/` 에 들어가서 git log + BACKLOG.md + HANDOFF.md 같이 보면서 후보 2~3개 뽑고 오너와 함께 선정.
+**종료 기준**:
+- 축 2 의 7개 문서 초안
+- 축 1 의 세부 질문 모두 "확인/불가능/조건부" 판정
+- 축 3 의 실험 6개 모두 결과 기록
+- `notes/2026-04-12-v0.3-feasibility.md` — Path A (하이브리드) vs Path B (완전 skill) 선택 + 근거
 
-2. **product-implement 포팅 시 버릴 것 확인** — team-product/skills/product-implement/SKILL.md 의 일부는 moomoo-ax 컨텍스트에서 불필요:
-   - conductor 메인세션 / subagent planner/executor 구조는 그대로 안 들어감 (`src/loop.py` 가 Claude CLI 직접 호출이라 에이전트 계층 없음)
-   - preflight 의 일부 체크리스트는 script 로 추출 가능한 후보
-   - Codex Adversarial 리뷰 단계는 v0.2 범위 밖
-   
-   → **v0.2 에서는 복사 후 "불필요한 것 주석만"** 최소 편집 원칙 (plan R12). 본격 재구성은 levelup loop 가 담당.
+**범위 밖** (판정 전 코드 구현 금지):
+- `labs/ax-implement` 재설계
+- 새 stage 포팅
+- 대시보드 카탈로그
 
-### 인터뷰 없이 확정된 것 (plan v2.1 / notes / 전 세션 대화 기반)
+### 첫 세션 권장 순서
 
-- E1 포팅 → E2 래퍼 → E3 fixture → E4 첫 run → E5 improve 경로 검증 순서
-- `labs/ax-implement/program.md` frontmatter: `improve_target: ../../plugin/skills/ax-implement/SKILL.md`
-- rubric 축: 오너 기대치 + 정량 (타입/빌드/lint) + **토큰 효율** (`total_cost_usd` 권장, `output_tokens` 보조). 첫 run 을 기준선, 상대 비교로 감점. absolute threshold 는 v0.3.
-- fixture_id 규약: `haru:{short_sha}`
-- 첫 run threshold 는 낮게 (0.85). 너무 엄격하면 improve 경로만 계속 탐.
-
-### E 완료 기준 체크박스는 plan.md 에 이미 상세히 있음 — 그거 따라가면 됨.
-
-## 보류 / 열린 것
-
-- **대시보드 cache breakdown 차트** — v0.3 작업 (현재 tokens 탭은 input/output 만 보여줌, cache 필드는 DB 에 있지만 미표시).
-- **product_runs 자동 수집** — v0.3. 현재 C hook 은 `.ax-generated` 매니페스트 기반이라 의존성 없음.
-- **/ax-diff 수동 명령** — v0.3. 현재 C hook 하나로 충분.
-- **ax-qa 포팅** — v0.3. v0.1 `labs/ax-qa` 는 동결, smoke test 용으로만 남음.
-- **재현성 체크 / 북극성 기준선 숫자** — v0.3, 실전 데이터 2~3건 본 뒤.
-- **대시보드 v2 재설계 여부** — v0.2 E/F 데이터 본 뒤 v0.3 에서 판단.
+1. `notes/2026-04-11-v0.3-research-scope.md` 재확인
+2. `docs/claude-code-spec/` 디렉토리 생성 + README.md
+3. `claude --help` 풀 출력 + 각 flag 조사 → `docs/claude-code-spec/cli.md` 초안
+4. `claude-code-guide` 플러그인 호출해 skill/plugin/hook/command/agent 규약 수집 → 각 md 초안
+5. 실험 1 (echo) — Python 이 `claude --allowedTools Read -p "Read file X and echo it"` 실 호출 + 결과 분석
 
 ## 금지 사항
 
-- **rubato 에 ax-* 산출물 적용 금지** — public 제품. v0.5+ 에서만. v0.2 는 haru 전용.
-- **labs/ax-qa/ 건드리지 말 것** — v0.1 smoke test 로 동결. improve_target 추상화 회귀 테스트 기반. (ax-qa 포팅은 v0.3.)
-- **product_runs 자동 수집 추가 금지** — 범위 밖. C hook 은 매니페스트 기반으로 이미 해결됨.
-- **자연어 SKILL.md 를 새로 작성 금지** — E1 은 **team-product 포팅 (복사)**. 발명 X. 자연어 규칙의 재작성은 levelup loop 가 담당.
-- **대시보드 v2 재설계 금지** — 범위 밖. Live 30초 poll 하나만 v0.2 G 에서.
-- **`/ax-diff` 명령 구현 금지** — v0.3.
-- **태스크 tool 도구 사용 금지** (세션 내 작업 추적에 쓰지 말 것) — 메모리에 저장된 가드라인.
+- **v0.3 코드 구현 금지** (리서치 판정 전)
+- **rubato 에 ax-* 산출물 적용 금지** — 여전히 유효. 원칙 재확인.
+- **labs/ax-qa/ 건드리지 말 것** — v0.1 smoke test 로 동결. ax-qa 포팅은 v0.3 재설계 후.
+- **태스크 tool 사용 금지** — 메모리 가드라인.
+- **`/ax-diff` 수동 명령 구현 금지** — v0.3.
+- **대시보드 v2 재설계 금지** — Phase 0 리서치 후 판단.
 
-## 이번 세션 Retro 한 줄
+## v0.2 Retro 한 줄
 
-> 방향 전환(C')을 한 세션 내에 결정하고 그 패턴을 뒷받침하는 엔진 안전성(A) + 수집 인프라(B/C/D) 를 모두 끝낸 게 가장 큰 수확. E 가 시작할 때 환경은 "준비 완료" 상태. 다음 세션은 fixture 선정 → 포팅 → 첫 cycle 흐름을 의심 없이 타면 됨.
+> E 로 파이프를 증명했고 F 로 Python one-shot 의 한계를 실증했다. 수확은 파이프 1건이 아니라 **"벽 2개의 위치" 를 정확히 찍었다는 것**. v0.3 는 그 벽을 피하거나 넘는 설계를 해야 하며, 그 판단은 리서치 결과에 달려있다.
 
 ## 커맨드 치트시트
 
@@ -150,18 +132,13 @@ v0.2 를 (C') Progressive Codification 패턴으로 방향 전환하고 A (R5 fi
 # 테스트 회귀
 .venv/bin/python -m pytest tests/ -q
 
-# ax-qa 회귀 run (v0.1 동일 조건)
-.venv/bin/python src/loop.py ax-qa --user yoyo --fixture rubato:0065654 --max-iter 2 --threshold 0.95
+# ax-implement 재실행 (참고)
+.venv/bin/python src/loop.py ax-implement --user yoyo --fixture haru:7475bef \
+  --input labs/ax-implement/input/haru-7475bef --max-iter 3 --threshold 0.95
 
-# /ax-feedback 수동 호출
-.venv/bin/python scripts/ax_feedback.py --priority high --stage ax-implement "..."
+# /ax-feedback 수동
+.venv/bin/python scripts/ax_feedback.py --priority high --stage v0.3-research "..."
 
-# post-commit hook 설치 (대상 프로젝트)
-scripts/install_ax_diff_hook.sh ~/hq/projects/journal
-
-# post-commit hook dry-run (manifest 매칭만 찍고 insert 안 함)
+# post-commit hook dry-run
 MOOMOO_AX_DRY_RUN=1 .venv/bin/python scripts/ax_post_commit.py /path/to/target
-
-# DB 조회 (Supabase MCP)
-# select count(*) from levelup_runs / interventions / feedback_backlog / product_runs;
 ```
