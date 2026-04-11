@@ -1,0 +1,38 @@
+{
+  "iteration": 1,
+  "score": 0.886,
+  "verdict": "keep",
+  "failed_items": [
+    {
+      "question": "공개 함수 본체가 60줄 이하로 유지되는가? (초과 시 분기/유틸이 헬퍼 함수로 분리되어 있음)",
+      "priority": "medium"
+    },
+    {
+      "question": "DRY — 같은 상수값/리터럴(특히 특수 문자 목록, 요일/단위 이름 등)이 코드 전반(정규식/문자열 포함)에서 2회 이상 중복 하드코딩되지 않고 단일 상수에서 참조되는가?",
+      "priority": "medium"
+    }
+  ],
+  "tokens": {
+    "script": {
+      "input": 5,
+      "output": 6844,
+      "cache_creation": 48836,
+      "cache_read": 0
+    },
+    "judge": {
+      "input": 6,
+      "output": 437,
+      "cache_creation": 41357,
+      "cache_read": 0
+    },
+    "improve": {
+      "input": 0,
+      "output": 0,
+      "cache_creation": 0,
+      "cache_read": 0
+    }
+  },
+  "cost_usd": 0.996949,
+  "duration_sec": 93.2,
+  "script_version": "6a441acf"
+}

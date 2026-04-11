@@ -153,48 +153,48 @@ v0.2 에서 B 는 단순 버그 조사가 아니라 **rubric "토큰 효율" 축
   - 이 row 는 **첫 실 피드백** 으로 보존 (대시보드 empty state → 실 content 검증)
 - [x] 대시보드 `feedback/page.tsx` + `north-star/page.tsx` 가 이미 `feedback_backlog` 읽음 → 자동 표시
 
-### E. `ax-implement` — (C') 패턴 첫 케이스
+### E. `ax-implement` — (C') 패턴 첫 케이스  ✅ (파이프 검증)
 
-#### E1. team-product 포팅
-- [ ] `plugin/skills/ax-implement/SKILL.md` ← team-product/skills/product-implement/ 에서 복사
-- [ ] `plugin/skills/ax-implement/references/` ← 필요 체크리스트 복사 (preflight, review, security 등)
-- [ ] skill 이름 / 경로 / team-ax 네이밍 rename
-- [ ] 불필요한 팀 의존(예: conductor 메인세션 전제 등) 정리 — 단, 로직은 건드리지 않음. "이 부분은 script 추출 후보" 라고 주석만.
+> **결과 요약**: levelup loop 파이프 검증 완료. iter 1 score 0.886 → improve → iter 2 score 1.0.
+> 단, 이번 run 에서 발견: **자연어 압축 ≠ codification**. 진짜 codification (`[run: ...]` 규약 + script 추출 + multi-file bundle + skill invoke 메커니즘) 은 **v0.3 로 이월**. 상세: `notes/2026-04-11-v0.2-e-codification-insight.md`.
 
-#### E2. labs 래퍼
-- [ ] `labs/ax-implement/program.md`
-  - 오너 규칙 / 입력 계약 / 출력 계약
-  - `improve_target: ../../plugin/skills/ax-implement/SKILL.md`
-  - fixture 디렉토리 구조 표준 준수 (`input/{fixture_id}/`)
-- [ ] `labs/ax-implement/rubric.yml`
-  - critical: 타입 체크 통과, 빌드 통과, 스펙 항목 전부 포함, Owner Expectation
-  - high: 기존 테스트 regress 없음, lint 0, Owner Expectation
-  - medium: 코드 스타일 일관성, 불필요 diff 없음, **토큰 효율**
-  - low: 주석 품질, 변수명 일관성
-- [ ] `labs/ax-implement/script.py`
-  - stdin fixture 로드 (ax-qa 와 동일 `=== FILE: {rel} ===` 마커)
-  - `plugin/skills/ax-implement/SKILL.md` 로드 → Claude CLI 시스템 프롬프트에 주입
-  - fixture 스펙/컨텍스트 → Claude CLI user input
-  - stdout: 구조화된 구현 산출물 (patch + 요약 + 자체 검증)
+#### E1. team-product 포팅  ✅
+- [x] `plugin/skills/ax-implement/SKILL.md` ← team-product/skills/product-implement/ 에서 복사 (295줄)
+- [x] `plugin/skills/ax-implement/references/` ← preflight/review/security/backpressure 4개 복사 (현재 장식 상태 — v0.3 에서 inline 또는 tool read 결정)
+- [x] frontmatter rename (ax-implement)
+- [x] moomoo-ax 컨텍스트 불일치 구간에 `[ax-note]` 주석 (subagent 계층, .phase 파일, Codex Adversarial, /product-qa GATE 등)
 
-#### E3. fixture 준비
-- [ ] **haru** (`~/hq/projects/journal/`) 최근 **작은 feature 커밋 1건** 선정 (30~100 줄 수준)
-- [ ] `labs/ax-implement/input/{fixture_id}/`  — fixture_id 규약: `haru:{short_sha}`
-  - `SPEC.md` — "이 커밋이 구현해야 했던 feature" 를 스펙 형태로 recreate
-  - `base/` — 커밋 직전 상태의 관련 파일들
-  - `META.md` — fixture_id, 원본 커밋 해시, 선택 이유
-- [ ] haru 선정 과정 — 구현 중이면서 의도가 명확한 commit 우선. decisions.md / BACKLOG.md 참조해 맥락 복원 가능한 것.
+#### E2. labs 래퍼  ✅
+- [x] `labs/ax-implement/program.md` — 오너 규칙 + 입력/출력 계약 + `improve_target: ../../plugin/skills/ax-implement/SKILL.md`
+- [x] `labs/ax-implement/rubric.yml` — **범용 (fixture-agnostic)** 으로 재작성. critical 6 + high 6 + medium 7 + low 3. fixture-specific 검증은 SPEC.md 의 "완료 기준" 으로 위임
+- [x] `labs/ax-implement/script.py` — stdin fixture + SKILL.md 주입 + Claude CLI call + stdout 산출물
 
-#### E4. 첫 cycle 실행
-- [ ] `.venv/bin/python src/loop.py ax-implement --user yoyo --fixture {fixture_id} --max-iter 2 --threshold 0.85` (threshold 첫 run 은 낮게)
-- [ ] `labs/ax-implement/logs/` + `best/` 생성 확인
-- [ ] Supabase `levelup_runs` row 확인
-- [ ] 대시보드 Levelup 탭에 run 표시 확인
+#### E3. fixture 준비  ✅
+- [x] **haru** 의 `7475bef feat(dev): @날짜 파서 구현 + 테스트 16건` 선정 — 단일 파일 파서 98줄 + 테스트 16건, spec 문서 (`dev/docs/specs/date-natural-input.md`) 존재
+- [x] `labs/ax-implement/input/haru-7475bef/` — `SPEC.md` (완료 기준 7개) + `META.md` + `base/{parse-hashtag.ts,date-utils.ts}`
 
-#### E5. improve 경로 동작 확인
-- [ ] threshold 를 의도적으로 높여(`0.99`) iter 2 이상 돌려서 `improve_script` 가 `SKILL.md` 를 실제로 덮어쓰는지 확인
-- [ ] 덮어쓴 SKILL.md 가 구조 체크 통과, 다음 iter 에서 정상 로드
-- [ ] **"script 추출 후보"** 식별 — SKILL.md 섹션 중 deterministic 해 보이는 부분 리스트업 (자동 추출은 아니고 v0.3 입력)
+#### E4. 첫 cycle 실행  ✅
+- [x] v0 rubric (fixture-specific) 으로 첫 run → score **1.0** 바로 통과, cost $0.9510, duration 97s. 파이프 검증만 됨.
+- [x] rubric 범용화 리팩터 (범용 lint 축 추가) 후 재실행 → iter 1 score **0.886** (medium 2 fail — 함수 길이, DRY 요일 중복)
+- [x] `labs/ax-implement/logs/` + `best/` 생성 확인 (이전 v1 rubric run 은 `labs/ax-implement/logs_run1_v1rubric/`, `best_run1_v1rubric/` 로 보존)
+- [x] Supabase `levelup_runs` row 확인 (2 runs)
+
+#### E5. improve 경로 동작 확인  ✅
+- [x] iter 1 score 0.886 → `improve_artifact` 호출 → SKILL.md 덮어쓰기 (`6a441acf → a2fdb5f1`, 295줄 → 54줄, R5 guard 정상 동작)
+- [x] iter 2 가 새 SKILL.md 로 정상 로드 → score **1.0** → 임계값 도달 종료
+- [x] **"script 추출 후보" 식별**: SKILL.md 안의 R-LEN (공개 함수 본체 60줄) 과 R-DRY (리터럴/상수 단일 선언) 두 규칙이 가장 우선 순위. R-LEN 은 AST 기반 `scripts/check_r_len.py` 로 추출 가능 (v0.3 첫 타겟). R-DRY 는 AST + regex 스캔 조합.
+
+#### E 진행 메모
+- 2026-04-11 첫 run — v0 rubric 은 fixture-specific 하게 잘못 짜여서 score 1.0 바로 통과. improve 경로 미발동.
+- 2026-04-11 rubric 범용화 — fixture-agnostic 으로 재작성 후 재실행. iter 1 0.886 → improve → iter 2 1.0. (C') 패턴 파이프 증명.
+- 2026-04-11 E 마무리 — SKILL.md 는 원본 295줄 복구. 54줄 결과물은 `plugin/skills/ax-implement/SKILL.iter2-snapshot.md` 로 보관. 교훈 노트: `notes/2026-04-11-v0.2-e-codification-insight.md`.
+
+#### E 미해결 (v0.3 로 이월)
+- **skill invoke 메커니즘 괴리** — 현재 `claude -p` one-shot 은 Claude Code plugin 의 tool-enabled skill invocation 과 다름. levelup loop 가 측정하는 품질이 product loop 실 품질과 괴리.
+- **`[run: ...]` 규약 부재** — 이번 run 은 자연어 295줄을 자연어 54줄로 압축만 했음. 진짜 codification 은 자연어가 `[run: scripts/foo.py]` 로 교체돼야 함.
+- **improve_target = single file** — SKILL.md 만 개선 가능. skill bundle (SKILL.md + scripts + references + agents) 단위로 확장 필요.
+- **improve tokens 로깅 bug** — `logs/{iter}.json` 의 `tokens.improve` 가 0 으로 찍힘 (loop.py 에서 log_data serialize 가 improve 호출보다 먼저). `total_cost_usd` 는 정상. fix 소요 작음.
+- **references/ 장식 상태** — 4개 파일 복사돼있지만 script.py 가 SKILL.md 만 주입. inline 합치기 or tool-based read 로 해결 필요.
 
 ### F. haru 실전 첫 적용 (ax-qa, v0.1 labs 버전)
 
