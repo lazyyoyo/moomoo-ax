@@ -80,18 +80,24 @@ v0.2 안에서 실제 script 추출까지 자동으로 일어나진 않아도 **
   - cost $0.9653, improve_target 경로 정확히 로깅, best/ 저장 정상
 - [ ] (선택) `--threshold 0.99` 로 improve 경로 실행 검증 — 비용/품질 저하 리스크 있어 v0.2 내 보류. 단위 테스트로 모든 분기 커버됨.
 
-### B. 토큰 집계 조사 (격상: rubric 설계 input)
+### B. 토큰 집계 조사 (격상: rubric 설계 input)  ✅
 
-v0.2 에서 B 는 단순 버그 조사가 아니라 **rubric "토큰 효율" 축 설계의 전제**다.
+v0.2 에서 B 는 단순 버그 조사가 아니라 **rubric "토큰 효율" 축 설계의 전제**였음.
 
-- [ ] `src/claude.py` 의 token 파싱 경로 확인 — Claude CLI `--output-format json` 구조 재검증
-- [ ] prompt caching 필드 확인 — `cache_read_input_tokens` / `cache_creation_input_tokens` 별도 존재 여부
-- [ ] 수정안 결정:
-  - (a) 실제 prompt byte 기반 대체 지표 추가
-  - (b) cache 관련 필드를 별도 컬럼으로 기록
-  - (c) 현상 유지 + 주석
-- [ ] **rubric 토큰 효율 축 설계**: 같은 fixture 기준 output_tokens 가 일정 범위 넘으면 감점 (수치 기준선은 ax-implement 첫 run 결과 본 뒤 정함)
-- [ ] `notes/v0.2-token-investigation.md` 로 결정 기록
+- [x] `src/claude.py` 의 token 파싱 경로 확인 — Claude CLI `--output-format json` 구조 재검증
+- [x] prompt caching 필드 확인 — `cache_creation_input_tokens` / `cache_read_input_tokens` **둘 다 별도 존재**. "print hello" 최소 프롬프트에도 cache_creation 36,796 토큰 (세션 baseline).
+- [x] **결정: (b) — cache 필드 별도 키로 기록**
+  - (a) 미채택: prompt byte 토큰 추정 오차 큼
+  - (c) 미채택: rubric 토큰 효율 축 설계 불가
+  - 스키마 변경 없음 (tokens JSONB 가 새 키 흡수)
+- [x] `src/claude.py` `tokens` shape 확장: `{input, output, cache_creation, cache_read}` (4 필드)
+- [x] `src/loop.py` `empty_tokens` 4 필드 + stderr aggregation 도 4 필드 합산
+- [x] `src/judge.py` empty return 도 4 필드 shape
+- [x] `src/db.py` `AX_VERSION = "v0.2"` bump
+- [x] dashboard 호환 확인 — `t[part]?.input ?? 0` 옵셔널 체이닝이라 새 필드 무시, 기존 키 유지 → 깨지지 않음. 대시보드 cache breakdown 표시는 v0.3.
+- [x] 실측 검증: `.venv/bin/python -c "import claude; claude.call('say hi')"` → `{'input': 6, 'output': 10, 'cache_creation': 36830, 'cache_read': 0}` cost $0.3103 반환 확인
+- [x] **rubric 토큰 효율 축 설계 (E 로 전달)**: 1) 권장 `total_cost_usd` (cache tier 가중치 반영), 2) 보조 `output_tokens` (산출물 장황함 감지). 첫 run 을 기준선으로 잡고 상대 비교로 감점. absolute threshold 는 v0.3.
+- [x] `notes/v0.2-token-investigation.md` 결정 기록 (usage 필드 전수 정리 + rubric 설계 포함)
 
 ### C. 자동 diff 수집 — post-commit hook
 

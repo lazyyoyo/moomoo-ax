@@ -210,14 +210,14 @@ def run_script(script_py: Path, input_text: str) -> dict:
     duration = round(time.monotonic() - start, 1)
 
     # stderr에서 토큰 메타 파싱
-    tokens = {"input": 0, "output": 0}
+    tokens = {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}
     cost_usd = 0
     for line in result.stderr.splitlines():
         try:
             meta = json.loads(line)
             if "tokens" in meta:
-                tokens["input"] += meta["tokens"].get("input", 0)
-                tokens["output"] += meta["tokens"].get("output", 0)
+                for key in ("input", "output", "cache_creation", "cache_read"):
+                    tokens[key] += meta["tokens"].get(key, 0)
                 cost_usd += meta.get("cost_usd", 0)
         except json.JSONDecodeError:
             pass
@@ -369,11 +369,14 @@ def run(
     print(f"[loop] max_iter: {max_iter}, threshold: {threshold}")
     print()
 
+    empty_tokens = {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}
     for i in range(1, max_iter + 1):
         print(f"── iteration {i}/{max_iter} ──────────────────────")
-        iter_tokens = {"script": {"input": 0, "output": 0},
-                       "judge": {"input": 0, "output": 0},
-                       "improve": {"input": 0, "output": 0}}
+        iter_tokens = {
+            "script": dict(empty_tokens),
+            "judge": dict(empty_tokens),
+            "improve": dict(empty_tokens),
+        }
         iter_cost = 0.0
 
         # 1. script.py 실행
@@ -414,7 +417,7 @@ def run(
                     [{"question": sr.get("error", "")}],
                     "",
                 )
-                iter_tokens["improve"] = imp.get("tokens", {"input": 0, "output": 0})
+                iter_tokens["improve"] = imp.get("tokens", dict(empty_tokens))
                 total_cost += imp.get("cost_usd", 0)
             continue
 
@@ -483,7 +486,7 @@ def run(
         if failed and program_body and i < max_iter:
             print(f"[개선] {improve_target_path.name} 수정...")
             imp = improve_artifact(program_body, improve_target_path, failed, output)
-            iter_tokens["improve"] = imp.get("tokens", {"input": 0, "output": 0})
+            iter_tokens["improve"] = imp.get("tokens", dict(empty_tokens))
             total_cost += imp.get("cost_usd", 0)
             if not imp.get("skipped"):
                 print(f"[개선] 완료 ({file_hash(improve_target_path)})")

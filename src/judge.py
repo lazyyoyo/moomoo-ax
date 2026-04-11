@@ -37,7 +37,10 @@ def evaluate(rubric_path: Path, output: str) -> tuple[float, list[dict], dict]:
     """
     items = load_rubric(rubric_path)
     if not items:
-        return 0.0, [], {"tokens": {"input": 0, "output": 0}, "cost_usd": 0}
+        return 0.0, [], {
+            "tokens": {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0},
+            "cost_usd": 0,
+        }
 
     # 번호 매겨서 프롬프트 구성
     questions_text = ""

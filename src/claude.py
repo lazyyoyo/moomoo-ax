@@ -18,11 +18,20 @@ def call(prompt: str, output_format: str = "json", timeout: int = 300) -> dict:
         {
             "success": bool,
             "output": str,          # 결과 텍스트
-            "tokens": {"input": int, "output": int},
-            "cost_usd": float,
+            "tokens": {
+                "input": int,           # non-cached 입력 (이번 호출에서 새로 흘러들어온)
+                "output": int,          # 생성 토큰
+                "cache_creation": int,  # 이번 호출에서 캐시에 쓴 양 (비용 있음)
+                "cache_read": int,      # 이전 캐시에서 읽은 양 (거의 무료)
+            },
+            "cost_usd": float,      # Claude CLI 가 계산한 실제 비용 (가장 정확)
             "duration_sec": float,
             "error": str | None,
         }
+
+    주의: input_tokens 만 보면 전체 프롬프트 크기를 크게 과소평가한다.
+    Claude CLI 가 system prompt + 도구 정의 대부분을 cache 로 분리하기 때문.
+    토큰 효율 비교 시 cost_usd 또는 (input + cache_creation + cache_read) 합산 사용.
     """
     start = time.monotonic()
     result = subprocess.run(
@@ -31,11 +40,13 @@ def call(prompt: str, output_format: str = "json", timeout: int = 300) -> dict:
     )
     duration = round(time.monotonic() - start, 1)
 
+    empty_tokens = {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}
+
     if result.returncode != 0:
         return {
             "success": False,
             "output": "",
-            "tokens": {"input": 0, "output": 0},
+            "tokens": empty_tokens,
             "cost_usd": 0,
             "duration_sec": duration,
             "error": result.stderr.strip()[:500] or f"exit {result.returncode}",
@@ -52,6 +63,8 @@ def call(prompt: str, output_format: str = "json", timeout: int = 300) -> dict:
                 "tokens": {
                     "input": usage.get("input_tokens", 0),
                     "output": usage.get("output_tokens", 0),
+                    "cache_creation": usage.get("cache_creation_input_tokens", 0),
+                    "cache_read": usage.get("cache_read_input_tokens", 0),
                 },
                 "cost_usd": data.get("total_cost_usd", 0),
                 "duration_sec": duration,
@@ -61,7 +74,7 @@ def call(prompt: str, output_format: str = "json", timeout: int = 300) -> dict:
             return {
                 "success": True,
                 "output": result.stdout.strip(),
-                "tokens": {"input": 0, "output": 0},
+                "tokens": empty_tokens,
                 "cost_usd": 0,
                 "duration_sec": duration,
                 "error": None,
@@ -71,7 +84,7 @@ def call(prompt: str, output_format: str = "json", timeout: int = 300) -> dict:
     return {
         "success": True,
         "output": result.stdout.strip(),
-        "tokens": {"input": 0, "output": 0},
+        "tokens": empty_tokens,
         "cost_usd": 0,
         "duration_sec": duration,
         "error": None,

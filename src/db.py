@@ -30,7 +30,7 @@ SUPABASE_URL = os.environ.get(
 )
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
-AX_VERSION = "v0.1"
+AX_VERSION = "v0.2"
 
 
 def _post(table: str, payload: dict) -> bool:
