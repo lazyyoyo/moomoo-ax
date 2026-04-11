@@ -1,3 +1,7 @@
+---
+improve_target: script.py
+---
+
 # ax-qa — 오너 규칙
 
 ## 목적
