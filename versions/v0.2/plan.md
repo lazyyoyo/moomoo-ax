@@ -99,15 +99,34 @@ v0.2 에서 B 는 단순 버그 조사가 아니라 **rubric "토큰 효율" 축
 - [x] **rubric 토큰 효율 축 설계 (E 로 전달)**: 1) 권장 `total_cost_usd` (cache tier 가중치 반영), 2) 보조 `output_tokens` (산출물 장황함 감지). 첫 run 을 기준선으로 잡고 상대 비교로 감점. absolute threshold 는 v0.3.
 - [x] `notes/v0.2-token-investigation.md` 결정 기록 (usage 필드 전수 정리 + rubric 설계 포함)
 
-### C. 자동 diff 수집 — post-commit hook
+### C. 자동 diff 수집 — post-commit hook  ✅
 
-- [ ] `scripts/install-ax-diff-hook.sh` — `.git/hooks/post-commit` 에 idempotent append
-- [ ] `scripts/ax_post_commit.py`
-  - [ ] `.ax-generated` 매니페스트 파일 기반 판정 (product_runs 의존 회피, R6 해결책)
-  - [ ] `git diff HEAD~1 HEAD -- {path}` → hunks/lines/files 파싱
-  - [ ] `interventions` row insert (service_role)
-- [ ] smoke test: 로컬에서 dummy `.ax-generated` + 파일 수정 commit → interventions row 확인
-- [ ] 대시보드 North Star 탭에서 row 표시 확인
+- [x] **설계 확정**: `.ax-generated.jsonl` JSONL 매니페스트 + `.ax-artifacts/{path}` 원본 사본. 커밋 후 hook 이 교집합 검사 → diff 측정 → intervention insert → 매니페스트/artifact 제거 (베이스라인 리셋).
+- [x] `scripts/ax_generated.py` — 매니페스트 헬퍼 (`record` / `lookup` / `read_artifact` / `reconcile` / `all_tracked_paths`)
+- [x] `scripts/ax_post_commit.py` — hook 본체
+  - [x] `__file__` 기준 moomoo-ax 루트 자동 해석 → .env 로딩 재사용
+  - [x] `git diff-tree --no-commit-id --name-only -r HEAD` 로 커밋 변경 파일 추출
+  - [x] `difflib.SequenceMatcher` 기반 hunks/lines 측정 (pure Python)
+  - [x] Supabase `interventions` row insert (`src/db.py:log_intervention`)
+  - [x] 성공 시 매니페스트 엔트리 + artifact 제거 (베이스라인 리셋)
+  - [x] `MOOMOO_AX_DRY_RUN=1` 환경변수로 dry-run 모드
+  - [x] hook 실패가 커밋 깨지 않도록 0 exit 보장
+- [x] `src/db.py` `log_intervention()` 함수 추가 (interventions 스키마 대응)
+- [x] `scripts/install_ax_diff_hook.sh` — 대상 프로젝트에 설치
+  - [x] `.git/hooks/post-commit` 에 marker 블록 append (idempotent)
+  - [x] 기존 post-commit 과 공존
+  - [x] **`.gitignore` 자동 갱신** — `.ax-generated.jsonl` + `.ax-artifacts/` 제외 (smoke 1회차에서 발견)
+- [x] **단위 테스트** `tests/test_ax_post_commit.py` — 15 케이스 전원 통과
+  - ax_generated: record / lookup / reconcile / all_tracked_paths / latest-entry 선택
+  - compute_diff_stats: identical / pure add / pure delete / replace
+  - process_commit end-to-end: 매니페스트 없음 / 원본 그대로 / 수정됨 / untracked 무시 / 혼합
+  - 임시 git repo fixture 로 실 git 명령 흐름 검증
+- [x] **실 smoke test (`/tmp/ax-hook-smoke/`)**:
+  - install → post-commit hook + .gitignore 블록 생성
+  - record → 수정 → commit → hook 자동 발동
+  - Supabase `interventions` 실 insert (3+ / 1-, hunks 2/1, commit sha 정확)
+  - smoke row 삭제, 임시 repo `~/.Trash/` 이동
+- [x] 대시보드 `north-star/page.tsx` 이미 `interventions` count 읽음 → F 에서 실 row 들어오면 자동 표시
 
 ### D. `/ax-feedback` CLI
 

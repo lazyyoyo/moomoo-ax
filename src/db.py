@@ -94,6 +94,38 @@ def log_iteration(
     })
 
 
+def log_intervention(
+    *,
+    user_name: str,
+    project: str,
+    stage: str,
+    original_path: str,
+    final_commit: str,
+    hunks_added: int = 0,
+    hunks_deleted: int = 0,
+    lines_added: int = 0,
+    lines_deleted: int = 0,
+    files_changed: int = 1,
+    product_run_id: str | None = None,
+) -> bool:
+    """interventions 에 row insert. 자동 diff 캡처 채널."""
+    payload = {
+        "user_name": user_name,
+        "project": project,
+        "stage": stage,
+        "original_path": original_path,
+        "final_commit": final_commit,
+        "hunks_added": hunks_added,
+        "hunks_deleted": hunks_deleted,
+        "lines_added": lines_added,
+        "lines_deleted": lines_deleted,
+        "files_changed": files_changed,
+    }
+    if product_run_id:
+        payload["product_run_id"] = product_run_id
+    return _post("interventions", payload)
+
+
 def log_summary(
     *,
     user_name: str,
