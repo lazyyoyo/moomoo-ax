@@ -1,0 +1,28 @@
+{
+  "iteration": 1,
+  "score": 0.96,
+  "verdict": "keep",
+  "failed_items": [
+    {
+      "question": "Intent Check 섹션에서 META.md의 '변경 요약' 정보를 활용했다는 흔적이 있는가?",
+      "priority": "low"
+    }
+  ],
+  "tokens": {
+    "script": {
+      "input": 5,
+      "output": 1230
+    },
+    "judge": {
+      "input": 6,
+      "output": 306
+    },
+    "improve": {
+      "input": 0,
+      "output": 0
+    }
+  },
+  "cost_usd": 0.899448,
+  "duration_sec": 31.7,
+  "script_version": "b5bca0c0"
+}

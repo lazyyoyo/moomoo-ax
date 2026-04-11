@@ -32,13 +32,15 @@ def read_file(path: Path) -> str:
 
 
 def read_dir(path: Path) -> str:
+    """디렉토리 하위 모든 파일을 재귀 탐색. '=== FILE: {rel} ===' 마커로 구분."""
     if not path.is_dir():
         return ""
     parts = []
-    for f in sorted(path.iterdir()):
+    for f in sorted(path.rglob("*")):
         if f.is_file() and not f.name.startswith("."):
-            parts.append(f.read_text().strip())
-    return "\n\n---\n\n".join(parts)
+            rel = f.relative_to(path)
+            parts.append(f"=== FILE: {rel} ===\n{f.read_text().strip()}")
+    return "\n\n".join(parts)
 
 
 def file_hash(path: Path) -> str:
@@ -311,8 +313,8 @@ def run(
             print(f"\n[loop] 임계값 도달 ({score} >= {threshold})")
             break
 
-        # 6. script.py 개선
-        if failed and program:
+        # 6. script.py 개선 (마지막 iter는 스킵 — 어차피 사용 안 됨)
+        if failed and program and i < max_iter:
             print("[개선] script.py 수정...")
             imp = improve_script(program, script_py, failed, output)
             iter_tokens["improve"] = imp.get("tokens", {"input": 0, "output": 0})
