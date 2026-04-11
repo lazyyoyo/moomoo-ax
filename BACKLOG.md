@@ -13,36 +13,47 @@ moomoo-ax 프로젝트 백로그.
 
 ## inbox
 
-### 🪲 버그 / 기술부채
-- **R5: `improve_script()` 덮어쓰기 버그 (critical)** — Claude가 부분 코드 블록만 출력해도 `script.py` 전체가 덮어씌워짐. 프롬프트 강화 + 덮어쓰기 전 구조 체크 + 백업 + 롤백 필요. `src/loop.py:improve_script()`. v0.1 retro 참조.
-- **token 집계 정확도 조사** — `src/claude.py` 에서 input_tokens가 실제 프롬프트 크기보다 한참 낮게 잡힘 (v0.1 첫 run에서 script input 5 / judge input 6). Claude CLI의 prompt caching 영향 추정. 대시보드 Tokens 탭 정확도에 직결.
-- **`labs/{stage}/input/` 디렉토리 구조 표준 문서화** — v0.1 시 fixture를 input/fixture/ 로 넣었다가 read_dir iterdir 때문에 빈 입력 받음. 경로 설계 실패. 앞으로 모든 stage가 따를 입력 레이아웃을 정할 것.
+### 🔄 stage 포팅 / (C') 확산 (v0.3+)
+- **ax-qa 포팅** — v0.1 `labs/ax-qa` 는 동결. team-product/skills/product-qa → `plugin/skills/ax-qa/` 시딩 + labs 래퍼 재설계. v0.2 에서 정립한 (C') 패턴 2번째 적용. → v0.3
+- **ax-define / ax-design / ax-init / ax-deploy 순차 포팅** — 각 stage 별 team-product 시딩 + labs 래퍼. → v0.3~0.5
+- **자연어 규칙 → script 자동 추출** — v0.2 E5 에서 식별한 "script 후보" 를 실제로 `plugin/skills/ax-*/scripts/` 로 분리하는 자동 경로. 토큰 효율 rubric 축 기반 판정. → v0.3+
 
 ### 🧪 재현성 / 지표
-- **재현성 체크**: 같은 fixture(`rubato:0065654`) 로 `ax-qa` 를 3회 돌려 score 편차 관측. 크면 script 프롬프트 deterministic 보정 또는 rubric 오차 허용.
-- **다른 fixture 확장**: rubato 의 다른 커밋(버그 픽스 / 기능 추가) 으로 rubric 일반성 확인. refactor 외 케이스에서도 0.9+ 나오는가.
-- **북극성 지표 기준선 첫 설정** — 실전 데이터 2~3건 쌓인 뒤 "한 stage당 평균 diff hunks ≤ N" 식의 목표치 제안. `docs/north-star.md` 참조.
+- **재현성 체크**: 같은 fixture 로 3회 돌려 score 편차 관측 → v0.3
+- **다른 fixture 확장**: refactor 외 케이스에서도 일반성 확인 → v0.3
+- **북극성 지표 기준선 첫 설정** — 실전 데이터 2~3건 쌓인 뒤 목표치 제안 → v0.3
 
-### 🚰 수집 인프라 (v0.2 핵심)
-- **자동 diff 캡처** — plugin 산출물과 오너 최종 커밋의 diff 를 `interventions` 테이블에 자동 insert. 방식: `/ax-diff` 명령 or post-commit hook or 혼합. 결정 필요.
-- **`/ax-feedback`** — 자유 서술 피드백 수집 CLI. 프로젝트/stage 컨텍스트 자동 추출, priority 명시/추정, `feedback_backlog` row insert.
-- **`product_runs` 수집** — team-ax 플러그인 호출 시 자동 row insert. started_at/finished_at/status 전이 기록.
-
-### 🎯 실전 적용 (v0.2 core)
-- **rubato 실제 진행 브랜치에 `ax-qa` 첫 적용** — 고정 fixture 탈피, 실제 개발 중인 코드에 qa 돌려 오너 개입량 측정.
-- **`ax-implement` 스켈레톤** — v0.2의 2번째 stage. rubric은 "테스트 통과율 + 타입 에러 0 + lint 0" 같은 정량 축 중심.
+### 🚰 수집 인프라 (v0.3+)
+- **`/ax-diff` 수동 명령** — post-commit hook 누락 보조용. ad-hoc 비교/리플레이. → v0.3
+- **`product_runs` 수집** — team-ax 플러그인 호출 시 자동 row insert. → v0.3
 
 ### 📊 대시보드 개선
-- **Live 탭 30초 poll** (v0.1 는 수동 refresh)
-- **Levelup 탭 score 추이 차트** — iter 별 점수 변화. 데이터 2건 이상 쌓이면 의미.
-- **Feedback 탭 직접 입력 폼** — 대시보드에서 피드백 추가 (anon write policy 또는 별도 API)
-- **대시보드 v2 필요 여부 판단** — v0.1 시점 "뭔 내용인지 모르겠다"는 반응. v0.2~0.3 데이터 누적 후 유지/재설계 판단.
+- **Levelup 탭 score 추이 차트** — iter 별 점수 변화. → v0.3
+- **Feedback 탭 직접 입력 폼** — 대시보드 입력. v0.2 는 CLI 만. → v0.3
+- **대시보드 v2 필요 여부 판단** — v0.2~0.3 데이터 누적 후 유지/재설계 판단. → v0.3
+
+### 🧹 문서/구조
+- **`labs/{stage}/input/` 디렉토리 구조 표준 문서화** — 모든 stage 가 따를 입력 레이아웃. → v0.3
+- **`program.md` 스키마 문서화** — `improve_target` 필드 등 v0.2 에서 추가된 구조를 명문화. → v0.3
 
 ---
 
-## ready
+## ready (v0.2)
 
-(비어 있음 — v0.2 plan 작성 시 inbox 에서 선별해 ready로 이동)
+### 🪲 엔진 / 안정성
+- **A. R5 `improve_script()` fix + `improve_target` 추상화** (critical) — 프롬프트 강화 + 언어별 구조 체크(python/markdown) + 백업 + 최소 줄수 가드 + 실패 기록. `improve_target` 필드로 덮어쓰기 대상을 stage 별 선언. 회귀 테스트 포함. `src/loop.py`.
+- **B. Token 집계 조사 (rubric 입력 격상)** — `src/claude.py` prompt caching 필드 확인. 결정 (a)/(b)/(c) + **rubric 토큰 효율 축 설계**. `notes/v0.2-token-investigation.md`.
+
+### 🚰 수집 인프라
+- **C. 자동 diff post-commit hook** — `scripts/install-ax-diff-hook.sh` + `scripts/ax_post_commit.py`. `.ax-generated` 매니페스트 기반. `interventions` 자동 insert.
+- **D. `/ax-feedback` CLI** — `plugin/skills/ax-feedback/SKILL.md` + `scripts/ax_feedback.py`. priority 옵션, `feedback_backlog` insert.
+
+### 🎯 stage / 실전
+- **E. `ax-implement` (C') 패턴 정립** — (E1) team-product/skills/product-implement 포팅, (E2) labs 래퍼 (program.md + rubric.yml + script.py), (E3) **haru** 작은 feature fixture (`haru:{short_sha}`), (E4) 첫 cycle, (E5) improve 경로로 SKILL.md 덮어쓰기 검증 + script 추출 후보 식별.
+- **F. haru 실전 첫 적용 (v0.1 labs/ax-qa 버전)** — haru 실제 브랜치에 적용, interventions 자동 수집 확인, `first-contact.md` 체감 리포트. C 완료 후. private 제품이라 실험 자유.
+
+### 📊 대시보드
+- **G. Live 탭 30초 auto-poll** — setInterval + revalidate. 다른 탭은 수정 없음.
 
 ---
 

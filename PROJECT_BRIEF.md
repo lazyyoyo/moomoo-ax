@@ -264,20 +264,23 @@ moomoo-ax/
 
 기존 v0.1, v0.2는 `versions/.archive/`로 이동하고 **새 v0.1**부터 시작한다.
 
+**핵심 전환 (v0.2~)**: **(C') Progressive Codification** 패턴으로 전환.
+team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개선. 단, **improve 대상은 SKILL.md 자체 + deterministic 규칙의 script 추출** 둘 다. 자연어 스킬은 AI 자의적 해석 + 토큰 낭비의 원인이므로, 안정적 단계는 코드로 굳혀가는 게 하네스 자기 진화의 실체.
+
 **v1.0까지 — team-product 대체와 실전 적용**
 
-| 버전 | 목표 |
-|---|---|
-| **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP |
-| v0.2 | define + implement 루프 동작 + 자동 diff 캡처 + `/ax-feedback` |
-| v0.3 | design 루프 (team-product에서 가장 불편했던 지점) |
-| v0.4 | qa 루프 + `ax-autopilot` 오케스트레이터 (implement → localhost → preview 구간) |
-| v0.5 | init + deploy 루프 → 6 stage 전부, **team-product 대체 선언** |
-| v0.6 | 실전 적용 (yoyo: rubato/rofan-world) + **jojo 공유 (kudos/sasasa 시범)** |
-| v0.7 | jojo 피드백 반영 → levelup 반복 |
-| v0.8 | 북극성 지표(오너 개입 횟수) 70% 감소 달성 |
-| v0.9 | 안정화 + 문서 정리 |
-| **v1.0** | 공식 출시 |
+| 버전       | 목표                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP (ax-qa 는 자체 발명 버전, engine smoke test)                       |
+| v0.2     | (C') 패턴 정립 1 stage (ax-implement 포팅) + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + haru 실전 첫 접촉 |
+| v0.3     | (C') 확산 — ax-qa 포팅 + 재현성 / 기준선 + script 추출 자동화 첫 시도 + 대시보드 v2 판단                                             |
+| v0.4     | ax-define + ax-design 포팅 + `ax-autopilot` 오케스트레이터 (implement → localhost → preview 구간)                       |
+| v0.5     | ax-init + ax-deploy 포팅 → 6 stage 전부, **team-product 대체 선언**                                                  |
+| v0.6     | 실전 적용 (yoyo: haru / rubato / rofan-world) + **jojo 공유 (kudos/sasasa 시범)**                                     |
+| v0.7     | jojo 피드백 반영 → levelup 반복                                                                                     |
+| v0.8     | 북극성 지표(오너 개입 횟수) 70% 감소 달성                                                                                   |
+| v0.9     | 안정화 + 문서 정리                                                                                                  |
+| **v1.0** | 공식 출시                                                                                                        |
 
 **v1.x+ — 자율 진화 단계**
 
@@ -291,12 +294,13 @@ moomoo-ax/
 
 ## 성공 기준 (v1.0)
 
-- [ ] yoyo가 rubato/rofan-world/dashboard 작업을 `/ax-autopilot`으로 수행하고, implement→preview 구간을 개입 없이 완주
+- [ ] yoyo가 haru/rubato/rofan-world/dashboard 작업을 `/ax-autopilot`으로 수행하고, implement→preview 구간을 개입 없이 완주
 - [ ] jojo가 kudos/sasasa를 `/ax-autopilot`으로 독립 사용 중
 - [ ] 오너 개입 횟수가 v0.1 첫 측정 대비 70% 이상 감소
 - [ ] team-product을 대체해 모든 프로젝트에서 team-ax 사용
 - [ ] meta loop 대시보드에서 3 레이어 건강 상태 + 프로젝트 진행 관찰이 한 화면에서 가능
 - [ ] 자동 diff 캡처와 `/ax-feedback` 두 채널에서 피드백 데이터가 누적되고 meta loop가 주기적으로 소화
+- [ ] 각 stage SKILL.md 의 deterministic 규칙이 script 로 추출되어 토큰 효율과 실행 안정성이 자연어 대비 향상 ((C') 패턴의 v1.0 완결형)
 
 ## 기술 스택
 
@@ -313,7 +317,15 @@ moomoo-ax/
 
 ## 사용자
 
-- **yoyo** — moomoo-ax 오너 + rubato/rofan-world/dashboard/moomoo-ax에서 product loop 사용자
+- **yoyo** — moomoo-ax 오너 + haru/rubato/rofan-world/dashboard/moomoo-ax에서 product loop 사용자
 - **jojo** — kudos/sasasa에서 product loop 사용자 (v0.6부터 시범, v1.0에서 정식)
 
 두 사람의 프로젝트 진행 상황, 토큰 소비량, 오너 개입 횟수를 대시보드에서 추적한다.
+
+### 실험 vs 공개 제품
+
+team-ax 개발 초기(v0.2~0.5) 의 실전 접촉은 **private 제품 우선**으로 진행한다. 나쁜 산출물이 public 제품에 흘러가는 리스크 회피.
+
+- **haru** (`~/hq/projects/journal/`) — yoyo + 남편 2인 사용. private. **v0.2 ax-implement 첫 케이스 적용지**.
+- **rubato** — public. 안정화 이후 v0.5+ 에서 본격 투입.
+- **rofan-world / dashboard / moomoo-ax (dogfooding)** — 중간 단계에서 선택적.
