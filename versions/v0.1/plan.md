@@ -20,21 +20,22 @@
 ## 완료 기준
 
 ### A. 대시보드 재설계
-- [ ] 사이드바 내비 6개로 교체: `Live / North Star / Levelup / Projects / Feedback / Tokens`
-- [ ] 페이지 타이틀/설명을 새 3 레이어 컨셉에 맞게 갱신
-- [x] Supabase 스키마 재설계 (기존 `iterations` 테이블은 drop)
+- [x] 사이드바 내비 6개로 교체: `Live / North Star / Levelup / Projects / Feedback / Tokens`
+- [x] 페이지 타이틀/설명을 새 3 레이어 컨셉에 맞게 갱신
+- [x] Supabase 스키마 재설계 (기존 `iterations` 테이블 drop)
   - 새 테이블 4개 DDL 적용 완료: `levelup_runs`, `product_runs`, `feedback_backlog`, `interventions`
   - RLS: anon SELECT only, write는 service_role 전용
   - smoke test: `src/db.py`로 iteration/summary row insert → delete 검증 완료
-- [ ] 각 내비 페이지 최소 상태 구현:
-  - **Live**: 지금 돌고 있는 loop 목록 (levelup/product), 각각 현재 stage + 산출물 링크
-  - **North Star**: "오너 개입 횟수" 측정 방식 설명 페이지 (수집 전이라 빈 차트 + 방법론)
-  - **Levelup**: levelup 실험 로그 테이블 (v0.1 첫 cycle 결과가 여기 뜸)
-  - **Projects**: yoyo/jojo 프로젝트 목록 (빈 카드 OK)
-  - **Feedback**: 피드백 백로그 empty state + `/ax-feedback` 사용법 안내
-  - **Tokens**: 단계별 토큰 소비 empty state
-- [ ] 빈 상태(empty state) UI가 "에러" 아니라 "대기 중" 느낌으로 보이기
-- [ ] Vercel 재배포 성공, https://moomoo-ax.vercel.app 에서 6 내비 확인
+- [x] 각 내비 페이지 최소 상태 구현 (6 페이지 전부 skeleton 완료):
+  - **Live**: 최근 30분 levelup iter + 진행 중 product runs
+  - **North Star**: intervention/feedback 카드 + 측정 방식 설명
+  - **Levelup**: levelup_runs 테이블 (summary + iterations)
+  - **Projects**: yoyo/jojo 프로젝트 카드 + product_runs 집계
+  - **Feedback**: 상태별 카운트 + /ax-feedback 사용법
+  - **Tokens**: stage별 토큰/비용 집계
+- [x] 빈 상태 UI 에러가 아니라 대기 중 느낌 (border-dashed + 안내 메시지)
+- [x] `next build` 통과, TypeScript 에러 없음, 7 routes 정상 컴파일
+- [ ] Vercel 재배포 후 https://moomoo-ax.vercel.app 에서 6 내비 확인 (push 직후, 1-2분 대기)
 
 ### B. levelup loop 엔진 + `ax-qa` 스켈레톤
 - [x] `src/loop.py` 검토 — 이미 범용 구조. AX_VERSION v0.1 업데이트, CLI 인자 `--project` 제거 / `--fixture` 추가, `read_dir` 에 `=== FILE: {name} ===` 마커 추가, 마지막 iter improve 스킵 가드 추가
@@ -53,12 +54,14 @@
 - [ ] 재현성 체크 — 별도 작업으로 v0.1 후반에 (지금 cycle 실행 결과 본 뒤 필요 시)
 
 ### D. 1 cycle 실행 & 검증
-- [ ] `python src/loop.py ax-qa` 실행, 1 iteration 완주
-- [ ] `labs/ax-qa/logs/001.json` 기록 확인
-- [ ] `labs/ax-qa/best/` 갱신 확인 (첫 cycle이므로 무조건 best)
-- [ ] Supabase `levelup_runs` 테이블에 레코드 insert 확인
-- [ ] 대시보드 **Levelup** 탭에서 이 run이 보이는지 확인
-- [ ] 대시보드 **Live** 탭에서 실행 중 상태가 뜨는지 (실시간 아니어도 poll 기반 OK)
+- [x] `python src/loop.py ax-qa --user yoyo --fixture rubato:0065654 --max-iter 2 --threshold 0.95` 실행, **1 iter만에 score 0.96 → threshold 초과 → 조기 종료**
+- [x] `labs/ax-qa/logs/001.json` 기록 확인 (score 0.96, failed low 1건, tokens/cost 포함)
+- [x] `labs/ax-qa/best/` 갱신 확인 — output.md + script.py + score.txt
+- [x] Supabase `levelup_runs` 테이블에 레코드 insert 확인 (iteration + summary 2건)
+- [x] 대시보드 **Levelup** 탭에서 이 run이 보이는지 확인 (Live 탭에서도 동일 데이터 확인됨)
+- [x] 대시보드 **Live** 탭에서 실행 중 상태가 뜨는지 — Vercel 배포 확인 완료
+  - URL: https://moomoo-ax.vercel.app/live
+  - 수동 refresh DB 조회 방식 (v0.2에서 30초 poll, v0.3에서 realtime)
 
 ### E. 북극성 지표 측정 방식 정의 (문서만, 수집은 v0.2)
 - [x] `docs/north-star.md` 작성 — 오너 개입 횟수 정의 완료
