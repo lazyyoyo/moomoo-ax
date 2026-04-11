@@ -1,19 +1,19 @@
 {
-  "name": "moomoo-ax",
+  "name": "team-ax",
   "version": "0.1.0",
-  "description": "AX 품질 자동화 엔진",
+  "description": "오너 의도를 기대치에 맞게 무개입으로 배포까지 가져가는 AI Transformation 파이프라인",
   "author": {
     "name": "lazyyoyo",
     "email": "yoyo.in.moomoo@gmail.com"
   },
   "repository": "https://github.com/lazyyoyo/moomoo-ax",
-  "license":"MIT",
+  "license": "MIT",
   "keywords": [
     "claude-code",
     "plugin",
-    "auto-research",
-    "harness",
-    "quality-gate",
-    "autonomous-loop"
+    "ai-transformation",
+    "autopilot",
+    "product-pipeline",
+    "levelup-loop"
   ]
 }
