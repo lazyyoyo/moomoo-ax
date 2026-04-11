@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/overview", label: "Overview", icon: "📊" },
-  { href: "/experiments", label: "Experiments", icon: "🔬" },
+  { href: "/live", label: "Live", icon: "📡" },
+  { href: "/north-star", label: "North Star", icon: "🎯" },
+  { href: "/levelup", label: "Levelup", icon: "🔬" },
   { href: "/projects", label: "Projects", icon: "📁" },
+  { href: "/feedback", label: "Feedback", icon: "💬" },
   { href: "/tokens", label: "Tokens", icon: "🪙" },
 ];
 
@@ -16,7 +18,10 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 border-r bg-muted/30 p-4 flex flex-col gap-1">
-      <div className="font-bold text-lg mb-6 px-3">moomoo-ax</div>
+      <div className="mb-6 px-3">
+        <div className="font-bold text-lg">moomoo-ax</div>
+        <div className="text-xs text-muted-foreground">3 레이어 관측</div>
+      </div>
       {navItems.map((item) => (
         <Link
           key={item.href}
@@ -32,6 +37,9 @@ export function Sidebar() {
           {item.label}
         </Link>
       ))}
+      <div className="mt-auto pt-4 border-t text-[10px] text-muted-foreground px-3">
+        v0.1
+      </div>
     </aside>
   );
 }

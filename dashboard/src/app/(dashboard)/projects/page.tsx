@@ -1,78 +1,128 @@
-"use client";
+import { supabase } from "@/lib/supabase";
+import type { ProductRun } from "@/lib/supabase";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Iteration } from "@/lib/supabase";
+export const dynamic = "force-dynamic";
 
-export default function ProjectsPage() {
-  const [summaries, setSummaries] = useState<Iteration[]>([]);
-  const [loading, setLoading] = useState(true);
+type ProjectInfo = {
+  name: string;
+  owner: "yoyo" | "jojo";
+  description: string;
+};
 
-  useEffect(() => {
-    fetch("/api/summary")
-      .then((r) => r.json())
-      .then((data) => {
-        setSummaries(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+const KNOWN_PROJECTS: ProjectInfo[] = [
+  { name: "rubato", owner: "yoyo", description: "독서 관리 웹앱" },
+  { name: "rofan-world", owner: "yoyo", description: "로판 세계관 사이트" },
+  { name: "dashboard", owner: "yoyo", description: "실행 추적 대시보드" },
+  { name: "moomoo-ax", owner: "yoyo", description: "AI Transformation 엔진" },
+  { name: "kudos", owner: "jojo", description: "jojo 프로젝트" },
+  { name: "sasasa", owner: "jojo", description: "jojo 프로젝트" },
+];
 
-  if (loading) return <div className="text-muted-foreground">로딩 중...</div>;
+export default async function ProjectsPage() {
+  const { data } = await supabase
+    .from("product_runs")
+    .select("project, user_name, status, command, created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
 
-  // 프로젝트별 그룹핑
-  const byProject = summaries.reduce<Record<string, Iteration[]>>((acc, s) => {
-    const p = s.project;
-    if (!acc[p]) acc[p] = [];
-    acc[p].push(s);
-    return acc;
-  }, {});
+  const runs = (data ?? []) as Pick<
+    ProductRun,
+    "project" | "user_name" | "status" | "command" | "created_at"
+  >[];
+
+  // 프로젝트별 집계
+  const byProject = new Map<
+    string,
+    { total: number; running: number; lastAt: string | null }
+  >();
+  for (const r of runs) {
+    const cur = byProject.get(r.project) ?? {
+      total: 0,
+      running: 0,
+      lastAt: null,
+    };
+    cur.total += 1;
+    if (r.status === "running") cur.running += 1;
+    if (!cur.lastAt || r.created_at > cur.lastAt) cur.lastAt = r.created_at;
+    byProject.set(r.project, cur);
+  }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Projects</h1>
+      <h1 className="text-2xl font-bold mb-1">Projects</h1>
+      <p className="text-sm text-muted-foreground mb-6">
+        team-ax 를 돌린 외부 프로젝트. product loop 사용 현황.
+      </p>
 
-      {Object.keys(byProject).length === 0 ? (
-        <div className="text-muted-foreground">데이터 없음</div>
-      ) : (
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+          YOYO 프로젝트
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries(byProject).map(([project, runs]) => {
-            const totalCost = runs.reduce(
-              (sum, r) => sum + (r.detail.total_cost_usd || 0),
-              0
-            );
-            const avgScore =
-              runs.reduce((sum, r) => sum + (r.detail.final_score || 0), 0) /
-              runs.length;
+          {KNOWN_PROJECTS.filter((p) => p.owner === "yoyo").map((p) => (
+            <ProjectCard
+              key={p.name}
+              info={p}
+              stats={byProject.get(p.name)}
+            />
+          ))}
+        </div>
+      </section>
 
-            return (
-              <Card key={project}>
-                <CardHeader>
-                  <CardTitle>{project}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <div className="text-muted-foreground">Runs</div>
-                      <div className="text-xl font-bold">{runs.length}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Avg Score</div>
-                      <div className="text-xl font-bold">
-                        {avgScore.toFixed(2)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Total Cost</div>
-                      <div className="text-xl font-bold">
-                        ${totalCost.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+      <section>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+          JOJO 프로젝트
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {KNOWN_PROJECTS.filter((p) => p.owner === "jojo").map((p) => (
+            <ProjectCard
+              key={p.name}
+              info={p}
+              stats={byProject.get(p.name)}
+            />
+          ))}
+        </div>
+      </section>
+
+      {runs.length === 0 && (
+        <div className="mt-8 border border-dashed rounded-md p-6 text-center text-sm text-muted-foreground">
+          아직 team-ax 를 돌린 product run 없음. v0.4에서 /ax-autopilot 배포 후 수집 시작.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectCard({
+  info,
+  stats,
+}: {
+  info: ProjectInfo;
+  stats?: { total: number; running: number; lastAt: string | null };
+}) {
+  return (
+    <div className="border rounded-md p-4">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <div className="font-semibold font-mono">{info.name}</div>
+          <div className="text-xs text-muted-foreground">{info.description}</div>
+        </div>
+        {stats && stats.running > 0 && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-700">
+            running
+          </span>
+        )}
+      </div>
+      {stats ? (
+        <div className="text-xs text-muted-foreground mt-2">
+          총 {stats.total} runs · 마지막{" "}
+          {stats.lastAt
+            ? new Date(stats.lastAt).toLocaleDateString("ko-KR")
+            : "-"}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground mt-2">
+          아직 실행 기록 없음
         </div>
       )}
     </div>
