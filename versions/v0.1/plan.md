@@ -46,10 +46,12 @@
 - [ ] `labs/ax-qa/input/fixture/` 준비 — 아래 "고정 fixture" 참조
 
 ### C. 고정 fixture 준비
-- [ ] rubato main 브랜치의 특정 커밋 해시를 하나 고정 (v0.1 실험용)
-- [ ] 해당 스냅샷의 변경 파일만 `labs/ax-qa/input/fixture/`에 복사 (전체 리포는 부담)
-- [ ] fixture 메타데이터 `labs/ax-qa/input/fixture/META.md`에 기록 (커밋 해시, 원본 경로, 선택 이유)
-- [ ] 재현성 체크: 같은 fixture에 script.py 2번 돌려 결과가 유사한지 확인
+- [ ] rubato 커밋 `0065654` (refactor: search intent 헬퍼 추출) 를 fixture로 고정
+- [ ] `dev/src/app/(protected)/search/page.tsx` 의 before/after 두 버전을 `labs/ax-qa/input/fixture/` 에 복사
+  - `before.tsx` — 커밋 직전 상태
+  - `after.tsx` — 커밋 후 상태 (qa 대상)
+- [ ] `labs/ax-qa/input/fixture/META.md` 작성 — 커밋 해시, 원본 경로, 선택 이유, before/after 의미
+- [ ] 재현성 체크: 같은 fixture에 script.py 2번 돌려 결과 편차 확인 (크면 script 프롬프트 deterministic하게 보정)
 
 ### D. 1 cycle 실행 & 검증
 - [ ] `python src/loop.py ax-qa` 실행, 1 iteration 완주
@@ -75,22 +77,15 @@
 - `ax-autopilot` 오케스트레이터 → **v0.4**
 - 하네스 진화 (rnd/) → **v1.x**
 
-## 결정 필요 (plan 확정 전)
+## 확정 사항
 
-1. **Supabase 새 테이블 이름**:
-   - 후보 A: `levelup_runs` / `product_runs` / `feedback_backlog` / `interventions`
-   - 후보 B: `lv_runs` / `pr_runs` / `fb_backlog` / `iv_log` (축약)
-   - 후보 C: 기존 `iterations` 유지하고 컬럼만 확장
-   - → 내 추천: **A**. 가독성 우선, v0.1은 무리한 정규화 말고 단순하게.
-2. **기존 `iterations` 테이블 처리**:
-   - (a) 그대로 두고 무시 / (b) rename → `iterations_archived` / (c) drop
-   - → 내 추천: **(b)**. 히스토리 보존 + 신규 스키마와 분리.
-3. **fixture 크기**:
-   - 작은 변경 1 파일만? 브랜치 전체?
-   - → 내 추천: 실제 rubato 최근 커밋 중 **2~5 파일 규모 작은 커밋** 하나 골라서. 너무 작으면 qa 돌릴 거리가 없고, 너무 크면 noisy.
-4. **대시보드 "Live" 탭 업데이트 방식**:
-   - (a) 페이지 로드 시 DB 조회 (수동 refresh) / (b) 30초 poll / (c) Supabase realtime 구독
-   - → 내 추천: **(a) v0.1, (b) v0.2, (c) v0.3**. v0.1은 단순 조회로 시작.
+1. **Supabase 새 테이블**: `levelup_runs` / `product_runs` / `feedback_backlog` / `interventions` (풀네임)
+2. **기존 `iterations` 테이블**: **drop** (히스토리 아카이브 불필요)
+3. **fixture**: `rubato` 커밋 **`0065654`** — "refactor: search intent — task 생성 로직 헬퍼 추출 (buildTaskBody, intentSuccessToast)"
+   - 1 파일 (`dev/src/app/(protected)/search/page.tsx`), +19/-30
+   - **리팩토링** 성격이라 qa의 classical 평가 축(기존 동작 보존 / 가독성 / 타입 안전성 / 테스트 통과)이 모두 걸림
+   - 너무 작지도 크지도 않음, 첫 cycle에 적합
+4. **대시보드 "Live" 탭 업데이트 방식**: v0.1은 **수동 refresh DB 조회**, v0.2에 30초 poll, v0.3에 Supabase realtime
 
 ## 리스크 / 열린 질문
 
