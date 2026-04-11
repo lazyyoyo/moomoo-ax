@@ -22,8 +22,10 @@
 ### A. 대시보드 재설계
 - [ ] 사이드바 내비 6개로 교체: `Live / North Star / Levelup / Projects / Feedback / Tokens`
 - [ ] 페이지 타이틀/설명을 새 3 레이어 컨셉에 맞게 갱신
-- [ ] Supabase 스키마 재설계 (기존 `iterations` 테이블은 아카이브)
-  - 새 테이블 후보: `levelup_runs`, `product_runs`, `feedback_backlog`, `interventions` (이름 확정은 아래 "결정 필요" 참조)
+- [x] Supabase 스키마 재설계 (기존 `iterations` 테이블은 drop)
+  - 새 테이블 4개 DDL 적용 완료: `levelup_runs`, `product_runs`, `feedback_backlog`, `interventions`
+  - RLS: anon SELECT only, write는 service_role 전용
+  - smoke test: `src/db.py`로 iteration/summary row insert → delete 검증 완료
 - [ ] 각 내비 페이지 최소 상태 구현:
   - **Live**: 지금 돌고 있는 loop 목록 (levelup/product), 각각 현재 stage + 산출물 링크
   - **North Star**: "오너 개입 횟수" 측정 방식 설명 페이지 (수집 전이라 빈 차트 + 방법론)
@@ -35,23 +37,20 @@
 - [ ] Vercel 재배포 성공, https://moomoo-ax.vercel.app 에서 6 내비 확인
 
 ### B. levelup loop 엔진 + `ax-qa` 스켈레톤
-- [ ] `src/loop.py` 검토 — 구 5 stage 전제가 박혀 있으면 6 stage 범용으로 수정
-- [ ] `src/judge.py` 검토 — rubric.yml 스키마 변경 필요한지 확인
-- [ ] `labs/ax-qa/program.md` 작성 — ax-qa의 오너 규칙
-  - 목적, 입력/출력 계약, 실패 판정 기준
-- [ ] `labs/ax-qa/rubric.yml` 작성 — "오너 기대치" 평가 항목 포함
-  - 정량 축: lint 에러 0, type 에러 0, 테스트 통과율, coverage
-  - 정성 축: "오너가 이 QA 리포트를 보고 추가 작업 없이 넘어갈 수 있는가"
-- [ ] `labs/ax-qa/script.py` v1 작성 — Claude CLI로 qa 돌리는 최소 프롬프트
-- [ ] `labs/ax-qa/input/fixture/` 준비 — 아래 "고정 fixture" 참조
+- [x] `src/loop.py` 검토 — 이미 범용 구조. AX_VERSION v0.1 업데이트, CLI 인자 `--project` 제거 / `--fixture` 추가, `read_dir` 에 `=== FILE: {name} ===` 마커 추가, 마지막 iter improve 스킵 가드 추가
+- [x] `src/judge.py` 검토 — 완전 범용, 수정 불필요
+- [x] `src/db.py` 재작성 — 새 `levelup_runs` 스키마 대응, `SUPABASE_SERVICE_ROLE_KEY` 사용
+- [x] `labs/ax-qa/program.md` 작성 — 오너 규칙, 입력/출력 계약, 불변/가변 영역 구분
+- [x] `labs/ax-qa/rubric.yml` 작성 — critical 4 / high 5 / medium 4 / low 2 = 15 항목
+  - "Owner Expectation" 평가 항목 critical+high 로 포함
+- [x] `labs/ax-qa/script.py` v1 작성 — stdin fixture → Claude CLI → QA Report stdout
+- [x] script.py dry run 검증 — 부분 입력 기준 정상 동작, 7 섹션 리포트 생성 확인
 
 ### C. 고정 fixture 준비
-- [ ] rubato 커밋 `0065654` (refactor: search intent 헬퍼 추출) 를 fixture로 고정
-- [ ] `dev/src/app/(protected)/search/page.tsx` 의 before/after 두 버전을 `labs/ax-qa/input/fixture/` 에 복사
-  - `before.tsx` — 커밋 직전 상태
-  - `after.tsx` — 커밋 후 상태 (qa 대상)
-- [ ] `labs/ax-qa/input/fixture/META.md` 작성 — 커밋 해시, 원본 경로, 선택 이유, before/after 의미
-- [ ] 재현성 체크: 같은 fixture에 script.py 2번 돌려 결과 편차 확인 (크면 script 프롬프트 deterministic하게 보정)
+- [x] rubato 커밋 `0065654` (refactor: search intent 헬퍼 추출) 를 fixture로 고정
+- [x] `before.tsx` (1317줄), `after.tsx` (1306줄), `diff.patch` (122줄) 추출
+- [x] `labs/ax-qa/input/fixture/META.md` 작성 — 커밋 해시, 변경 요약, 선택 이유, fixture_id 규약
+- [ ] 재현성 체크 — 별도 작업으로 v0.1 후반에 (지금 cycle 실행 결과 본 뒤 필요 시)
 
 ### D. 1 cycle 실행 & 검증
 - [ ] `python src/loop.py ax-qa` 실행, 1 iteration 완주
@@ -62,11 +61,10 @@
 - [ ] 대시보드 **Live** 탭에서 실행 중 상태가 뜨는지 (실시간 아니어도 poll 기반 OK)
 
 ### E. 북극성 지표 측정 방식 정의 (문서만, 수집은 v0.2)
-- [ ] `docs/north-star.md` 작성 — 오너 개입 횟수 정의
-  - **1차 지표**: plugin 산출물과 최종 커밋 간 **자동 diff hunks 수** (v0.2에서 자동 수집)
-  - **2차 채널**: `/ax-feedback` **백로그** — 자유 서술, 개선 우선순위 입력 (카운트 아님)
-  - 두 채널의 역할 분리 명시: diff는 "얼마나 고쳤나" 정량, 피드백은 "뭘 고쳐야 하나" 정성
-- [ ] `docs/north-star.md` 에 v0.2 수집 인프라 설계 스케치 포함
+- [x] `docs/north-star.md` 작성 — 오너 개입 횟수 정의 완료
+  - 1차 지표 (자동 diff) + 2차 채널 (/ax-feedback) 역할 분리
+  - v0.2 수집 인프라 스케치 + v0.3+ LLM severity 확장 포함
+  - 기준선은 v0.2 실전 데이터 본 뒤 정한다고 명시
 
 ## Out of scope (v0.2 이상)
 
@@ -89,7 +87,11 @@
 
 ## 리스크 / 열린 질문
 
-- **R1**: `src/loop.py`가 구 5 stage 가정으로 짜여 있으면 리팩토링 범위가 예상보다 클 수 있음 → 먼저 코드 훑고, 변경 범위 크면 stage 범용화를 v0.1 안에서 할지 v0.2로 미룰지 결정
+- **R1**: ~~`src/loop.py`가 구 5 stage 가정~~ → **해소**. loop.py는 이미 범용, AX_VERSION/CLI 인자 소폭 수정만으로 충분
 - **R2**: 대시보드 Supabase 스키마 변경은 마이그레이션 필요 — 기존 테이블 drop/rename 시점에 dashboard 코드가 깨질 수 있음. 스키마 변경 → dashboard 코드 수정 → 배포 순서 엄수
 - **R3**: fixture 재현성이 의심되는 경우(같은 입력에 다른 출력) script.py 프롬프트를 deterministic하게 잡기 어려울 수 있음. 이 경우 rubric에서 "범위 오차" 허용
 - **R4**: v0.1 완료 시점에 "이 엔진이 진짜 뭔가 개선하고 있는가?"를 판단할 수 없음 — 2 iteration 이상 돌려봐야 비교 가능. v0.1은 "1 cycle 작동"만 목표로 하고, "개선이 실제로 일어나는가"는 v0.2 완료 기준에 넣을 것
+- **R5** (**v0.1 첫 run에서 발견**): `improve_script()` 가 script.py를 파편적으로 덮어쓰는 버그 — Claude가 개선 의도로 일부 함수만 코드 블록에 담아도 loop.py가 그걸 script.py **전체**로 write.
+  - 현 로직: `re.search(r'```python\s*\n(.*?)```', ...)` 이 뽑은 첫 블록을 통째로 덮어씀
+  - 보완안: (1) "전체 script를 다 출력하라" 프롬프트 명시 강화, (2) 덮어쓰기 전 `main()`/`if __name__` 존재 여부 체크, (3) 실패 시 원본 유지
+  - **v0.2 작업 목록에 추가 필요**. v0.1은 증상만 기록하고 회피 (max-iter 2에서 iter 1이 실패 안 하도록 fixture 제대로 준비)
