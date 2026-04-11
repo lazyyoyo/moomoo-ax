@@ -94,6 +94,61 @@ def log_iteration(
     })
 
 
+def log_feedback(
+    *,
+    user_name: str,
+    content: str,
+    priority: str = "medium",
+    project: str | None = None,
+    stage: str | None = None,
+) -> tuple[bool, str | None]:
+    """
+    feedback_backlog 에 row insert. 명시적 피드백 채널.
+
+    priority: high / medium / low (DB CHECK 제약)
+    status: 항상 'open' 으로 시작
+    Returns: (success, inserted_row_id) — id 수신 위해 return=representation 사용
+    """
+    if priority not in ("high", "medium", "low"):
+        priority = "medium"
+
+    payload = {
+        "user_name": user_name,
+        "content": content,
+        "priority": priority,
+    }
+    if project:
+        payload["project"] = project
+    if stage:
+        payload["stage"] = stage
+
+    if not SUPABASE_KEY:
+        print("[db] SUPABASE_SERVICE_ROLE_KEY 미설정 — 로그 스킵")
+        return False, None
+
+    url = f"{SUPABASE_URL}/rest/v1/feedback_backlog"
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Prefer": "return=representation",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read())
+            row_id = data[0].get("id") if isinstance(data, list) and data else None
+            return True, row_id
+    except Exception as e:
+        print(f"[db] feedback_backlog insert 실패: {e}")
+        return False, None
+
+
 def log_intervention(
     *,
     user_name: str,

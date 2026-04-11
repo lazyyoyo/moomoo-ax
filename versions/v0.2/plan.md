@@ -128,16 +128,30 @@ v0.2 에서 B 는 단순 버그 조사가 아니라 **rubric "토큰 효율" 축
   - smoke row 삭제, 임시 repo `~/.Trash/` 이동
 - [x] 대시보드 `north-star/page.tsx` 이미 `interventions` count 읽음 → F 에서 실 row 들어오면 자동 표시
 
-### D. `/ax-feedback` CLI
+### D. `/ax-feedback` CLI  ✅
 
-- [ ] `plugin/skills/ax-feedback/SKILL.md` — team-ax plugin 첫 실제 skill
-- [ ] `scripts/ax_feedback.py`
-  - [ ] arg 또는 stdin 입력
-  - [ ] git repo 이름 → project 컨텍스트 자동 추출
-  - [ ] `--priority high|medium|low`, 미지정 시 medium
-  - [ ] `feedback_backlog` row insert (service_role)
-  - [ ] 확인 메시지 + row id 출력
-- [ ] 실사용 smoke: yoyo 세션에서 `/ax-feedback "..."` 한 번 호출 → 대시보드 Feedback 탭 확인
+- [x] `plugin/skills/ax-feedback/SKILL.md` — team-ax plugin **첫 실제 skill** (나머지 ax-* 폴더는 아직 껍데기)
+  - 호출 예 + 동작 설명 + 실행 커맨드 절대경로 + 왜 이 채널이 필요한지 명시
+  - priority LLM 자동 추정은 v0.3+ 으로 명시적 분리
+- [x] `scripts/ax_feedback.py` — CLI
+  - [x] 본문: positional arg 우선, 비면 stdin 폴백, 둘 다 없으면 exit 1
+  - [x] 기본 project: `git rev-parse --show-toplevel` basename 자동 추출
+  - [x] 기본 user: `MOOMOO_AX_USER` env → `git user.name` 매핑 (`lazyyoyo`→`yoyo`) → `yoyo` 폴백
+  - [x] `--priority {high,medium,low}` 기본 medium (argparse choices 로 CHECK 제약 사전 방어)
+  - [x] `--stage`, `--project`, `--user` 옵션 제공
+  - [x] `feedback_backlog` insert → row id 수신 (service_role, `return=representation`)
+  - [x] 확인 메시지: id / user / priority / project / stage / content 미리보기
+- [x] `src/db.py` `log_feedback()` 함수 추가 (`return=representation` prefer header 로 id 반환)
+- [x] **단위 테스트** `tests/test_ax_feedback.py` — 14 케이스 전원 통과
+  - infer_user: env var 우선, lazyyoyo → yoyo 매핑, unknown passthrough, git 없음 폴백
+  - infer_project: toplevel basename, 저장소 밖 None
+  - read_content: arg 우선, 공백 trim, 빈 arg + tty 는 empty, stdin 폴백
+  - CLI subprocess: 빈 content → exit 1
+  - main() mock 통합: happy path / default medium / db 실패 exit 2
+- [x] **실 smoke** — `.venv/bin/python scripts/ax_feedback.py --priority low --stage ax-feedback "..."` 실행
+  - Supabase row insert 확인: id `2a412956-dd69-44fd-bc22-45efafd5de19`, user=yoyo, project=moomoo-ax, priority=low, status=open
+  - 이 row 는 **첫 실 피드백** 으로 보존 (대시보드 empty state → 실 content 검증)
+- [x] 대시보드 `feedback/page.tsx` + `north-star/page.tsx` 가 이미 `feedback_backlog` 읽음 → 자동 표시
 
 ### E. `ax-implement` — (C') 패턴 첫 케이스
 
