@@ -1,0 +1,3 @@
+hello from fixture
+line 2: moomoo-ax v0.3 exp-01
+line 3: the secret word is "levelup"

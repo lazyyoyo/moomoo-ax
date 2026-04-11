@@ -8,3 +8,4 @@ __pycache__/
 node_modules/
 meta/collected/
 .claude/scheduled_tasks.lock
+.playwright-mcp/
