@@ -1,0 +1,15 @@
+items:
+  - question: "HMW 질문이 3~5개 있는가?"
+    priority: critical
+  - question: "HMW가 구체적이고 실행 가능한 형태인가?"
+    priority: high
+  - question: "솔루션 후보가 최소 5개 나열되어 있는가?"
+    priority: medium
+  - question: "각 솔루션에 Impact와 Feasibility가 H/M/L로 표기되어 있는가?"
+    priority: high
+  - question: "Selected Direction이 명확히 선택되어 있는가?"
+    priority: critical
+  - question: "선택 이유가 제시되어 있는가?"
+    priority: medium
+  - question: "핵심 가정이 명시되어 있는가?"
+    priority: medium
