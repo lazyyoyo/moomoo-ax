@@ -124,11 +124,13 @@ moomoo-ax/
 13. [ ] moomoo-ax Stage 4~5 이어서 (strategy/에 저장)
 
 ### 레이어 2 (플러그인)
-14. [ ] plugin/skills/ax-define/ 구조 생성
-15. [ ] labs/{stage}/best/script.py → plugin으로 승격
-16. [ ] plugin/skills/ax-define/SKILL.md
-17. [ ] plugin/skills/ax-define/runner.py (5 stage 실행기)
-18. [ ] labs/.archive/v0.2/ 스냅샷
+14. [x] plugin/skills/ax-define/ 구조 생성
+15. [x] labs/{stage}/best/script.py → plugin으로 승격
+16. [x] plugin/skills/ax-define/SKILL.md
+17. [x] plugin/skills/ax-define/runner.py (5 stage 실행기)
+18. [x] plugin/skills/ax-define/_lib/claude.py (공통 래퍼, 순정)
+19. [x] labs/.archive/v0.2/ 스냅샷
+20. [x] runner.py 단일 stage 실행 검증 (seed-gen 1회, $0.37)
 
 ### 관측
 19. [x] dashboard/ Next.js 껍데기
