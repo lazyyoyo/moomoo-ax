@@ -1,0 +1,5 @@
+{
+  "name": "exp07",
+  "version": "0.0.1",
+  "description": "exp-07 canary — verify Stop hook fires in -p child session"
+}
