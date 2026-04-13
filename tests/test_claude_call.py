@@ -330,8 +330,9 @@ def test_call_timeout():
 def test_call_passes_all_flags():
     captured = {}
 
-    def fake_run(cmd, capture_output, text, timeout):
+    def fake_run(cmd, capture_output, text, timeout, cwd=None):
         captured["cmd"] = cmd
+        captured["cwd"] = cwd
         return _mock_completed(0, json.dumps({"result": "x", "num_turns": 0,
                                               "total_cost_usd": 0, "usage": {}}))
 

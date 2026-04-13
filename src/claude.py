@@ -149,6 +149,7 @@ def _build_command(
     plugin_dir: str | Path | None,
     bare: bool,
     setting_sources: str | None,
+    include_hook_events: bool = False,
 ) -> list[str]:
     cmd = ["claude", "-p", prompt, "--output-format", output_format]
     if output_format == "stream-json":
@@ -164,6 +165,8 @@ def _build_command(
         cmd.append("--bare")
     if setting_sources:
         cmd.extend(["--setting-sources", setting_sources])
+    if include_hook_events:
+        cmd.append("--include-hook-events")
     return cmd
 
 
@@ -177,6 +180,9 @@ def call(
     plugin_dir: str | Path | None = None,
     bare: bool = False,
     setting_sources: str | None = None,
+    include_hook_events: bool = False,
+    cwd: str | Path | None = None,
+    stdout_path: str | Path | None = None,
 ) -> dict:
     """
     Claude CLI 호출.
@@ -217,14 +223,22 @@ def call(
         plugin_dir=plugin_dir,
         bare=bare,
         setting_sources=setting_sources,
+        include_hook_events=include_hook_events,
     )
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(cwd) if cwd else None,
         )
     except subprocess.TimeoutExpired as e:
         duration = round(time.monotonic() - start, 1)
         return _empty_result(duration, error=f"timeout after {timeout}s: {e}")
+
+    if stdout_path:
+        Path(stdout_path).write_text(proc.stdout, encoding="utf-8")
 
     duration = round(time.monotonic() - start, 1)
 
