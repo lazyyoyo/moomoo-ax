@@ -32,28 +32,25 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash(bash ${CLAUDE_SKILL_DIR}/scri
 
 planner subagent 는 v0.3 엔 생략. fixture 에 `plan.md` 가 이미 내장되어 있다는 가정. 실 프로젝트 대응 (planner 도입) 은 v0.4.
 
-1. `!`git status --porcelain`` — working tree 가 clean 인지 확인. 미커밋 변경 있으면 오너에게 보고 후 대기
+1. Bash tool 로 `git status --porcelain` 실행해서 working tree clean 확인. 미커밋 변경 있으면 오너에게 보고 후 대기
 2. Read tool 로 `plan.md` 훑기 — 태스크 목록 파악. design 산출물 (flows/, mockup/, specs/) 있으면 대조해 gap 인지
 
 ### [preflight]
 
 **참조**: `${CLAUDE_SKILL_DIR}/references/preflight-checklist.md`
 
-인라인 쉘로 체크리스트 수행 (결과는 필요 시 plan.md 말미에 짧게 메모):
+Bash tool 로 필요한 체크만 **순차 실행** (복합 명령 `&&` 대신 단계별 실행 — permission prefix 매칭 때문):
 
 - **ARCHITECTURE.md 기술 스택**: Read tool 로 읽고 이번 태스크에 필요한 라이브러리 식별
 - **라이브러리 설치 여부**:
-  ```bash
-  !`jq -r '.dependencies + .devDependencies | keys[]' package.json | grep -q "^<lib>$"`
-  ```
-  미설치 시 `npm install <lib>` (또는 `bun add <lib>`) 후 ARCHITECTURE.md 에 기록. 문서 없이 설치 금지
-- **CLI preflight** (필요한 것만):
-  ```bash
-  !`which supabase && supabase projects list 2>/dev/null || true`
-  !`which vercel && vercel whoami 2>/dev/null || true`
-  !`which gh && gh auth status 2>/dev/null || true`
-  ```
-  CLI 있고 인증됨 → 직접 수행. 없거나 실패 → 해당 작업만 오너에게 요청 (전체 block 아님)
+  1. Bash tool 로 `jq -r '.dependencies + .devDependencies | keys[]' package.json` 실행 → stdout 에 설치된 목록
+  2. 목록에 원하는 `<lib>` 없으면 `npm install <lib>` (또는 `bun add <lib>`) 실행 + ARCHITECTURE.md 에 기록
+  3. 신규 의존성은 문서 먼저 → 설치 순서 준수
+- **CLI preflight** (필요한 것만. 각 단계 분리 실행):
+  1. Bash tool 로 `which supabase` — exit 0 이면 Bash tool 로 `supabase projects list` 별도 호출. exit 1 이면 skip
+  2. `which vercel` 동일 패턴 → `vercel whoami`
+  3. `which gh` 동일 패턴 → `gh auth status`
+  - CLI 있고 인증됨 → 직접 수행. 없거나 실패 → 해당 작업만 오너에게 요청 (전체 block 아님)
 - **디자인 시스템** (`DESIGN_SYSTEM.md` 있을 시): 컴포넌트 목록 참조. 목록에 없는 커스텀은 사유 기록 필수. token-only 스타일링 + i18n 리소스 경유
 
 ### [build loop] — 태스크당 subagent
@@ -74,7 +71,7 @@ planner subagent 는 v0.3 엔 생략. fixture 에 `plan.md` 가 이미 내장되
      ```
      Task(subagent_type="team-ax:design-engineer", ...)
      ```
-3. subagent 가 **구현 + `bash ${CLAUDE_SKILL_DIR}/scripts/run_checks.sh` 통과 + 태스크별 커밋** 까지 완료 후 결과 보고
+3. subagent 가 **구현 + Bash tool 로 `bash ${CLAUDE_SKILL_DIR}/scripts/run_checks.sh` 실행해 통과 확인 + 태스크별 커밋** 까지 완료 후 결과 보고
 4. **reviewer subagent 호출** — 태스크 diff 리뷰:
    ```
    Task(subagent_type="team-ax:reviewer",
@@ -110,7 +107,7 @@ planner subagent 는 v0.3 엔 생략. fixture 에 `plan.md` 가 이미 내장되
         description="stage 전체 리뷰",
         prompt="git log + diff 범위. spec 정합성, 보안, silent failure, 텍스트 하드코딩, 반복 패턴 검출")
    ```
-2. **blocking gate** — `!`bash ${CLAUDE_SKILL_DIR}/scripts/run_review_checks.sh`` 실행
+2. **blocking gate** — Bash tool 로 `bash ${CLAUDE_SKILL_DIR}/scripts/run_review_checks.sh` 실행
    - exit 0 → 통과
    - exit 1 → 필요한 수정 태스크를 `plan.md` 에 새 `- [ ]` 로 추가하고 [build loop] 로 복귀
    - exit 2 → 필수 도구 미설치 (`gitleaks`, `npx`, `python3`, `jq`). 오너에게 알림 후 중단
@@ -120,9 +117,9 @@ planner subagent 는 v0.3 엔 생략. fixture 에 `plan.md` 가 이미 내장되
 
 **참조**: `${CLAUDE_SKILL_DIR}/references/backpressure-pattern.md`
 
-1. **전체 체크 재실행** — `!`bash ${CLAUDE_SKILL_DIR}/scripts/run_checks.sh``. 모두 pass 확인
+1. **전체 체크 재실행** — Bash tool 로 `bash ${CLAUDE_SKILL_DIR}/scripts/run_checks.sh` 실행. 모두 pass 확인
 2. **dev 서버 검증** (fixture / 프로젝트에 dev 서버가 있으면):
-   - 서버 기동 확인 후 `!`bash ${CLAUDE_SKILL_DIR}/scripts/dev_server_check.sh <url>`` 실행
+   - 서버 기동 확인 후 Bash tool 로 `bash ${CLAUDE_SKILL_DIR}/scripts/dev_server_check.sh <url>` 실행
    - 오너에게 URL 안내 전 HTTP 200 확인 필수. 서버 미실행 시 URL 전달 금지
 
 ## 가드레일

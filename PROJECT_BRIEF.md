@@ -267,15 +267,17 @@ moomoo-ax/
 **핵심 전환 (v0.2~)**: **(C') Progressive Codification** 패턴으로 전환.
 team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개선. 단, **improve 대상은 SKILL.md 자체 + deterministic 규칙의 script 추출** 둘 다. 자연어 스킬은 AI 자의적 해석 + 토큰 낭비의 원인이므로, 안정적 단계는 코드로 굳혀가는 게 하네스 자기 진화의 실체.
 
+**핵심 순서 전환 (v0.3~)**: **product → meta → levelup**. v0.2 E 에서 "뭘 개선할지" 사전 정의 없이 SKILL.md 를 압축만 하니 공허했다. 배포 제품인 product loop 가 실제로 돌아야 → 개입 횟수 / 토큰 관찰이 의미 있어야 → levelup 개선 대상이 공허하지 않다. PROJECT_BRIEF 의 3 레이어 정의는 유지. 구축 순서만 이렇게.
+
 **v1.0까지 — team-product 대체와 실전 적용**
 
 | 버전       | 목표                                                                                                           |
 | -------- | ------------------------------------------------------------------------------------------------------------ |
-| **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP (ax-qa 는 자체 발명 버전, engine smoke test)                       |
-| v0.2     | (C') 패턴 정립 1 stage (ax-implement 포팅) + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + haru 실전 첫 접촉 |
-| v0.3     | (C') 확산 — ax-qa 포팅 + 재현성 / 기준선 + script 추출 자동화 첫 시도 + 대시보드 v2 판단                                             |
-| v0.4     | ax-define + ax-design 포팅 + `ax-autopilot` 오케스트레이터 (implement → localhost → preview 구간)                       |
-| v0.5     | ax-init + ax-deploy 포팅 → 6 stage 전부, **team-product 대체 선언**                                                  |
+| **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP                       |
+| v0.2     | (C') 패턴 정립 + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + 구조 결함 실증 2건 |
+| v0.3     | **순서 전환** — product loop 의 `team-ax/ax-implement` 1 stage 완성 (skill + scripts 4 + agents 3 + 드라이버 + 격리 fixture + end-to-end 수동 PASS). 관찰 인프라 / dogfooding / levelup smoke 는 v0.4 이월 |
+| v0.4     | **관찰 인프라 + dogfooding + ax-qa 포팅** — Supabase `product_runs` + 대시보드 카드 + moomoo-ax 자체 개선 실험 + ax-qa 포팅 + levelup loop smoke (1 cycle) + planner subagent + 자동 판정 |
+| v0.5     | ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언** |
 | v0.6     | 실전 적용 (yoyo: haru / rubato / rofan-world) + **jojo 공유 (kudos/sasasa 시범)**                                     |
 | v0.7     | jojo 피드백 반영 → levelup 반복                                                                                     |
 | v0.8     | 북극성 지표(오너 개입 횟수) 70% 감소 달성                                                                                   |

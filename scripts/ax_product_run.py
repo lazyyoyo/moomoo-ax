@@ -29,7 +29,7 @@ import claude  # noqa: E402
 DEFAULT_PROMPT = "/team-ax:ax-implement"
 DEFAULT_PLUGIN_DIR = REPO_ROOT / "plugin"
 
-DEFAULT_ALLOWED_TOOLS = [
+BASE_ALLOWED_TOOLS = [
     "Read",
     "Write",
     "Edit",
@@ -45,10 +45,25 @@ DEFAULT_ALLOWED_TOOLS = [
     "Bash(which:*)",
     "Bash(pgrep:*)",
     "Bash(curl:*)",
-    "Bash(bash ${CLAUDE_SKILL_DIR}/scripts/*)",
-    "Bash(python ${CLAUDE_SKILL_DIR}/scripts/*)",
-    "Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/*)",
+    "Bash(gitleaks:*)",
 ]
+
+
+def build_allowed_tools(plugin_dir: Path) -> list[str]:
+    """plugin_dir 기반 scripts 절대경로 패턴을 BASE 에 합쳐 반환.
+
+    permission rule 은 env 변수 치환을 하지 않으므로 `${CLAUDE_SKILL_DIR}` 같은
+    심볼릭 경로 대신 해석된 절대경로 패턴을 사용한다.
+    """
+    scripts_dir = plugin_dir / "skills" / "ax-implement" / "scripts"
+    abs_pattern = str(scripts_dir) + "/*"
+    return [
+        *BASE_ALLOWED_TOOLS,
+        f"Bash(bash {abs_pattern})",
+        f"Bash({abs_pattern})",  # shebang 직접 실행 대비
+        f"Bash(python {abs_pattern})",
+        f"Bash(python3 {abs_pattern})",
+    ]
 
 
 def _run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -127,7 +142,7 @@ def main() -> int:
             prompt=args.prompt,
             output_format="stream-json",
             timeout=args.timeout,
-            allowed_tools=DEFAULT_ALLOWED_TOOLS,
+            allowed_tools=build_allowed_tools(plugin_dir),
             permission_mode="acceptEdits",
             plugin_dir=plugin_dir,
             setting_sources="project,local",

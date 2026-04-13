@@ -100,6 +100,8 @@ def parse_stream_json(stdout: str) -> dict:
             msg = evt.get("message", {})
             usage = msg.get("usage", {})
             for block in msg.get("content", []):
+                if not isinstance(block, dict):
+                    continue
                 if block.get("type") == "tool_use":
                     tid = block.get("id")
                     pending[tid] = {
@@ -118,7 +120,13 @@ def parse_stream_json(stdout: str) -> dict:
 
         elif t == "user":
             msg = evt.get("message", {})
-            for block in msg.get("content", []):
+            content = msg.get("content", [])
+            # user message content 는 string 일 수도 있음 (tool_result 가 직접)
+            if isinstance(content, str):
+                continue
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
                 if block.get("type") == "tool_result":
                     tid = block.get("tool_use_id")
                     if tid in pending:
