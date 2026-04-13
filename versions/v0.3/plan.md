@@ -316,3 +316,4 @@ Phase 0 (✅ 완료)
 
 - 2026-04-11: Phase 0 완료 — 리서치 + 실험 6개 + 판정 리포트. Path A 채택.
 - 2026-04-11: plan v1 작성 — Phase 1~5 골격 확정.
+- 2026-04-11: Phase 1a 코드 변경 완료 — `src/claude.py` 옵션 확장 + stream-json 파서, `labs/ax-implement/program.md` frontmatter 에 `call_options` 추가, `src/loop.py:run()` 에서 env 변수로 script.py 에 전달. **Phase 1b (plugin-dir + 슬래시 호출) 는 SKILL.md 가 `$ARGUMENTS`=fixture_path 를 받도록 리팩터 필요 → Phase 2 codification 과 묶어서 진행**. Phase 1a 는 "tool loop 활성 + 기존 call 경로에 플래그 추가" 에만 초점. 단위 테스트 87/87 통과 (기존 69 + `test_claude_call` 17 + `test_loop_call_options` 18). **실 회귀 실행 (1.6)** 은 오너 비용 승인 대기 중 — 예상 $1~2/run.

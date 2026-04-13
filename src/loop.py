@@ -12,6 +12,7 @@ labs/{stage}/의 script.py를 반복 실행하고, program.md에 선언된 `impr
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -35,6 +36,76 @@ MIN_LINES = {
     "markdown": 40,
     "text": 20,
 }
+
+# v0.3 Phase 1: program.md 의 call_options → env 변수 매핑
+# script.py 가 이 env 를 읽어 claude.call_for_script 에 옵션으로 전달한다.
+CALL_OPTION_ENV = {
+    "allowed_tools": "MOOMOO_AX_ALLOWED_TOOLS",       # comma-separated
+    "permission_mode": "MOOMOO_AX_PERMISSION_MODE",
+    "output_format": "MOOMOO_AX_OUTPUT_FORMAT",
+    "plugin_dir": "MOOMOO_AX_PLUGIN_DIR",
+    "bare": "MOOMOO_AX_BARE",                         # "1" if enabled
+    "setting_sources": "MOOMOO_AX_SETTING_SOURCES",
+}
+
+
+def resolve_call_options(
+    raw: dict | None,
+    lab_dir: Path,
+) -> dict:
+    """
+    program.md 의 call_options 를 정규화.
+
+    - 상대 plugin_dir 은 lab_dir 기준으로 절대경로
+    - allowed_tools 는 항상 list[str]
+    - 알 수 없는 키는 무시 + 경고
+    """
+    if not raw:
+        return {}
+    if not isinstance(raw, dict):
+        print(f"[loop] call_options 가 dict 가 아님 (무시): {raw!r}")
+        return {}
+
+    out: dict = {}
+    for key, val in raw.items():
+        if key not in CALL_OPTION_ENV:
+            print(f"[loop] 알 수 없는 call_option '{key}' (무시)")
+            continue
+        if key == "allowed_tools":
+            if isinstance(val, str):
+                out[key] = [s.strip() for s in val.split(",") if s.strip()]
+            elif isinstance(val, list):
+                out[key] = [str(x) for x in val]
+            else:
+                print(f"[loop] allowed_tools 타입 오류 (무시): {val!r}")
+                continue
+        elif key == "plugin_dir":
+            pd = Path(str(val))
+            if not pd.is_absolute():
+                pd = (lab_dir / pd).resolve()
+            out[key] = str(pd)
+        elif key == "bare":
+            out[key] = bool(val)
+        else:
+            out[key] = val
+    return out
+
+
+def call_options_to_env(options: dict) -> dict:
+    """정규화된 call_options → os.environ patch dict."""
+    env_patch: dict = {}
+    for key, val in options.items():
+        env_key = CALL_OPTION_ENV.get(key)
+        if not env_key:
+            continue
+        if key == "allowed_tools":
+            env_patch[env_key] = ",".join(val) if isinstance(val, list) else str(val)
+        elif key == "bare":
+            if val:
+                env_patch[env_key] = "1"
+        else:
+            env_patch[env_key] = str(val)
+    return env_patch
 
 
 def read_file(path: Path) -> str:
@@ -195,23 +266,40 @@ def build_improve_prompt(
 """
 
 
-def run_script(script_py: Path, input_text: str) -> dict:
+def run_script(
+    script_py: Path,
+    input_text: str,
+    call_options: dict | None = None,
+) -> dict:
     """
     script.py 실행. stdin→input, stdout→산출물, stderr→토큰 메타.
 
-    Returns: {"success", "output", "tokens", "cost_usd", "duration_sec"}
+    Args:
+        script_py: 실행할 script.py 경로
+        input_text: stdin 으로 넘길 fixture 텍스트
+        call_options: 정규화된 call_options. env 변수로 script.py 에 전달.
+
+    Returns: {"success", "output", "tokens", "cost_usd", "duration_sec",
+              "tool_call_count", "num_turns"}
     """
     start = time.monotonic()
+
+    env = os.environ.copy()
+    if call_options:
+        env.update(call_options_to_env(call_options))
+
     result = subprocess.run(
         [PYTHON, str(script_py)],
         input=input_text, capture_output=True, text=True,
-        timeout=300, cwd=script_py.parent,
+        timeout=300, cwd=script_py.parent, env=env,
     )
     duration = round(time.monotonic() - start, 1)
 
     # stderr에서 토큰 메타 파싱
     tokens = {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}
     cost_usd = 0
+    tool_call_count = 0
+    num_turns = 0
     for line in result.stderr.splitlines():
         try:
             meta = json.loads(line)
@@ -219,6 +307,8 @@ def run_script(script_py: Path, input_text: str) -> dict:
                 for key in ("input", "output", "cache_creation", "cache_read"):
                     tokens[key] += meta["tokens"].get(key, 0)
                 cost_usd += meta.get("cost_usd", 0)
+                tool_call_count += meta.get("tool_call_count", 0)
+                num_turns += meta.get("num_turns", 0)
         except json.JSONDecodeError:
             pass
 
@@ -232,6 +322,8 @@ def run_script(script_py: Path, input_text: str) -> dict:
             "tokens": tokens,
             "cost_usd": cost_usd,
             "duration_sec": duration,
+            "tool_call_count": tool_call_count,
+            "num_turns": num_turns,
             "error": "\n".join(error_lines)[:500],
         }
 
@@ -241,6 +333,8 @@ def run_script(script_py: Path, input_text: str) -> dict:
         "tokens": tokens,
         "cost_usd": round(cost_usd, 6),
         "duration_sec": duration,
+        "tool_call_count": tool_call_count,
+        "num_turns": num_turns,
     }
 
 
@@ -249,6 +343,7 @@ def improve_artifact(
     target: Path,
     failed_items: list,
     output: str,
+    call_options: dict | None = None,
 ) -> dict:
     """
     실패 항목 기반으로 improve_target 파일을 개선.
@@ -268,7 +363,15 @@ def improve_artifact(
     prompt = build_improve_prompt(
         program_body, target, language, current_content, failed_items, output
     )
-    result = claude_api.call(prompt)
+    # call_options 를 claude.call 에 전달 (allowed_tools, permission_mode 등).
+    # improve 는 기본 json 포맷 유지 (per-tool 감사 불필요).
+    call_kwargs: dict = {}
+    if call_options:
+        for key in ("allowed_tools", "permission_mode", "plugin_dir",
+                    "bare", "setting_sources"):
+            if key in call_options:
+                call_kwargs[key] = call_options[key]
+    result = claude_api.call(prompt, **call_kwargs)
 
     improve_meta = {
         "tokens": result["tokens"],
@@ -342,6 +445,11 @@ def run(
     improve_target_rel = program_config.get("improve_target", "script.py")
     improve_target_path = (lab_dir / improve_target_rel).resolve()
 
+    # v0.3 Phase 1: call_options 정규화 (plugin_dir 상대경로 → 절대 등)
+    call_options = resolve_call_options(
+        program_config.get("call_options"), lab_dir,
+    )
+
     if not script_py.exists():
         print(f"[loop] {script_py} 없음"); sys.exit(1)
     if not rubric_path.exists():
@@ -367,6 +475,8 @@ def run(
     print(f"[loop] user: {user_name}, fixture: {fixture_id or '(none)'}")
     print(f"[loop] improve_target: {improve_target_path.relative_to(LABS_DIR.parent) if LABS_DIR.parent in improve_target_path.parents else improve_target_path}")
     print(f"[loop] max_iter: {max_iter}, threshold: {threshold}")
+    if call_options:
+        print(f"[loop] call_options: {call_options}")
     print()
 
     empty_tokens = {"input": 0, "output": 0, "cache_creation": 0, "cache_read": 0}
@@ -381,9 +491,11 @@ def run(
 
         # 1. script.py 실행
         print("[실행] script.py...")
-        sr = run_script(script_py, input_text)
+        sr = run_script(script_py, input_text, call_options=call_options)
         iter_tokens["script"] = sr["tokens"]
         iter_cost += sr.get("cost_usd", 0)
+        if sr.get("tool_call_count"):
+            print(f"[실행] tool calls: {sr['tool_call_count']}, turns: {sr.get('num_turns', 0)}")
 
         if not sr["success"]:
             print(f"[실행] 실패: {sr.get('error', '?')}")
@@ -416,6 +528,7 @@ def run(
                     improve_target_path,
                     [{"question": sr.get("error", "")}],
                     "",
+                    call_options=call_options,
                 )
                 iter_tokens["improve"] = imp.get("tokens", dict(empty_tokens))
                 total_cost += imp.get("cost_usd", 0)
@@ -485,7 +598,10 @@ def run(
         # 6. improve_target 개선 (마지막 iter는 스킵 — 어차피 사용 안 됨)
         if failed and program_body and i < max_iter:
             print(f"[개선] {improve_target_path.name} 수정...")
-            imp = improve_artifact(program_body, improve_target_path, failed, output)
+            imp = improve_artifact(
+                program_body, improve_target_path, failed, output,
+                call_options=call_options,
+            )
             iter_tokens["improve"] = imp.get("tokens", dict(empty_tokens))
             total_cost += imp.get("cost_usd", 0)
             if not imp.get("skipped"):

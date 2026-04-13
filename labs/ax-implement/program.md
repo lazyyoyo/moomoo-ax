@@ -1,5 +1,15 @@
 ---
 improve_target: ../../plugin/skills/ax-implement/SKILL.md
+call_options:
+  allowed_tools:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Grep
+    - Glob
+  permission_mode: acceptEdits
+  output_format: stream-json
 ---
 
 # ax-implement — 오너 규칙

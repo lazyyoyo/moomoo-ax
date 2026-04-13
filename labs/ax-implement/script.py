@@ -7,13 +7,36 @@ ax-implement script v1 — fixture 디렉토리 → 구현 코드 산출물
 - stdout 으로 Implementation 마크다운만 출력
 - stderr 로는 토큰 메타(JSON 1줄)만 출력 (claude.call_for_script 자동 처리)
 - 절대 파일 저장 금지
+
+v0.3 Phase 1: loop.py 가 program.md 의 call_options 를 env 변수로 주입하면
+claude.call_for_script 에 옵션으로 전달한다 (allowed_tools/permission_mode/
+output_format/plugin_dir/bare/setting_sources). env 가 없으면 기본값 동작.
 """
 
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 from claude import call_for_script
+
+
+def read_call_options_from_env() -> dict:
+    """loop.py 가 주입한 MOOMOO_AX_* env 변수를 kwargs dict 로 변환."""
+    opts: dict = {}
+    if v := os.environ.get("MOOMOO_AX_ALLOWED_TOOLS"):
+        opts["allowed_tools"] = [s.strip() for s in v.split(",") if s.strip()]
+    if v := os.environ.get("MOOMOO_AX_PERMISSION_MODE"):
+        opts["permission_mode"] = v
+    if v := os.environ.get("MOOMOO_AX_OUTPUT_FORMAT"):
+        opts["output_format"] = v
+    if v := os.environ.get("MOOMOO_AX_PLUGIN_DIR"):
+        opts["plugin_dir"] = v
+    if os.environ.get("MOOMOO_AX_BARE") == "1":
+        opts["bare"] = True
+    if v := os.environ.get("MOOMOO_AX_SETTING_SOURCES"):
+        opts["setting_sources"] = v
+    return opts
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILL_PATH = REPO_ROOT / "plugin" / "skills" / "ax-implement" / "SKILL.md"
@@ -119,7 +142,8 @@ def main():
         fixture=fixture,
         fixture_id=fixture_id,
     )
-    output, _ = call_for_script(prompt, timeout=300)
+    options = read_call_options_from_env()
+    output, _ = call_for_script(prompt, timeout=300, **options)
 
     print(output)
 
