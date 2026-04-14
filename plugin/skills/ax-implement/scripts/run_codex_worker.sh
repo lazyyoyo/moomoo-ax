@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 usage() {
   cat <<'EOF'
@@ -122,12 +122,16 @@ if [[ -z "$MODEL" && -z "$PROFILE" ]]; then
     --output "$SELECTION_PATH"
   )
 
-  for path in "${RELEVANT_FILES[@]}"; do
-    SELECT_CMD+=(--relevant-file "$path")
-  done
-  for path in "${CHANGED_FILES[@]}"; do
-    SELECT_CMD+=(--changed-file "$path")
-  done
+  if [[ ${#RELEVANT_FILES[@]} -gt 0 ]]; then
+    for path in "${RELEVANT_FILES[@]}"; do
+      SELECT_CMD+=(--relevant-file "$path")
+    done
+  fi
+  if [[ ${#CHANGED_FILES[@]} -gt 0 ]]; then
+    for path in "${CHANGED_FILES[@]}"; do
+      SELECT_CMD+=(--changed-file "$path")
+    done
+  fi
 
   "${SELECT_CMD[@]}" >/dev/null
 
@@ -148,7 +152,20 @@ print(payload.get("profile") or "")
 PY
 )"
 else
-  python3 - <<'PY' "$SELECTION_PATH" "$ROLE" "$TASK_ID" "$MODEL" "$PROFILE" "${RELEVANT_FILES[@]}" -- "${CHANGED_FILES[@]}"
+  SCOPE_PATH="$LOG_DIR/explicit-scope-files.txt"
+  : >"$SCOPE_PATH"
+  if [[ ${#RELEVANT_FILES[@]} -gt 0 ]]; then
+    for path in "${RELEVANT_FILES[@]}"; do
+      printf '%s\n' "$path" >>"$SCOPE_PATH"
+    done
+  fi
+  if [[ ${#CHANGED_FILES[@]} -gt 0 ]]; then
+    for path in "${CHANGED_FILES[@]}"; do
+      printf '%s\n' "$path" >>"$SCOPE_PATH"
+    done
+  fi
+
+  python3 - <<'PY' "$SELECTION_PATH" "$ROLE" "$TASK_ID" "$MODEL" "$PROFILE" "$SCOPE_PATH"
 import json
 import sys
 
@@ -157,11 +174,10 @@ role = sys.argv[2]
 task_id = sys.argv[3]
 model = sys.argv[4] or None
 profile = sys.argv[5] or None
+scope_path = sys.argv[6]
 
-rest = sys.argv[6:]
-separator = rest.index("--") if "--" in rest else len(rest)
-relevant_files = rest[:separator]
-changed_files = rest[separator + 1:] if separator < len(rest) else []
+with open(scope_path, encoding="utf-8") as f:
+    scope_files = [line.strip() for line in f if line.strip()]
 
 payload = {
     "role": role,
@@ -171,7 +187,7 @@ payload = {
     "profile": profile,
     "risk": "explicit_override",
     "reasons": ["explicit model/profile override via wrapper args"],
-    "scope_files": [*relevant_files, *changed_files],
+    "scope_files": scope_files,
 }
 
 with open(selection_path, "w", encoding="utf-8") as f:
@@ -188,4 +204,11 @@ if [[ -n "$PROFILE" ]]; then
   FORWARD+=(--profile "$PROFILE")
 fi
 
-exec "$REPO_ROOT/scripts/codex/run_worker.sh" "${FORWARD[@]}"
+RUNNER_PATH="$PLUGIN_ROOT/scripts/codex/run_worker.sh"
+
+if [[ ! -x "$RUNNER_PATH" ]]; then
+  echo "[ax-codex-worker] bundled codex runner not found: $RUNNER_PATH" >&2
+  exit 2
+fi
+
+exec "$RUNNER_PATH" "${FORWARD[@]}"
