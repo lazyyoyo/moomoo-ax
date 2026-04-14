@@ -1,0 +1,15 @@
+{
+  "name": "moomoo-ax",
+  "owner": {
+    "name": "lazyyoyo"
+  },
+  "plugins": [
+    {
+      "name": "team-ax",
+      "description": "오너 의도를 기대치에 맞게 무개입으로 배포까지 가져가는 AI Transformation 파이프라인",
+      "version": "0.1.1",
+      "source": "./plugin"
+    }
+  ],
+  "version": "0.1.1"
+}
