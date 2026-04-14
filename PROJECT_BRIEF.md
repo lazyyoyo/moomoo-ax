@@ -276,9 +276,9 @@ team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개
 | **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP                                                                                                                                                        |
 | v0.2     | (C') 패턴 정립 + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + 구조 결함 실증 2건                                                                                                        |
 | v0.3     | **순서 전환** — product loop 의 `team-ax/ax-implement` 1 stage 완성 (skill + scripts 4 + agents 3 + 드라이버 + 격리 fixture + end-to-end 수동 PASS). 관찰 인프라 / dogfooding / levelup smoke 는 v0.4 이월                     |
-| v0.4     | **관찰 인프라 + Codex executor+reviewer pilot + dogfooding** — Supabase `product_runs` + 대시보드 카드 + implement stage 의 executor / reviewer 를 Codex worker 로 제한 편입 + moomoo-ax 자체 개선 실험. 속도는 관찰/최적화 대상이지 하드 게이트는 아님. `ax-qa` / levelup smoke / planner 는 v0.5 로 이월 |
-| v0.5     | ax-qa 포팅 + levelup smoke + planner / 자동 판정 정비 + ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언**                       |
-| v0.6     | 실전 적용 (yoyo: haru / rubato / rofan-world) + **jojo 공유 (kudos/sasasa 시범)**                                                                                                                               |
+| v0.4     | **관찰 인프라 + Codex executor+reviewer pilot + 첫 dogfooding close** — Supabase `product_runs` + 대시보드 카드 + implement stage 의 executor / reviewer 를 Codex worker 로 제한 편입 + `dashboard/` 첫 dogfooding 1건. 속도는 known issue 로 수용. |
+| v0.5     | **implement 실전 사용성 우선** — planner/plan bootstrap 을 포함해 `ax-implement` 를 plan 없는 실프로젝트에서도 바로 쓰게 하고, `ax-define` 에서 기본 문서 초안(`spec`, `ARCHITECTURE`, `DESIGN_SYSTEM`, `plan`) 을 Codex worker 가 작성하도록 전환 |
+| v0.6     | `ax-qa` 포팅 + levelup smoke + planner / 자동 판정 정비 + ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언**                       |
 | v0.7     | jojo 피드백 반영 → levelup 반복                                                                                                                                                                                |
 | v0.8     | 북극성 지표(오너 개입 횟수) 70% 감소 달성                                                                                                                                                                              |
 | v0.9     | 안정화 + 문서 정리                                                                                                                                                                                             |
@@ -309,7 +309,7 @@ team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개
 | 영역 | 스택 |
 |---|---|
 | levelup loop 엔진 | Python (`src/loop.py`, `judge.py`, `claude.py`) |
-| 워커 | Claude CLI (`claude -p` subprocess) |
+| 워커 | Claude CLI conductor + Codex worker (`codex exec`) |
 | eval | LLM Judge (rubric 기반, 가중치 점수, "오너 기대치" 포함) |
 | 로그 / 데이터 | Supabase (ap-northeast-2, project id: aqwhjtlpzpcizatvchfb) |
 | 대시보드 | Next.js 16 + shadcn/ui + recharts (Vercel 배포) |

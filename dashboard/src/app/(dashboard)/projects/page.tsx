@@ -24,14 +24,22 @@ type LatestRunInfo = {
   command: string;
 };
 
+function summarizeQueryError(message?: string | null) {
+  const firstLine = message?.split("\n")[0]?.trim();
+  if (!firstLine) return "잠시 후 다시 시도해 주세요.";
+  return firstLine.slice(0, 120);
+}
+
 export default async function ProjectsPage() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("product_runs")
     .select("project, user_name, status, command, created_at, cost_usd, stage")
     .order("created_at", { ascending: false })
     .limit(100);
 
-  const runs = (data ?? []) as Pick<
+  const runsErrorMessage = error ? summarizeQueryError(error.message) : null;
+
+  const runs = ((error ? [] : data) ?? []) as Pick<
     ProductRun,
     "project" | "user_name" | "status" | "command" | "created_at" | "cost_usd" | "stage"
   >[];
@@ -82,6 +90,7 @@ export default async function ProjectsPage() {
               key={p.name}
               info={p}
               stats={byProject.get(p.name)}
+              hasQueryError={Boolean(runsErrorMessage)}
             />
           ))}
         </div>
@@ -97,12 +106,18 @@ export default async function ProjectsPage() {
               key={p.name}
               info={p}
               stats={byProject.get(p.name)}
+              hasQueryError={Boolean(runsErrorMessage)}
             />
           ))}
         </div>
       </section>
 
-      {runs.length === 0 && (
+      {runsErrorMessage && (
+        <div className="mt-8 border border-red-500/30 rounded-md p-6 text-center text-sm text-red-700 bg-red-500/5">
+          product_runs 조회 실패 · {runsErrorMessage}
+        </div>
+      )}
+      {!runsErrorMessage && runs.length === 0 && (
         <div className="mt-8 border border-dashed rounded-md p-6 text-center text-sm text-muted-foreground">
           아직 team-ax 를 돌린 product run 없음. v0.4 에서 관찰 인프라가 붙으면 여기부터 누적된다.
         </div>
@@ -121,6 +136,7 @@ const STATUS_STYLES: Record<ProductRun["status"], string> = {
 function ProjectCard({
   info,
   stats,
+  hasQueryError,
 }: {
   info: ProjectInfo;
   stats?: {
@@ -130,6 +146,7 @@ function ProjectCard({
     totalCost: number;
     latestRun: LatestRunInfo | null;
   };
+  hasQueryError: boolean;
 }) {
   return (
     <div className="border rounded-md p-4">
@@ -173,7 +190,7 @@ function ProjectCard({
         </div>
       ) : (
         <div className="text-xs text-muted-foreground mt-2">
-          아직 실행 기록 없음
+          {hasQueryError ? "실행 기록 조회 실패" : "아직 실행 기록 없음"}
         </div>
       )}
     </div>

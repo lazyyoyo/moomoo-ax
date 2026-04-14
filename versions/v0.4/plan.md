@@ -53,9 +53,23 @@ v0.4 는 "작은 실전에서 대체 가능" 을 증명하는 버전이다.
 
 ### C. dogfooding
 
-- [ ] `--target-subdir` 또는 동등한 경로 가드로 child write 범위를 제한
-- [ ] moomoo-ax 내부 1개 소형 태스크에서 Codex executor+reviewer 루프 1회 수행
-- [ ] 지정 subdir 밖 파일 오염이 없음을 확인
+- [x] `--target-subdir` 또는 동등한 경로 가드로 child write 범위를 제한
+- [x] moomoo-ax 내부 1개 소형 태스크에서 Codex executor+reviewer 루프 1회 수행
+- [x] 지정 subdir 밖 파일 오염이 없음을 확인
+
+## close-out note
+
+v0.4 는 아래 범위까지 달성한 상태로 close 한다.
+
+- Track A: `product_runs` 관찰 인프라와 dashboard 반영 완료
+- Track B: Codex executor/reviewer fixture green 완료
+- Track C: `dashboard/` 대상 direct skill dogfooding 1건 완료
+
+남은 open item 은 버전 미완료가 아니라 v0.5 이월로 본다.
+
+- A.3.3 finish idempotency
+- A.5 failed run `status=failed` 검증
+- C.3.1 direct skill run 외 driver 경로로도 `product_runs` 증거 남기기
 
 ## Out of scope (v0.5+)
 
@@ -276,10 +290,10 @@ v0.4 는 "작은 실전에서 대체 가능" 을 증명하는 버전이다.
 
 ### C.1 경로 가드
 
-- [ ] **C.1.1 `scripts/ax_product_run.py` 또는 별도 드라이버에 `--target-subdir` 추가**
-- [ ] **C.1.2 worker write 범위 제한**
+- [x] **C.1.1 `scripts/ax_product_run.py` 또는 별도 드라이버에 `--target-subdir` 추가**
+- [x] **C.1.2 worker write 범위 제한**
   - child session 이 지정 subdir 밖 파일을 수정 못하게 tool allow 패턴 제한
-- [ ] **C.1.3 self-edit 금지**
+- [x] **C.1.3 self-edit 금지**
   - `plugin/skills/ax-implement/`, `scripts/ax_product_run.py`, worker adapter 본체는 dogfooding 대상에서 제외
 
 Track C 진입 조건:
@@ -290,31 +304,40 @@ Track C 진입 조건:
 
 ### C.2 첫 대상
 
-- [ ] **C.2.1 `dashboard/` 내부 소형 태스크 1개**
+- [x] **C.2.1 `dashboard/` 내부 소형 태스크 1개**
   - 예: `product_runs` 카드 보강, 표시 필드 개선, 빈 상태 문구 정리
-- [ ] **C.2.2 run 전후 git status 비교**
+- [x] **C.2.2 run 전후 git status 비교**
   - target-subdir 밖 변경 없음을 확인
+
+실측:
+- direct skill run 으로 `dashboard/plan.md` 의 `T-001` + `T-FIX-T-001-1` 둘 다 APPROVE
+- 최종 수정 파일은 `dashboard/src/app/(dashboard)/projects/page.tsx`
+- 상세: `notes/2026-04-14-track-c-dashboard-dogfooding.md`
 
 ### C.3 기록
 
 - [ ] `product_runs` 로 run 기록 확인
 - [ ] 필요 시 interventions / feedback 과 연결
-- [ ] `notes/` 에 dogfooding 회고 1건 작성
+- [x] `notes/` 에 dogfooding 회고 1건 작성
+
+메모:
+- runtime 검증은 direct skill run 으로 수행했기 때문에 `product_runs` row 는 남기지 않음
+- 증거는 `dashboard/.harness/codex/.../result.json` 기준
 
 ### C 성공 기준
 
-- moomoo-ax 내부 소형 태스크 1건을 Codex executor+reviewer 루프로 처리
-- subdir 밖 오염 없음
-- 이후 같은 방식으로 실제 프로젝트 확장이 가능하다는 자신감 확보
+- [x] moomoo-ax 내부 소형 태스크 1건을 Codex executor+reviewer 루프로 처리
+- [x] subdir 밖 오염 없음
+- [x] 이후 같은 방식으로 실제 프로젝트 확장이 가능하다는 자신감 확보
 
 ---
 
 ## Phase D — 마감
 
-- [ ] `versions/v0.4/report.md`
-- [ ] `HANDOFF.md` 업데이트
-- [ ] `BACKLOG.md` 정리
-- [ ] `PROJECT_BRIEF.md` 로드맵 조정 (필요 시)
+- [x] `versions/v0.4/report.md`
+- [x] `HANDOFF.md` 업데이트
+- [x] `BACKLOG.md` 정리
+- [x] `PROJECT_BRIEF.md` 로드맵 조정 (필요 시)
 - [ ] tag / close-out 판단
 
 ---
