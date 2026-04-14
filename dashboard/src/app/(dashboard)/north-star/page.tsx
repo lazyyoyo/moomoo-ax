@@ -3,14 +3,17 @@ import { supabase } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 export default async function NorthStarPage() {
-  const [interventions, feedback] = await Promise.all([
+  const [interventions, feedback, productRuns] = await Promise.all([
     supabase.from("interventions").select("id, severity, hunks_added, hunks_deleted, created_at"),
     supabase.from("feedback_backlog").select("id, status, priority, created_at"),
+    supabase.from("product_runs").select("id, status, created_at"),
   ]);
 
   const ivCount = interventions.data?.length ?? 0;
   const fbCount = feedback.data?.length ?? 0;
   const fbOpen = feedback.data?.filter((f) => f.status === "open").length ?? 0;
+  const prCount = productRuns.data?.length ?? 0;
+  const prRunning = productRuns.data?.filter((r) => r.status === "running").length ?? 0;
 
   return (
     <div>
@@ -20,7 +23,15 @@ export default async function NorthStarPage() {
       </p>
 
       {/* 두 채널 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Card
+          title="product_runs"
+          subtitle="진행 관찰 채널"
+          value={`${prRunning}`}
+          unit={`running / ${prCount} total`}
+          note="product loop 실행 수, 진행 중 상태, 후속 intervention 연결의 기준 행."
+          status={prCount === 0 ? "초기" : "수집 중"}
+        />
         <Card
           title="자동 diff 캡처"
           subtitle="1차 지표 — 정량"

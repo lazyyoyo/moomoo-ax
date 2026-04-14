@@ -271,18 +271,18 @@ team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개
 
 **v1.0까지 — team-product 대체와 실전 적용**
 
-| 버전       | 목표                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------ |
-| **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP                       |
-| v0.2     | (C') 패턴 정립 + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + 구조 결함 실증 2건 |
-| v0.3     | **순서 전환** — product loop 의 `team-ax/ax-implement` 1 stage 완성 (skill + scripts 4 + agents 3 + 드라이버 + 격리 fixture + end-to-end 수동 PASS). 관찰 인프라 / dogfooding / levelup smoke 는 v0.4 이월 |
-| v0.4     | **관찰 인프라 + dogfooding + ax-qa 포팅** — Supabase `product_runs` + 대시보드 카드 + moomoo-ax 자체 개선 실험 + ax-qa 포팅 + levelup loop smoke (1 cycle) + planner subagent + 자동 판정 |
-| v0.5     | ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언** |
-| v0.6     | 실전 적용 (yoyo: haru / rubato / rofan-world) + **jojo 공유 (kudos/sasasa 시범)**                                     |
-| v0.7     | jojo 피드백 반영 → levelup 반복                                                                                     |
-| v0.8     | 북극성 지표(오너 개입 횟수) 70% 감소 달성                                                                                   |
-| v0.9     | 안정화 + 문서 정리                                                                                                  |
-| **v1.0** | 공식 출시                                                                                                        |
+| 버전       | 목표                                                                                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1** | 3 레이어 골격 + levelup loop 1 cycle 완주 + 대시보드 관측 MVP                                                                                                                                                        |
+| v0.2     | (C') 패턴 정립 + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + 구조 결함 실증 2건                                                                                                        |
+| v0.3     | **순서 전환** — product loop 의 `team-ax/ax-implement` 1 stage 완성 (skill + scripts 4 + agents 3 + 드라이버 + 격리 fixture + end-to-end 수동 PASS). 관찰 인프라 / dogfooding / levelup smoke 는 v0.4 이월                     |
+| v0.4     | **관찰 인프라 + Codex executor+reviewer pilot + dogfooding** — Supabase `product_runs` + 대시보드 카드 + implement stage 의 executor / reviewer 를 Codex worker 로 제한 편입 + moomoo-ax 자체 개선 실험. 속도는 관찰/최적화 대상이지 하드 게이트는 아님. `ax-qa` / levelup smoke / planner 는 v0.5 로 이월 |
+| v0.5     | ax-qa 포팅 + levelup smoke + planner / 자동 판정 정비 + ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언**                       |
+| v0.6     | 실전 적용 (yoyo: haru / rubato / rofan-world) + **jojo 공유 (kudos/sasasa 시범)**                                                                                                                               |
+| v0.7     | jojo 피드백 반영 → levelup 반복                                                                                                                                                                                |
+| v0.8     | 북극성 지표(오너 개입 횟수) 70% 감소 달성                                                                                                                                                                              |
+| v0.9     | 안정화 + 문서 정리                                                                                                                                                                                             |
+| **v1.0** | 공식 출시                                                                                                                                                                                                   |
 
 **v1.x+ — 자율 진화 단계**
 

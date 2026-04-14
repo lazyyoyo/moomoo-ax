@@ -9,8 +9,10 @@ write는 service_role로, RLS 우회.
 
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
+import urllib.parse
 import urllib.request
 
 # .env 로드 (외부 의존성 없이)
@@ -30,7 +32,7 @@ SUPABASE_URL = os.environ.get(
 )
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
-AX_VERSION = "v0.2"
+AX_VERSION = "v0.4"
 
 
 def _post(table: str, payload: dict) -> bool:
@@ -58,6 +60,34 @@ def _post(table: str, payload: dict) -> bool:
         return True
     except Exception as e:
         print(f"[db] {table} insert 실패: {e}")
+        return False
+
+
+def _patch(table: str, payload: dict, *, query: str) -> bool:
+    if not SUPABASE_KEY:
+        print("[db] SUPABASE_SERVICE_ROLE_KEY 미설정 — 로그 스킵")
+        return False
+
+    url = f"{SUPABASE_URL}/rest/v1/{table}{query}"
+    body = json.dumps(payload).encode()
+
+    req = urllib.request.Request(
+        url,
+        data=body,
+        method="PATCH",
+        headers={
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Prefer": "return=minimal",
+        },
+    )
+
+    try:
+        urllib.request.urlopen(req)
+        return True
+    except Exception as e:
+        print(f"[db] {table} update 실패: {e}")
         return False
 
 
@@ -92,6 +122,84 @@ def log_iteration(
         "duration_sec": duration_sec,
         "script_version": script_version,
     })
+
+
+def start_product_run(
+    *,
+    product_run_id: str,
+    user_name: str,
+    project: str,
+    command: str,
+    stage: str | None = None,
+    status: str = "running",
+    started_at: str | None = None,
+    input_intent: str | None = None,
+    output_path: str | None = None,
+    fixture_id: str | None = None,
+    session_id: str | None = None,
+    ax_version: str = AX_VERSION,
+) -> bool:
+    """product_runs 에 running row insert."""
+    payload = {
+        "id": product_run_id,
+        "ax_version": ax_version,
+        "user_name": user_name,
+        "project": project,
+        "command": command,
+        "status": status,
+        "started_at": started_at or datetime.now(timezone.utc).isoformat(),
+    }
+    if stage:
+        payload["stage"] = stage
+    if input_intent:
+        payload["input_intent"] = input_intent
+    if output_path:
+        payload["output_path"] = output_path
+    if fixture_id:
+        payload["fixture_id"] = fixture_id
+    if session_id:
+        payload["session_id"] = session_id
+    return _post("product_runs", payload)
+
+
+def finish_product_run(
+    *,
+    product_run_id: str,
+    status: str,
+    finished_at: str | None = None,
+    stage: str | None = None,
+    output_path: str | None = None,
+    session_id: str | None = None,
+    duration_sec: float | None = None,
+    cost_usd: float | None = None,
+    num_turns: int | None = None,
+    tool_call_stats: dict | None = None,
+    intervention_count: int | None = None,
+) -> bool:
+    """product_runs row update. driver 가 finish 시점에 호출."""
+    payload = {
+        "status": status,
+        "finished_at": finished_at or datetime.now(timezone.utc).isoformat(),
+    }
+    if stage:
+        payload["stage"] = stage
+    if output_path:
+        payload["output_path"] = output_path
+    if session_id:
+        payload["session_id"] = session_id
+    if duration_sec is not None:
+        payload["duration_sec"] = duration_sec
+    if cost_usd is not None:
+        payload["cost_usd"] = cost_usd
+    if num_turns is not None:
+        payload["num_turns"] = num_turns
+    if tool_call_stats is not None:
+        payload["tool_call_stats"] = tool_call_stats
+    if intervention_count is not None:
+        payload["intervention_count"] = intervention_count
+
+    run_id = urllib.parse.quote(product_run_id, safe="")
+    return _patch("product_runs", payload, query=f"?id=eq.{run_id}")
 
 
 def log_feedback(

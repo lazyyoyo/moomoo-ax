@@ -58,6 +58,12 @@ export type ProductRun = {
   status: "running" | "done" | "failed" | "cancelled";
   started_at: string;
   finished_at: string | null;
+  duration_sec: number | null;
+  num_turns: number | null;
+  fixture_id: string | null;
+  session_id: string | null;
+  tool_call_stats: Record<string, unknown> | null;
+  intervention_count: number | null;
   input_intent: string | null;
   output_path: string | null;
   tokens: StageTokenBreakdown;

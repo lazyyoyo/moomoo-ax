@@ -103,10 +103,10 @@ moomoo-ax/
 | 버전 | 목표 |
 |---|---|
 | v0.1 | 3 레이어 골격 + levelup 1 cycle + 대시보드 MVP |
-| v0.2 | define/implement 루프 + 자동 diff + `/ax-feedback` |
-| v0.3 | design 루프 |
-| v0.4 | qa + `ax-autopilot` (implement→localhost→preview) |
-| v0.5 | init/deploy → 6 stage 전부, **team-product 대체 선언** |
+| v0.2 | (C') 패턴 정립 + 자동 diff + `/ax-feedback` |
+| v0.3 | `team-ax/ax-implement` 1 stage 완성 + end-to-end PASS |
+| v0.4 | 관찰 인프라 + Claude conductor / Codex executor+reviewer pilot + dogfooding |
+| v0.5 | ax-qa + levelup smoke + planner/자동 판정 + 6 stage 확장, **team-product 대체 선언** |
 | v0.6 | 실전 적용 + jojo 공유 (kudos/sasasa 시범) |
 | v0.7~0.9 | 피드백 반영, 북극성 지표 70% 감소, 안정화 |
 | v1.0 | 공식 출시 |
@@ -122,6 +122,8 @@ moomoo-ax/
 
 ## Gotchas
 
+- **오너 작업 방식**: 선계획 후실행을 선호. 구현 전 최소 범위 / 비범위 / 성공 기준을 먼저 3~5줄로 합의하고 시작.
+- **역할 분리**: Claude 는 conductor. stage 흐름 제어 / task 선택 / 결과 판정 / fix task 삽입만 맡고, 실제 구현/리뷰 worker 는 분리 가능하게 설계.
 - **rubric은 루프 안에서 불변**. 변경은 meta loop(버전 단위) 판단으로만.
 - **levelup loop 엔진(`src/loop.py`)은 범용**. 대상별 차이는 `labs/{target}/program.md + rubric.yml`로 표현.
 - **subprocess.run으로 Claude CLI 호출**. 외부 의존성 최소화.

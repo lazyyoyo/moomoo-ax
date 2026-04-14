@@ -105,6 +105,114 @@ codex mcp --help
 
 > **"Claude plugin 을 Codex 가 읽게 만든다" 가 아니라, "Python 오케스트레이터가 Codex 를 직접 호출하게 바꾼다" 가 맞다.**
 
+## `oh-my-claudecode team` 스킬에서 얻은 시사점
+
+참고 원문:
+
+- `https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/team/SKILL.md`
+
+이 스킬은 현재 고민 중인 구조와 매우 가깝다. 특히 **Claude lead + 외부 CLI worker** 조합을 이미 운영 패턴으로 인정하고 있다는 점이 중요하다.
+
+핵심 시사점은 아래와 같다.
+
+### 1. lead와 worker를 명확히 분리해야 한다
+
+원문 구조에서 lead 는 전체 파이프라인을 통제한다.
+
+- task 분해
+- worker 할당
+- verify/fix loop
+- shutdown
+- cleanup
+
+반면 Codex / Gemini 같은 CLI worker 는 **one-shot autonomous worker** 로 취급된다. 즉, worker 는 일을 하고 결과를 반환하지만, 팀 상태 관리의 주체는 아니다.
+
+이 해석은 `moomoo-ax` 에도 그대로 맞다.
+
+- Claude = lead / orchestrator
+- Codex / Gemini = task-scoped worker
+- tmux = 세션 호스팅 / 관찰 레이어
+
+### 2. CLI worker는 team communication에 직접 참여하지 않는다고 보는 게 안전하다
+
+원문에도 명시돼 있다.
+
+- CLI worker 는 full filesystem access 는 가질 수 있다
+- 하지만 `TaskList`, `TaskUpdate`, `SendMessage` 같은 native team communication 에 직접 참여하지 않는다
+- lead 가 prompt 파일 작성, worker 실행, output 읽기, task 완료 마킹을 담당한다
+
+이 점은 중요하다.
+
+즉 `moomoo-ax` 에서도 Codex worker 를 붙인다면:
+
+- `plan.md` 갱신
+- fix task 생성
+- stage 진행 상태 전이
+- retry / abort 판정
+
+은 worker 가 아니라 **Claude lead** 가 해야 한다.
+
+### 3. verify/fix loop는 worker가 아니라 lead가 쥐어야 한다
+
+원문 team runtime 은:
+
+`team-plan -> team-prd -> team-exec -> team-verify -> team-fix`
+
+구조를 가지며, 실패 시 bounded fix loop 로 되돌린다.
+
+이 패턴은 현재 `ax-implement` 의 fix-depth 규약과 잘 맞는다.
+
+따라서 Codex hybrid 로 가더라도:
+
+- executor 역할 일부를 Codex 로 넘길 수는 있어도
+- verify gate 와 fix loop control 은 Claude 쪽에 남겨야 한다
+
+이게 가장 안전하다.
+
+### 4. handoff 문서 패턴은 도입 가치가 높다
+
+원문은 각 stage 완료 시 handoff 문서를 남긴다.
+
+- Decided
+- Rejected
+- Risks
+- Files
+- Remaining
+
+현재 `moomoo-ax` 도 Claude lead 가 Codex worker 결과를 받아 다음 단계로 넘기게 되면, **세션 컨텍스트가 아니라 파일 기반 handoff** 가 필요해진다.
+
+특히 아래 위치가 유력하다.
+
+```text
+.harness/handoffs/<run-id>/<stage>.md
+```
+
+또는 stage source of truth 를 분리한 뒤:
+
+```text
+stages/ax-implement/handoffs/<run-id>-<phase>.md
+```
+
+### 5. worktree / 격리 run 패턴은 계속 유지해야 한다
+
+원문도 worker 간 충돌 방지를 위해 worktree 격리를 중요한 운영 패턴으로 둔다.
+
+`moomoo-ax` 도 이 원칙은 유지해야 한다.
+
+- lead 는 fixture 원본을 직접 건드리지 않는다
+- 각 worker / run 은 격리 경로에서 실행된다
+- merge / 결과 반영은 lead 가 통제한다
+
+즉 Codex 전환은 runtime 변경이지, 격리 원칙의 폐기가 아니다.
+
+### 6. 결론: Claude orchestrator + Codex worker는 타당한 구조다
+
+이 스킬을 참고하면 다음 판단이 가능하다.
+
+> **Codex 를 Claude 팀의 "동등한 persistent teammate" 로 보지 말고, Claude lead 가 lifecycle 을 관리하는 one-shot CLI worker 로 붙이는 것이 맞다.**
+
+이건 지금까지 논의한 방향과 동일하며, `moomoo-ax` 에서도 가장 현실적인 하이브리드 모델이다.
+
 ## 추천 전환 전략
 
 ### 전략 A — 현실적 1차 목표
@@ -144,6 +252,78 @@ codex mcp --help
 - 지금까지 만든 `team-ax` 자산 활용도가 낮아진다
 
 현재 단계에서는 **전략 A 가 맞다**.
+
+## 현재 v0.3 잔여 작업 기준 우선순위 판단
+
+현재 Claude 쪽 v0.3 plan 기준 남은 일:
+
+- `A.5.3` `tests/test_ax_product_run.py`
+- `A.7` end-to-end run + 수동 확인 + 결과 노트
+- `Phase B` 마감
+
+세부적으로는:
+
+1. `A.5.3`
+   - `mock claude.call()` 기반으로 드라이버 흐름 검증
+2. `A.7.2`
+   - run 성공 후 수동 확인
+   - subagent 이름, `run_review_checks.sh`, `plan.md`, git log 검증
+3. `A.7.3`
+   - run 결과 메모 작성
+4. `Phase B`
+   - `versions/v0.3/report.md`
+   - `HANDOFF.md`
+   - `BACKLOG.md`
+   - `PROJECT_BRIEF.md` 로드맵 업데이트
+   - `v0.3.0` 태그
+
+이 상태에서의 권고는 명확하다.
+
+### 권고 1. v0.3 본선에 tmux + Codex hybrid를 지금 끼워 넣지 말 것
+
+이유:
+
+- 아직 Claude 단일 경로도 `A.7` 실 run 으로 폐쇄되지 않았다
+- 지금 hybrid 를 본선에 넣으면 실패 원인이
+  - Claude skill 구조 문제인지
+  - Codex worker adapter 문제인지
+  - tmux lifecycle 문제인지
+  가 섞인다
+
+즉 v0.3 의 현재 남은 일은 **기존 Claude 경로를 닫는 일**이다.
+
+### 권고 2. Codex hybrid는 "v0.3 마감 후 별도 트랙" 으로 분리하는 게 맞다
+
+가장 좋은 순서는:
+
+1. `A.5.3` 테스트 작성
+2. `A.7` 실 run + 수동 검증
+3. `Phase B` 마감
+4. 그 다음 별도 실험 트랙으로
+   - `run_codex_worker.sh`
+   - `tmux` 세션 호스팅
+   - Claude lead -> Codex worker 호출
+   를 붙인다
+
+즉 **현재는 migration 이 아니라 close-out 우선**이다.
+
+### 권고 3. 단, 비침투적 탐색은 가능하다
+
+본선에 끼워 넣지 않는 선에서 아래는 가능하다.
+
+- `notes/` 에 하이브리드 운영 규약 추가
+- `scripts/` 에 미사용 PoC 래퍼 초안 작성
+- `labs/` 바깥 sandbox 에서 Codex worker 실험
+
+하지만 아래는 아직 금지에 가깝다.
+
+- `plugin/skills/ax-implement/SKILL.md` 본선 흐름을 Codex 기준으로 재작성
+- `scripts/ax_product_run.py` 를 Codex backend 로 갈아끼움
+- `A.7` 완료 전에 runtime adapter 대수술 착수
+
+### 현재 시점 한 줄 판단
+
+> **v0.3 은 Claude 경로를 먼저 닫고, Codex hybrid 는 v0.4 전 실험 트랙으로 분리하는 것이 맞다.**
 
 ## 권장 아키텍처
 

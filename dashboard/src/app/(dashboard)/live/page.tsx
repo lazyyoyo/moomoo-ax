@@ -87,14 +87,19 @@ export default async function LivePage() {
           <div className="space-y-2">
             {productRuns.map((r) => (
               <div key={r.id} className="border rounded-md p-3">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start gap-4">
                   <div>
                     <span className="font-mono text-sm">{r.command}</span>
                     <span className="text-xs text-muted-foreground ml-2">
                       {r.project} / {r.user_name}
                     </span>
+                    <div className="text-xs text-muted-foreground mt-1 font-mono">
+                      stage {r.stage ?? "-"} · started{" "}
+                      {new Date(r.started_at).toLocaleTimeString("ko-KR")} · duration{" "}
+                      {formatDuration(r.duration_sec)}
+                    </div>
                   </div>
-                  <span className="text-xs">{r.stage ?? "-"}</span>
+                  <StatusBadge status={r.status} />
                 </div>
               </div>
             ))}
@@ -127,4 +132,26 @@ function VerdictBadge({ verdict }: { verdict: LevelupRun["verdict"] }) {
       {verdict}
     </span>
   );
+}
+
+function StatusBadge({ status }: { status: ProductRun["status"] }) {
+  const style: Record<ProductRun["status"], string> = {
+    running: "bg-green-500/10 text-green-700 dark:text-green-400",
+    done: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+    failed: "bg-red-500/10 text-red-700 dark:text-red-400",
+    cancelled: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${style[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+function formatDuration(value: number | null) {
+  if (value == null) return "-";
+  if (value < 60) return `${Math.round(value)}s`;
+  const min = Math.floor(value / 60);
+  const sec = Math.round(value % 60);
+  return `${min}m ${sec}s`;
 }

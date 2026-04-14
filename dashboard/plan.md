@@ -1,0 +1,1 @@
+- [ ] T-001 Projects 카드에 최근 product run의 stage/status/command를 보여줘서 프로젝트별 사용 맥락이 보이게 한다

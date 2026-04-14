@@ -18,32 +18,50 @@ const KNOWN_PROJECTS: ProjectInfo[] = [
   { name: "sasasa", owner: "jojo", description: "jojo 프로젝트" },
 ];
 
+type LatestRunInfo = {
+  stage: string | null;
+  status: ProductRun["status"];
+  command: string;
+};
+
 export default async function ProjectsPage() {
   const { data } = await supabase
     .from("product_runs")
-    .select("project, user_name, status, command, created_at")
+    .select("project, user_name, status, command, created_at, cost_usd, stage")
     .order("created_at", { ascending: false })
     .limit(100);
 
   const runs = (data ?? []) as Pick<
     ProductRun,
-    "project" | "user_name" | "status" | "command" | "created_at"
+    "project" | "user_name" | "status" | "command" | "created_at" | "cost_usd" | "stage"
   >[];
 
   // 프로젝트별 집계
   const byProject = new Map<
     string,
-    { total: number; running: number; lastAt: string | null }
+    {
+      total: number;
+      running: number;
+      lastAt: string | null;
+      totalCost: number;
+      latestRun: LatestRunInfo | null;
+    }
   >();
   for (const r of runs) {
     const cur = byProject.get(r.project) ?? {
       total: 0,
       running: 0,
       lastAt: null,
+      totalCost: 0,
+      latestRun: null,
     };
     cur.total += 1;
     if (r.status === "running") cur.running += 1;
-    if (!cur.lastAt || r.created_at > cur.lastAt) cur.lastAt = r.created_at;
+    if (!cur.lastAt || r.created_at > cur.lastAt) {
+      cur.lastAt = r.created_at;
+      cur.latestRun = { stage: r.stage, status: r.status, command: r.command };
+    }
+    cur.totalCost += r.cost_usd ?? 0;
     byProject.set(r.project, cur);
   }
 
@@ -86,19 +104,32 @@ export default async function ProjectsPage() {
 
       {runs.length === 0 && (
         <div className="mt-8 border border-dashed rounded-md p-6 text-center text-sm text-muted-foreground">
-          아직 team-ax 를 돌린 product run 없음. v0.4에서 /ax-autopilot 배포 후 수집 시작.
+          아직 team-ax 를 돌린 product run 없음. v0.4 에서 관찰 인프라가 붙으면 여기부터 누적된다.
         </div>
       )}
     </div>
   );
 }
 
+const STATUS_STYLES: Record<ProductRun["status"], string> = {
+  running: "bg-green-500/10 text-green-700",
+  done: "bg-muted text-muted-foreground",
+  failed: "bg-red-500/10 text-red-700",
+  cancelled: "bg-muted text-muted-foreground",
+};
+
 function ProjectCard({
   info,
   stats,
 }: {
   info: ProjectInfo;
-  stats?: { total: number; running: number; lastAt: string | null };
+  stats?: {
+    total: number;
+    running: number;
+    lastAt: string | null;
+    totalCost: number;
+    latestRun: LatestRunInfo | null;
+  };
 }) {
   return (
     <div className="border rounded-md p-4">
@@ -113,12 +144,32 @@ function ProjectCard({
           </span>
         )}
       </div>
+
+      {stats?.latestRun && (
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          {stats.latestRun.stage && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 font-mono">
+              {stats.latestRun.stage}
+            </span>
+          )}
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_STYLES[stats.latestRun.status]}`}
+          >
+            {stats.latestRun.status}
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {stats.latestRun.command}
+          </span>
+        </div>
+      )}
+
       {stats ? (
         <div className="text-xs text-muted-foreground mt-2">
           총 {stats.total} runs · 마지막{" "}
           {stats.lastAt
             ? new Date(stats.lastAt).toLocaleDateString("ko-KR")
             : "-"}
+          {" "}· 누적 비용 ${stats.totalCost.toFixed(2)}
         </div>
       ) : (
         <div className="text-xs text-muted-foreground mt-2">

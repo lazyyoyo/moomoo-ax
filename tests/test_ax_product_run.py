@@ -65,6 +65,21 @@ def test_build_allowed_tools_uses_absolute_plugin_path(tmp_path):
     # 기본 BASE 패턴은 그대로 유지
     assert "Bash(git:*)" in tools
     assert "Read" in tools
+    assert "Task" not in tools
+
+
+def test_build_allowed_tools_scopes_write_edit_when_editable_root_is_set(tmp_path):
+    plugin_dir = tmp_path / "plug"
+    editable_root = tmp_path / "dashboard"
+    editable_root.mkdir()
+
+    tools = ax_product_run.build_allowed_tools(plugin_dir, editable_root=editable_root)
+    editable_pattern = f"//{editable_root.resolve().as_posix().lstrip('/')}/**"
+
+    assert f"Write({editable_pattern})" in tools
+    assert f"Edit({editable_pattern})" in tools
+    assert "Write" not in tools
+    assert "Edit" not in tools
 
 
 def test_driver_passes_cwd_and_stdout_path(tmp_path, monkeypatch):
@@ -86,7 +101,11 @@ def test_driver_passes_cwd_and_stdout_path(tmp_path, monkeypatch):
         "--plugin-dir", str(plugin_dir),
         "--log-dir", str(log_dir),
     ])
-    with patch.object(ax_product_run.claude, "call", side_effect=fake_call):
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=fake_call),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True),
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+    ):
         rc = ax_product_run.main()
 
     assert rc == 0
@@ -121,7 +140,11 @@ def test_driver_cleans_up_run_dir_on_success(tmp_path, monkeypatch):
         "--plugin-dir", str(plugin_dir),
         "--log-dir", str(log_dir),
     ])
-    with patch.object(ax_product_run.claude, "call", side_effect=fake_call):
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=fake_call),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True),
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+    ):
         ax_product_run.main()
 
     assert captured_cwd
@@ -147,13 +170,15 @@ def test_driver_cleans_up_on_exception(tmp_path, monkeypatch):
         "--plugin-dir", str(plugin_dir),
         "--log-dir", str(log_dir),
     ])
-    with patch.object(ax_product_run.claude, "call", side_effect=fake_call):
-        try:
-            ax_product_run.main()
-        except RuntimeError:
-            pass
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=fake_call),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True),
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+    ):
+        rc = ax_product_run.main()
 
     assert captured_cwd
+    assert rc == 1
     assert not captured_cwd[0].exists(), "run_dir must be removed even on exception"
 
 
@@ -178,7 +203,11 @@ def test_driver_keep_flag_preserves_run_dir(tmp_path, monkeypatch):
         "--keep",
     ])
     try:
-        with patch.object(ax_product_run.claude, "call", side_effect=fake_call):
+        with (
+            patch.object(ax_product_run.claude, "call", side_effect=fake_call),
+            patch.object(ax_product_run.db, "start_product_run", return_value=True),
+            patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+        ):
             ax_product_run.main()
 
         assert captured_cwd[0].exists(), "--keep should preserve run_dir"
@@ -201,7 +230,11 @@ def test_fixture_remains_plain_directory(tmp_path, monkeypatch):
         "--plugin-dir", str(plugin_dir),
         "--log-dir", str(log_dir),
     ])
-    with patch.object(ax_product_run.claude, "call", side_effect=_mock_claude_call_success):
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=_mock_claude_call_success),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True),
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+    ):
         ax_product_run.main()
 
     assert not (fixture / ".git").exists(), "fixture must remain plain (no .git)"
@@ -234,3 +267,210 @@ def test_driver_rejects_missing_plugin_dir(tmp_path, monkeypatch):
     ])
     rc = ax_product_run.main()
     assert rc == 2
+
+
+def test_driver_target_subdir_mode_uses_scoped_cwd_and_prompt(tmp_path, monkeypatch):
+    repo_root = tmp_path / "repo"
+    target_dir = repo_root / "dashboard"
+    target_dir.mkdir(parents=True)
+    (target_dir / "plan.md").write_text("- [ ] T-001 dummy\n", encoding="utf-8")
+    plugin_dir = tmp_path / "plug"
+    plugin_dir.mkdir()
+    log_dir = tmp_path / "runs"
+
+    captured = {}
+    guard_state = {"tracked": "", "staged": "", "untracked": ""}
+
+    def fake_call(**kwargs):
+        captured.update(kwargs)
+        return _mock_claude_call_success(**kwargs)
+
+    monkeypatch.setattr(sys, "argv", [
+        "ax_product_run.py",
+        "--target-subdir", "dashboard",
+        "--repo-root", str(repo_root),
+        "--plugin-dir", str(plugin_dir),
+        "--log-dir", str(log_dir),
+    ])
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=fake_call),
+        patch.object(ax_product_run, "_capture_outside_target_state",
+                     side_effect=[guard_state, guard_state]),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True) as start_mock,
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+    ):
+        rc = ax_product_run.main()
+
+    assert rc == 0
+    assert captured["cwd"] == target_dir.resolve()
+    assert "[TARGET_SUBDIR]" in captured["prompt"]
+    assert "dashboard" in captured["prompt"]
+    editable_pattern = f"//{target_dir.resolve().as_posix().lstrip('/')}/**"
+    assert f"Write({editable_pattern})" in captured["allowed_tools"]
+    assert f"Edit({editable_pattern})" in captured["allowed_tools"]
+
+    start_kwargs = start_mock.call_args.kwargs
+    assert start_kwargs["project"] == repo_root.name
+    assert start_kwargs["output_path"] == "dashboard"
+    assert start_kwargs["fixture_id"] is None
+
+
+def test_driver_rejects_target_subdir_inside_harness_paths(tmp_path, monkeypatch):
+    repo_root = tmp_path / "repo"
+    deny_target = repo_root / "plugin"
+    deny_target.mkdir(parents=True)
+    plugin_dir = tmp_path / "plug"
+    plugin_dir.mkdir()
+
+    monkeypatch.setattr(sys, "argv", [
+        "ax_product_run.py",
+        "--target-subdir", "plugin",
+        "--repo-root", str(repo_root),
+        "--plugin-dir", str(plugin_dir),
+    ])
+
+    rc = ax_product_run.main()
+    assert rc == 2
+
+
+def test_driver_aborts_when_product_run_start_logging_fails(tmp_path, monkeypatch):
+    fixture = _make_fixture(tmp_path)
+    plugin_dir = tmp_path / "plug"
+    plugin_dir.mkdir()
+    log_dir = tmp_path / "runs"
+
+    monkeypatch.setattr(sys, "argv", [
+        "ax_product_run.py",
+        "--fixture", str(fixture),
+        "--plugin-dir", str(plugin_dir),
+        "--log-dir", str(log_dir),
+    ])
+
+    with (
+        patch.object(ax_product_run.db, "start_product_run", return_value=False),
+        patch.object(ax_product_run.claude, "call") as call_mock,
+    ):
+        rc = ax_product_run.main()
+
+    assert rc == 3
+    call_mock.assert_not_called()
+
+
+def test_driver_logs_product_run_start_and_finish(tmp_path, monkeypatch):
+    fixture = _make_fixture(tmp_path)
+    plugin_dir = tmp_path / "plug"
+    plugin_dir.mkdir()
+    log_dir = tmp_path / "runs"
+
+    monkeypatch.setattr(sys, "argv", [
+        "ax_product_run.py",
+        "--fixture", str(fixture),
+        "--plugin-dir", str(plugin_dir),
+        "--log-dir", str(log_dir),
+    ])
+
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=_mock_claude_call_success),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True) as start_mock,
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True) as finish_mock,
+    ):
+        rc = ax_product_run.main()
+
+    assert rc == 0
+    start_kwargs = start_mock.call_args.kwargs
+    assert start_kwargs["project"] == fixture.name
+    assert start_kwargs["command"] == "/team-ax:ax-implement"
+    assert start_kwargs["stage"] == "ax-implement"
+    assert start_kwargs["fixture_id"] == fixture.name
+
+    finish_kwargs = finish_mock.call_args.kwargs
+    assert finish_kwargs["status"] == "done"
+    assert finish_kwargs["stage"] == "ax-implement"
+    assert finish_kwargs["session_id"] == "test-sess"
+    assert finish_kwargs["num_turns"] == 2
+    assert finish_kwargs["cost_usd"] == 0.01
+    assert finish_kwargs["tool_call_stats"] == {
+        "tool_counts": {},
+        "task_subagent_counts": {},
+    }
+
+
+def test_driver_returns_nonzero_when_finish_logging_fails(tmp_path, monkeypatch):
+    fixture = _make_fixture(tmp_path)
+    plugin_dir = tmp_path / "plug"
+    plugin_dir.mkdir()
+    log_dir = tmp_path / "runs"
+
+    monkeypatch.setattr(sys, "argv", [
+        "ax_product_run.py",
+        "--fixture", str(fixture),
+        "--plugin-dir", str(plugin_dir),
+        "--log-dir", str(log_dir),
+    ])
+
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=_mock_claude_call_success),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True),
+        patch.object(ax_product_run.db, "finish_product_run", return_value=False),
+    ):
+        rc = ax_product_run.main()
+
+    assert rc == 3
+
+
+def test_driver_project_override_wins_over_fixture_name(tmp_path, monkeypatch):
+    fixture = _make_fixture(tmp_path)
+    plugin_dir = tmp_path / "plug"
+    plugin_dir.mkdir()
+    log_dir = tmp_path / "runs"
+
+    monkeypatch.setattr(sys, "argv", [
+        "ax_product_run.py",
+        "--fixture", str(fixture),
+        "--plugin-dir", str(plugin_dir),
+        "--log-dir", str(log_dir),
+        "--project", "moomoo-ax",
+    ])
+
+    with (
+        patch.object(ax_product_run.claude, "call", side_effect=_mock_claude_call_success),
+        patch.object(ax_product_run.db, "start_product_run", return_value=True) as start_mock,
+        patch.object(ax_product_run.db, "finish_product_run", return_value=True),
+    ):
+        rc = ax_product_run.main()
+
+    assert rc == 0
+    assert start_mock.call_args.kwargs["project"] == "moomoo-ax"
+
+
+def test_summarize_tool_calls_counts_task_subagents():
+    tool_events = [
+        {"tool_name": "Task", "tool_input": {"subagent_type": "team-ax:executor"}},
+        {"tool_name": "Task", "tool_input": {"subagent_type": "team-ax:reviewer"}},
+        {"tool_name": "Task", "tool_input": {"subagent_type": "team-ax:reviewer"}},
+        {"tool_name": "Bash", "tool_input": {"cmd": "git status"}},
+    ]
+
+    stats = ax_product_run._summarize_tool_calls(tool_events)
+
+    assert stats["tool_counts"] == {"Task": 3, "Bash": 1}
+    assert stats["task_subagent_counts"] == {
+        "team-ax:executor": 1,
+        "team-ax:reviewer": 2,
+    }
+
+
+def test_summarize_tool_calls_counts_agent_tool_subagents():
+    tool_events = [
+        {"tool_name": "Agent", "tool_input": {"agent_type": "reviewer"}},
+        {"tool_name": "Agent", "tool_input": {"subagent_type": "executor"}},
+        {"tool_name": "Bash", "tool_input": {"cmd": "git status"}},
+    ]
+
+    stats = ax_product_run._summarize_tool_calls(tool_events)
+
+    assert stats["tool_counts"] == {"Agent": 2, "Bash": 1}
+    assert stats["task_subagent_counts"] == {
+        "reviewer": 1,
+        "executor": 1,
+    }

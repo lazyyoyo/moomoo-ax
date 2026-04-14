@@ -18,8 +18,16 @@ moomoo-ax 프로젝트 백로그.
 - **plan.md Edit 형식 잔재** — reviewer 가 원래 `- [ ] T-XXX` → `- [x] T-XXX` 원칙을 어기고 `### T-001 ... [x]` 로 헤더 뒤에 붙임. SKILL.md 프로토콜 표현을 더 명확히 하거나 `find_next_task` structured helper 재도입 검토. → v0.4
 - **gitleaks 를 setup requirement 로 문서화** — 현재는 오너 수동 설치. `scripts/ax_bootstrap.sh` 같은 일괄 확인기 도입 or README 명시. → v0.4
 
-### 🔬 v0.3 후속 실험 트랙 (편입 여부 v0.4 에서 결정)
-- **Codex 런타임 편입 가능성** — v0.3 에서 adversarial review 용으로 4회 활용. team-ax subagent 중 하나 (reviewer 우선 후보) 를 Codex 호출로 대체해 모델 다중화 / 비용 분산 / 독립 검토 가능한지 실험. 레퍼런스: `notes/2026-04-13-codex-transition-plan.md`. v0.3 범위에는 포함되지 않음. → v0.4 편입 후보
+### ⏱️ v0.4 Track B latency 후속
+- **Track B pilot latency 회귀** — 첫 Codex executor+reviewer pilot (`69ddd1eb0aa4`) 이 원 3-task fixture 에서 약 43분 소요. 이후 rerun 은 `20m 48s`, model-routing rerun 은 `22m 24s`. 구조는 green 이지만 속도/비용은 known issue 로 남는다. 레퍼런스: `notes/2026-04-14-track-b-pilot-partial.md`, `notes/2026-04-14-track-b-latency-reduction-plan.md`, `notes/2026-04-14-track-b-model-routing-rerun.md`.
+- **model routing 후속 보정** — `e0f0a5be8b5a` 에서 저위험 task 는 `gpt-5.4-mini`, stage-final-review 는 `gpt-5.4` 로 라우팅됨. 라우팅 자체는 유효했지만 elapsed 개선은 제한적. dogfooding 이후 실전 데이터로 다시 판단. 레퍼런스: `notes/2026-04-14-track-b-model-routing-rerun.md`.
+- **fix approve 후 reviewer 재호출 제거** — `T-FIX-T-001-1` approve 뒤 `T-001-retry` reviewer-only 재검증이 발생. 동일 logical task 중복 호출 제거 필요. → v0.4
+- **worker 의 dependency 복구 금지** — `T-002` executor 가 구현보다 `npm install`/캐시 확인에 시간을 소모. dependency/infra 복구는 preflight 또는 conductor 경로로 이동. → v0.4
+- **orphan `product_runs.status=running` 회수 경로** — long run 수동 kill 시 driver `finally` 전 인터럽트로 row 가 `running` 으로 고립. 기동 시 orphan row 를 `cancelled` 로 전이하는 recovery 또는 signal-safe finish 경로 필요. → v0.4
+- **stage-final-review blocking 2건 fixture 후속** — runtime design tokens 부재, `tsconfig` 의 vitest globals 누수. v0.4 pilot 에선 non-recursive audit evidence 로만 남겼으므로 backlog 에 명시적으로 승격 필요. → v0.4 또는 v0.5
+
+### 🔬 v0.3 후속 실험 트랙
+- **Codex 런타임 편입 자산 정리** — one-shot worker smoke + tmux host PoC 까지 완료. `codex exec --json`, `last-message.txt`, `events.jsonl`, `meta.json`, stopped-case 관찰성까지 확보. 이제 이 항목은 "가능성 조사" 가 아니라 **v0.4 Track B executor+reviewer pilot 의 선행 자산** 으로 취급. 레퍼런스: `notes/2026-04-13-codex-transition-plan.md`, `notes/2026-04-13-codex-worker-poc-scope.md`, `notes/2026-04-13-codex-worker-smoke.md`, `notes/2026-04-13-codex-tmux-host-poc.md`, `notes/2026-04-13-codex-tmux-smoke.md`.
 
 ### 📦 team-ax 플러그인 카탈로그 뷰
 - **대시보드 "Plugin" 탭** — team-ax 플러그인 소개 페이지. 6 stage 맵, 각 skill 의 SKILL.md 본문 렌더, lineage (hash 계보), 알려진 이슈, 개선 후보, 에이전트 리스트. product loop 사용자 시점 카탈로그. → v0.4~0.5 (대시보드 v2 재설계와 묶어 판단)
@@ -32,12 +40,13 @@ moomoo-ax 프로젝트 백로그.
 ### 🧹 문서/구조
 - **`labs/{stage}/input/` 디렉토리 구조 표준 문서화** — 모든 stage 가 따를 입력 레이아웃 → v0.4
 - **improve tokens 로깅 bug fix** — `logs/{iter}.json` 의 `tokens.improve` 가 0 으로 찍힘 (v0.2 잔존). `loop.py` 에서 `log_data` serialize 를 improve 호출 후로 이동. → v0.4 small
+- **Codex PoC helper / normalize 초안** — `scripts/poc/` 에서 `events.jsonl` + `last-message.txt` + `meta.json` 을 읽어 `sandbox_block`, `thread_id`, usage, 최종 요약 JSON 을 추출하는 helper 유지. 본선 `src/runtime/normalize.py` 착수 전 선행 실험 자산. → v0.4 소재
 
 ---
 
 ## ready (v0.4)
 
-> 다음 버전 후보. 트랙 A (관찰 인프라) 가 최우선 — 관찰 없이 levelup 개선 대상이 공허해지는 v0.2 E 회귀 위험.
+> 다음 버전 후보. 오너 선호는 **선계획 후실행**. 트랙은 1개씩 닫고, 우선순위는 A → B → C. A 없이는 B/C 판단 근거가 약해진다.
 
 ### 트랙 A: 관찰 인프라 🎯 최우선
 - **`product_runs` Supabase 테이블** — 컬럼: `id / stage / target_project / started_at / ended_at / duration_sec / cost_usd / num_turns / tool_call_stats (JSONB) / intervention_count / exit_status / fixture_id / session_id`. 마이그레이션 파일 신규.
@@ -45,29 +54,41 @@ moomoo-ax 프로젝트 백로그.
 - **intervention 결합 뷰** — `interventions` × `product_runs` 시간 범위 기반 join. stage 별 개입 횟수 집계.
 - **대시보드 `product_runs` 카드** — 기존 `levelup_runs` 카드와 병렬. 전체 재설계 금지, 추가 배지 수준.
 
-### 트랙 B: moomoo-ax dogfooding
+### 트랙 B: Codex executor+reviewer pilot
+- **역할 분리 고정** — Claude 는 conductor, Codex 는 executor / reviewer worker.
+- **executor result schema 고정** — `status(ok|failed|infra_error)` + `summary` + `changed_files[]` + `checks_run[]`.
+- **review result schema 고정** — `verdict(APPROVE|REQUEST_CHANGES|ERROR)` + `blocking_issues[]` + `non_blocking_issues[]` + `summary`.
+- **외부 worker adapter** — 기존 task → executor → reviewer → fix task 루프는 유지하고, executor / reviewer 결과만 파일 기반으로 normalize 해서 lead 가 판정.
+- **fresh session 분리** — executor / reviewer 각각 별도 task file / 별도 결과 파일 / 별도 session.
+- **tmux 는 옵션형 host** — 기본 판정 채널은 `events.jsonl` + `meta.json` + `last-message.txt`.
+- **1차는 fixture pilot** — `static-nextjs-min` 에서 Codex executor → Codex reviewer 루프를 붙이고, green 후 dogfooding.
+- **latency 지표** — fixture elapsed / cost / turns 는 계속 기록한다. 다만 v0.4 에서는 dogfooding 진입 차단 기준이 아니라 known issue/최적화 항목으로 취급한다.
+- **checks/conductor 분리** — deterministic checks 는 worker 밖으로 이동.
+- **stage-final-review 범위 제한** — fixture pilot 단계에선 recursive remediation loop 확장을 막아야 함.
+
+### 트랙 C: moomoo-ax dogfooding
 - **`--target-subdir` 옵션** — 드라이버에 경로 가드 추가. Write/Edit allow 패턴을 런타임에 해당 subdir 로 제한 (plugin / src / labs 외).
 - **dogfooding 첫 대상** — `dashboard/` 하위 소형 태스크. product_runs 테이블 UI 카드 개선 등 (트랙 A 완료 후).
 - **재귀 차단** — ax-implement 가 ax-implement 자체 (SKILL.md / scripts) 를 수정 못하게.
 
-### 트랙 C: ax-qa 포팅
+### 트랙 D: ax-qa 포팅
 - **`plugin/skills/ax-qa/`** — team-product/skills/product-qa 기반 SKILL.md. Playwright MCP (`mcp__plugin_playwright_playwright__*`) + axe-core + Lighthouse.
 - **`plugin/agents/qa.md`** — team-product/agents/qa.md 기반 포팅.
 - **labs/ax-qa 동결 해제** — v0.1 동결본은 `labs/.archive/ax-qa-v0.1-frozen/` 로 이동. 새 `labs/ax-qa/` 에서 drive.
 - **fixture `static-nextjs-min` 에 flows/ 추가** — QA 대상 지정.
 
-### 트랙 D: levelup loop smoke (트랙 A 선행 필수)
+### 트랙 E: levelup loop smoke (트랙 A 선행 필수)
 - **levelup 대상 식별 기준** — intervention_count 높은 태스크 패턴, 반복 실패 script 등. 관찰 데이터 기반.
 - **labs/ax-implement 재활성** — `.archive/` 에서 script.py / program.md / rubric.yml 복원 + v0.3 기준으로 재작성.
 - **rubric 축 추가** — "구현 성공률", "오너 개입 횟수", "script 호출 실효성".
 - **levelup 1 cycle 완주** — SKILL.md or scripts 1개 자동 개선 실증.
 
-### 트랙 E: 자동화 보강
+### 트랙 F: 자동화 보강
 - **planner subagent** — fixture 에 plan.md 내장 안 된 실 프로젝트 대응. team-product/agents/planner.md 기반 포팅.
 - **드라이버 자동 판정** — promise 검출 + 체크박스 파싱 + 태스크 커밋 존재 + review gate 성공 여부 전수 확인 후 exit 0. Codex 2/3차 findings 일부 편입.
 - **simplify hook** — oh-my-claudecode 패턴. Stop hook 이 git diff modified 파일 뽑아 Task(code-simplifier) 위임. 단 v0.3 에서 의도적 생략한 블록+재주입 재귀의 연장이므로 보수적으로 설계.
 
-### 트랙 F: `ax-autopilot` 상위 오케스트레이터
+### 트랙 G: `ax-autopilot` 상위 오케스트레이터
 - **`plugin/skills/ax-autopilot/`** — `implement → localhost 확인 → preview` 자동 구간. team-product/skills/product-autopilot 있다면 참고.
 
 ---
