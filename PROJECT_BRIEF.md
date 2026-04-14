@@ -269,6 +269,14 @@ team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개
 
 **핵심 순서 전환 (v0.3~)**: **product → meta → levelup**. v0.2 E 에서 "뭘 개선할지" 사전 정의 없이 SKILL.md 를 압축만 하니 공허했다. 배포 제품인 product loop 가 실제로 돌아야 → 개입 횟수 / 토큰 관찰이 의미 있어야 → levelup 개선 대상이 공허하지 않다. PROJECT_BRIEF 의 3 레이어 정의는 유지. 구축 순서만 이렇게.
 
+**현재 우선순위 (v0.5~)**: team-product 대체를 더 빨리 진행하기 위해 순서를 다시 좁힌다.
+
+1. **`ax-implement` 실전 사용성** — plan 이 없는 실프로젝트에서도 바로 implement stage 를 돌릴 수 있어야 한다
+2. **`ax-define` 기본 문서 초안 Codex 작성** — `spec`, `ARCHITECTURE`, `DESIGN_SYSTEM`, `plan` 기본 문서를 Codex worker 가 먼저 만든다
+3. 그 다음에 `ax-qa` 와 나머지 stage 를 붙인다
+
+즉 v0.5~v0.6 의 초점은 "6 stage를 빨리 다 채운다" 가 아니라, **실제 다른 제품 작업이 지금 당장 돌아가게 하는 두 stage (`implement`, `define`) 를 먼저 실전형으로 만든다** 이다.
+
 **v1.0까지 — team-product 대체와 실전 적용**
 
 | 버전       | 목표                                                                                                                                                                                                      |
@@ -277,11 +285,11 @@ team-product 의 자연어 SKILL.md 를 seed 로 포팅 → levelup loop 가 개
 | v0.2     | (C') 패턴 정립 + R5 fix + `improve_target` 추상화 + post-commit hook + `/ax-feedback` CLI + 구조 결함 실증 2건                                                                                                        |
 | v0.3     | **순서 전환** — product loop 의 `team-ax/ax-implement` 1 stage 완성 (skill + scripts 4 + agents 3 + 드라이버 + 격리 fixture + end-to-end 수동 PASS). 관찰 인프라 / dogfooding / levelup smoke 는 v0.4 이월                     |
 | v0.4     | **관찰 인프라 + Codex executor+reviewer pilot + 첫 dogfooding close** — Supabase `product_runs` + 대시보드 카드 + implement stage 의 executor / reviewer 를 Codex worker 로 제한 편입 + `dashboard/` 첫 dogfooding 1건. 속도는 known issue 로 수용. |
-| v0.5     | **implement 실전 사용성 우선** — planner/plan bootstrap 을 포함해 `ax-implement` 를 plan 없는 실프로젝트에서도 바로 쓰게 하고, `ax-define` 에서 기본 문서 초안(`spec`, `ARCHITECTURE`, `DESIGN_SYSTEM`, `plan`) 을 Codex worker 가 작성하도록 전환 |
-| v0.6     | `ax-qa` 포팅 + levelup smoke + planner / 자동 판정 정비 + ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언**                       |
-| v0.7     | jojo 피드백 반영 → levelup 반복                                                                                                                                                                                |
-| v0.8     | 북극성 지표(오너 개입 횟수) 70% 감소 달성                                                                                                                                                                              |
-| v0.9     | 안정화 + 문서 정리                                                                                                                                                                                             |
+| v0.5     | **implement 실전 사용성 우선** — planner/plan bootstrap 을 포함해 `ax-implement` 를 plan 없는 실프로젝트에서도 바로 쓰게 하고, subtree/dirty baseline/rerun 규칙까지 실전 기준으로 hardening                                                                 |
+| v0.6     | **define 기본 문서 Codex 작성** — `ax-define` 에서 기본 문서 초안(`spec`, `ARCHITECTURE`, `DESIGN_SYSTEM`, `plan`) 을 Codex worker 가 작성하고, Claude 는 의도 수렴 / 승인 포인트만 담당                                                                  |
+| v0.7     | `ax-qa` 포팅 + levelup smoke + planner / 자동 판정 정비 + ax-design + ax-init + ax-deploy 포팅 → 6 stage 전부, `ax-autopilot` 오케스트레이터 (implement → localhost → preview), **team-product 대체 선언**                       |
+| v0.8     | jojo 피드백 반영 → levelup 반복                                                                                                                                                                                |
+| v0.9     | 북극성 지표(오너 개입 횟수) 70% 감소 달성 + 안정화 + 문서 정리                                                                                                                                                              |
 | **v1.0** | 공식 출시                                                                                                                                                                                                   |
 
 **v1.x+ — 자율 진화 단계**
