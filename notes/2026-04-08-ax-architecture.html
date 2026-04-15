@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AX 시스템 아키텍처</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px; min-height: 100vh; }
+  h1 { font-size: 24px; color: #fff; margin-bottom: 8px; }
+  .subtitle { color: #888; font-size: 14px; margin-bottom: 40px; }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Section headers */
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; margin-top: 48px; }
+  .section-header h2 { font-size: 18px; color: #fff; }
+  .section-badge { background: #e94560; color: #fff; font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+  .section-badge.blue { background: #3b82f6; }
+  .section-badge.purple { background: #8b5cf6; }
+  .section-badge.green { background: #10b981; }
+
+  /* Auto-research section */
+  .ar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+  .ar-card { background: #161622; border: 1px solid #2a2a3a; border-radius: 12px; padding: 20px; }
+  .ar-card .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .ar-card .name { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .ar-card .desc { font-size: 13px; color: #aaa; line-height: 1.5; }
+  .ar-card.locked { border-color: #e94560; }
+  .ar-card.locked .label { color: #e94560; }
+  .ar-card.editable { border-color: #10b981; }
+  .ar-card.editable .label { color: #10b981; }
+  .ar-card.log { border-color: #f59e0b; }
+  .ar-card.log .label { color: #f59e0b; }
+
+  /* Loop diagram */
+  .loop-container { background: #161622; border: 1px solid #2a2a3a; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .loop-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .loop-title .infinity { color: #e94560; font-size: 18px; }
+
+  .loop-steps { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .step { background: #1e1e30; border: 1px solid #333; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #ccc; min-width: 100px; text-align: center; }
+  .step.code { border-color: #e94560; background: #1a0a10; }
+  .step.ai { border-color: #8b5cf6; background: #140a1a; }
+  .step-num { display: block; font-size: 10px; color: #666; margin-bottom: 2px; }
+  .arrow { color: #444; font-size: 16px; flex-shrink: 0; }
+
+  .decision-box { display: flex; gap: 12px; margin-top: 16px; }
+  .decision { border-radius: 8px; padding: 10px 16px; font-size: 12px; flex: 1; text-align: center; }
+  .decision.keep { background: #0a1a0a; border: 1px solid #10b981; color: #10b981; }
+  .decision.discard { background: #1a0a0a; border: 1px solid #ef4444; color: #ef4444; }
+  .decision.crash { background: #1a1a0a; border: 1px solid #f59e0b; color: #f59e0b; }
+
+  /* Mapping table */
+  .mapping { width: 100%; border-collapse: collapse; margin-top: 16px; background: #161622; border-radius: 12px; overflow: hidden; }
+  .mapping th { background: #1e1e30; padding: 12px 16px; font-size: 12px; text-align: left; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .mapping td { padding: 12px 16px; font-size: 13px; border-top: 1px solid #1e1e30; }
+  .mapping tr:hover td { background: #1a1a2a; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag.code { background: #e9456020; color: #e94560; }
+  .tag.ai { background: #8b5cf620; color: #8b5cf6; }
+  .tag.human { background: #3b82f620; color: #3b82f6; }
+
+  /* Two-level diagram */
+  .levels { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+  .level-card { background: #161622; border: 1px solid #2a2a3a; border-radius: 12px; padding: 24px; }
+  .level-card h3 { font-size: 15px; color: #fff; margin-bottom: 4px; }
+  .level-card .level-desc { font-size: 12px; color: #888; margin-bottom: 16px; }
+
+  .level-item { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .level-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .level-icon.lock { background: #e9456020; }
+  .level-icon.edit { background: #10b98120; }
+  .level-icon.log { background: #f59e0b20; }
+  .level-icon.rule { background: #3b82f620; }
+  .level-text .lt-title { font-size: 13px; font-weight: 600; color: #ddd; }
+  .level-text .lt-map { font-size: 11px; color: #666; margin-top: 2px; }
+  .level-text .lt-desc { font-size: 12px; color: #999; margin-top: 2px; }
+
+  /* Gate stack */
+  .gate-stack { margin-top: 20px; }
+  .gate { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-left: 3px solid; margin-bottom: 2px; }
+  .gate.g1 { border-color: #10b981; background: #10b98108; }
+  .gate.g2 { border-color: #3b82f6; background: #3b82f608; }
+  .gate.g3 { border-color: #8b5cf6; background: #8b5cf608; }
+  .gate.g4 { border-color: #f59e0b; background: #f59e0b08; }
+  .gate-num { font-size: 11px; color: #666; width: 20px; }
+  .gate-name { font-size: 13px; color: #ddd; flex: 1; }
+  .gate-type { font-size: 11px; }
+  .gate-cost { font-size: 11px; color: #666; }
+
+  /* Workers */
+  .workers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .worker { border-radius: 10px; padding: 14px; text-align: center; }
+  .worker.claude { background: #8b5cf615; border: 1px solid #8b5cf640; }
+  .worker.codex { background: #10b98115; border: 1px solid #10b98140; }
+  .worker.gemini { background: #3b82f615; border: 1px solid #3b82f640; }
+  .worker-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .worker-role { font-size: 11px; color: #999; margin-top: 4px; line-height: 1.4; }
+
+  /* Flow connection */
+  .flow-connection { text-align: center; padding: 16px; color: #444; font-size: 24px; }
+  .flow-label { font-size: 11px; color: #666; margin-top: 4px; }
+
+  /* Key insight */
+  .insight { background: #1a1a2e; border: 1px solid #333; border-radius: 12px; padding: 20px; margin-top: 32px; }
+  .insight-title { font-size: 13px; font-weight: 600; color: #e94560; margin-bottom: 8px; }
+  .insight-text { font-size: 13px; color: #ccc; line-height: 1.6; }
+  .insight-text b { color: #fff; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>AX 시스템 아키텍처</h1>
+<p class="subtitle">auto-research 패턴 → 2-Level 제품 개발 자동화 시스템</p>
+
+<!-- ═══ SECTION 1: auto-research 원본 ═══ -->
+<div class="section-header">
+  <h2>Karpathy auto-research 원본 구조</h2>
+  <span class="section-badge">파일 3개가 전부</span>
+</div>
+
+<div class="ar-grid">
+  <div class="ar-card locked">
+    <div class="label">🔒 수정 불가 — 하네스</div>
+    <div class="name">prepare.py</div>
+    <div class="desc">
+      evaluate_bpb() 평가 함수<br>
+      데이터 로더, 토크나이저<br>
+      고정 상수 (5분 예산, 시퀀스 길이)<br>
+      <b>이게 흔들리면 전체가 의미 없음</b>
+    </div>
+  </div>
+  <div class="ar-card editable">
+    <div class="label">✏️ 유일한 수정 대상</div>
+    <div class="name">train.py</div>
+    <div class="desc">
+      모델 아키텍처<br>
+      옵티마이저 (Muon + AdamW)<br>
+      하이퍼파라미터, batch size<br>
+      <b>뭐든 바꿔도 됨 — 여기만</b>
+    </div>
+  </div>
+  <div class="ar-card log">
+    <div class="label">📊 실험 로그</div>
+    <div class="name">results.tsv</div>
+    <div class="desc">
+      commit | val_bpb | memory | status<br>
+      status: keep / discard / crash<br>
+      git에 커밋 안 함 (untracked)<br>
+      <b>모든 실험의 기록</b>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; color:#666; font-size:12px; margin-bottom:8px;">+ program.md = 에이전트 행동 규칙 (사람이 시간 두고 개선)</div>
+
+<div class="loop-container">
+  <div class="loop-title"><span class="infinity">∞</span> 실험 루프 — NEVER STOP</div>
+  <div class="loop-steps">
+    <div class="step ai"><span class="step-num">1</span>train.py 수정</div>
+    <span class="arrow">→</span>
+    <div class="step code"><span class="step-num">2</span>git commit</div>
+    <span class="arrow">→</span>
+    <div class="step code"><span class="step-num">3</span>실행 (5분)</div>
+    <span class="arrow">→</span>
+    <div class="step code"><span class="step-num">4</span>val_bpb 확인</div>
+    <span class="arrow">→</span>
+    <div class="step code"><span class="step-num">5</span>비교 판정</div>
+    <span class="arrow">→</span>
+    <div class="step code"><span class="step-num">6</span>로그 기록</div>
+  </div>
+  <div class="decision-box">
+    <div class="decision keep">✅ keep — 개선됨 → 브랜치 전진</div>
+    <div class="decision discard">❌ discard — 악화 → git reset</div>
+    <div class="decision crash">💥 crash — 실패 → 되돌리고 다음</div>
+  </div>
+</div>
+
+<div class="insight">
+  <div class="insight-title">핵심 원리</div>
+  <div class="insight-text">
+    AI가 자유롭게 실험하는 건 <b>1단계(train.py 수정)</b>뿐이다.<br>
+    나머지 2~6은 전부 <b>코드(셸 명령)</b>로 실행된다 — AI가 스킵하거나 해석할 여지가 없다.<br>
+    이게 <b>"프롬프트가 아니라 런타임으로 강제하는"</b> 하네스 엔지니어링의 본질.
+  </div>
+</div>
+
+<!-- ═══ SECTION 2: 우리 AX 시스템 2-Level ═══ -->
+<div class="section-header" style="margin-top: 56px;">
+  <h2>우리 AX 시스템 — 2-Level 매핑</h2>
+  <span class="section-badge blue">auto-research × 2</span>
+</div>
+
+<div class="levels">
+  <!-- Level 1 -->
+  <div class="level-card" style="border-color: #8b5cf640;">
+    <h3>루프 1: AX 시스템 진화</h3>
+    <div class="level-desc">수동 · 스프린트 단위 · 오너가 시스템을 개선</div>
+
+    <div class="level-item">
+      <div class="level-icon rule">📋</div>
+      <div class="level-text">
+        <div class="lt-title">스킬/에이전트 정의</div>
+        <div class="lt-map">= program.md</div>
+        <div class="lt-desc">오너가 시간 두고 개선하는 문서</div>
+      </div>
+    </div>
+    <div class="level-item">
+      <div class="level-icon edit">📝</div>
+      <div class="level-text">
+        <div class="lt-title">프롬프트, hooks, eval 설정</div>
+        <div class="lt-map">= train.py</div>
+        <div class="lt-desc">스프린트마다 조정하는 대상</div>
+      </div>
+    </div>
+    <div class="level-item">
+      <div class="level-icon lock">🔒</div>
+      <div class="level-text">
+        <div class="lt-title">레벨 1 지표</div>
+        <div class="lt-map">= prepare.py (eval 함수)</div>
+        <div class="lt-desc">토큰량, 오너개입횟수, 수용율, 재작업횟수</div>
+      </div>
+    </div>
+    <div class="level-item">
+      <div class="level-icon log">📊</div>
+      <div class="level-text">
+        <div class="lt-title">스프린트 리포트</div>
+        <div class="lt-map">= results.tsv</div>
+        <div class="lt-desc">설정 변경 | 지표 | keep/revert</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level 2 -->
+  <div class="level-card" style="border-color: #10b98140;">
+    <h3>루프 2: 제품 결과물 개선</h3>
+    <div class="level-desc">자동 · 기능 단위 · 에이전트가 품질을 끌어올림</div>
+
+    <div class="level-item">
+      <div class="level-icon rule">📋</div>
+      <div class="level-text">
+        <div class="lt-title">CPS 스펙</div>
+        <div class="lt-map">= program.md</div>
+        <div class="lt-desc">오너가 던지는 유일한 입력</div>
+      </div>
+    </div>
+    <div class="level-item">
+      <div class="level-icon edit">📝</div>
+      <div class="level-text">
+        <div class="lt-title">디자인 코드 / 구현 코드</div>
+        <div class="lt-map">= train.py</div>
+        <div class="lt-desc">단계별 수정 범위 고정</div>
+      </div>
+    </div>
+    <div class="level-item">
+      <div class="level-icon lock">🔒</div>
+      <div class="level-text">
+        <div class="lt-title">게이트 시스템</div>
+        <div class="lt-map">= prepare.py (eval 함수)</div>
+        <div class="lt-desc">린트 + Playwright + 체크리스트 + Judge</div>
+      </div>
+    </div>
+    <div class="level-item">
+      <div class="level-icon log">📊</div>
+      <div class="level-text">
+        <div class="lt-title">.harness/logs/</div>
+        <div class="lt-map">= results.tsv</div>
+        <div class="lt-desc">iteration_N.json (keep/discard/crash)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-connection">
+  ↕
+  <div class="flow-label">루프 2 실행 → 레벨 1 지표 수집 → 루프 1에서 시스템 개선 → 다음 루프 2가 더 효율적</div>
+</div>
+
+<!-- ═══ SECTION 3: 루프 2 내부 상세 ═══ -->
+<div class="section-header">
+  <h2>루프 2 내부 — 코드 vs AI 영역 분리</h2>
+  <span class="section-badge green">핵심 설계</span>
+</div>
+
+<table class="mapping">
+  <thead>
+    <tr>
+      <th>단계</th>
+      <th>실행 주체</th>
+      <th>내용</th>
+      <th>실행 방식</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CPS 입력</td>
+      <td><span class="tag human">오너</span></td>
+      <td>무엇을 만들지 정의 — 유일한 오너 개입</td>
+      <td>수동 (문서 작성)</td>
+    </tr>
+    <tr>
+      <td>페르소나 도출</td>
+      <td><span class="tag ai">AI</span></td>
+      <td>CPS 컨텍스트에서 사용자 유형 자동 생성</td>
+      <td>claude -p → JSON</td>
+    </tr>
+    <tr>
+      <td>평가 기준 생성</td>
+      <td><span class="tag ai">AI</span></td>
+      <td>고정 루브릭 + 동적 루브릭 (Yes/No 체크리스트)</td>
+      <td>claude -p → YAML</td>
+    </tr>
+    <tr>
+      <td>디자인/구현</td>
+      <td><span class="tag ai">AI 워커</span></td>
+      <td>Claude(설계) + Codex(코드) + Gemini(UI/비전)</td>
+      <td>headless CLI → JSON</td>
+    </tr>
+    <tr>
+      <td>① 정적 게이트</td>
+      <td><span class="tag code">코드</span></td>
+      <td>lint, typecheck, format</td>
+      <td>pnpm lint (exit code)</td>
+    </tr>
+    <tr>
+      <td>② 시각 게이트</td>
+      <td><span class="tag code">코드</span></td>
+      <td>Playwright 스크린샷 diff</td>
+      <td>toHaveScreenshot()</td>
+    </tr>
+    <tr>
+      <td>③ 구조 게이트</td>
+      <td><span class="tag code">코드</span></td>
+      <td>ARIA 스냅샷 비교</td>
+      <td>ariaSnapshot()</td>
+    </tr>
+    <tr>
+      <td>④ Judge 게이트</td>
+      <td><span class="tag ai">AI</span> + <span class="tag code">코드</span></td>
+      <td>체크리스트 Yes/No → 합성 점수 (코드로 계산)</td>
+      <td>gemini -p → JSON → 스크립트</td>
+    </tr>
+    <tr>
+      <td>판정</td>
+      <td><span class="tag code">코드</span></td>
+      <td>점수 비교 → keep / discard / crash</td>
+      <td>if score > best → commit, else reset</td>
+    </tr>
+    <tr>
+      <td>재작업</td>
+      <td><span class="tag ai">AI</span></td>
+      <td>실패 항목 → 개선 지시 프롬프트 자동 생성</td>
+      <td>claude -p → 다음 iteration 입력</td>
+    </tr>
+    <tr>
+      <td>로깅</td>
+      <td><span class="tag code">코드</span></td>
+      <td>iteration_N.json + 토큰 사용량 기록</td>
+      <td>스크립트 자동 기록</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Gate stack -->
+<div class="section-header">
+  <h2>게이트 계층 — 값싼 것부터 비싼 것 순서</h2>
+  <span class="section-badge purple">= prepare.py</span>
+</div>
+
+<div style="background:#161622; border:1px solid #2a2a3a; border-radius:12px; padding:20px;">
+  <div class="gate g1">
+    <div class="gate-num">①</div>
+    <div class="gate-name"><b>정적 규칙</b> — lint, typecheck, format, 파일명 규칙, import 제한</div>
+    <div class="gate-type"><span class="tag code">코드</span></div>
+    <div class="gate-cost">💰</div>
+  </div>
+  <div class="gate g2">
+    <div class="gate-num">②</div>
+    <div class="gate-name"><b>시각 회귀</b> — Playwright 스크린샷 diff ≤ 임계값</div>
+    <div class="gate-type"><span class="tag code">코드</span></div>
+    <div class="gate-cost">💰💰</div>
+  </div>
+  <div class="gate g3">
+    <div class="gate-num">③</div>
+    <div class="gate-name"><b>구조 회귀</b> — ARIA 접근성 스냅샷 변화 허용 범위</div>
+    <div class="gate-type"><span class="tag code">코드</span></div>
+    <div class="gate-cost">💰💰</div>
+  </div>
+  <div class="gate g4">
+    <div class="gate-num">④</div>
+    <div class="gate-name"><b>Judge 체크리스트</b> — 페르소나 × 기능 Yes/No → 합성 점수</div>
+    <div class="gate-type"><span class="tag ai">AI</span>+<span class="tag code">코드</span></div>
+    <div class="gate-cost">💰💰💰</div>
+  </div>
+</div>
+
+<!-- Workers -->
+<div class="section-header">
+  <h2>멀티모델 워커</h2>
+  <span class="section-badge">토큰 티어링</span>
+</div>
+
+<div class="workers">
+  <div class="worker claude">
+    <div class="worker-name">🟣 Claude</div>
+    <div class="worker-role">설계, 판정, 재작업 프롬프트<br><br><b>비싸지만 판단력</b><br>CPS 확정, 게이트 정의,<br>최종 리뷰, 실패 원인 분석</div>
+  </div>
+  <div class="worker codex">
+    <div class="worker-name">🟢 Codex</div>
+    <div class="worker-role">코드 생성, 패치, 리팩터링<br><br><b>--output-schema 강제</b><br>산출물 형상을 JSON Schema로<br>고정해서 후처리 안정</div>
+  </div>
+  <div class="worker gemini">
+    <div class="worker-name">🔵 Gemini</div>
+    <div class="worker-role">UI/비전, 스크린샷 평가<br><br><b>긴 컨텍스트 + 비전</b><br>디자인 시스템 참조,<br>스크린샷 기반 Judge</div>
+  </div>
+</div>
+
+<div class="insight" style="margin-top:32px;">
+  <div class="insight-title">auto-research와의 핵심 차이</div>
+  <div class="insight-text">
+    auto-research: <b>val_bpb</b> 하나로 판정 (완벽한 단일 숫자)<br>
+    우리: <b>합성 점수</b>로 판정 (정적 게이트 + 시각 diff + 체크리스트)<br><br>
+    하지만 구조는 동일: <b>평가 함수 고정 → 실험 → keep/discard → 로그 → 반복</b><br>
+    eval이 불완전하면? → eval 자체를 진화시킨다 (루프 1에서 오너가 개선)
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -6,10 +6,10 @@
   "plugins": [
     {
       "name": "team-ax",
-      "description": "오너 의도를 기대치에 맞게 무개입으로 배포까지 가져가는 AI Transformation 파이프라인",
-      "version": "0.1.1",
+      "description": "IT 제품 제작 자동화 Claude Code 플러그인",
+      "version": "0.1.0",
       "source": "./plugin"
     }
   ],
-  "version": "0.1.1"
+  "version": "0.1.0"
 }
