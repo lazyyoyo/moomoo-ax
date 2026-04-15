@@ -6,6 +6,19 @@ IT 제품 제작 자동화를 위한 Claude Code 플러그인 **team-ax** 개발
 
 **plugin-first.** `plugin/` 하위에서 team-ax 플러그인만 만든다. meta/levelup/대시보드 등 상위 레이어는 이 단계에서 다루지 않는다 (PROJECT_BRIEF 참조).
 
+## 스프린트 운영
+
+moomoo-ax는 **스프린트 단위**로 돌린다. 각 스프린트는 **작업 범위 + 목표 버전명**을 명시한다.
+
+- 문서 위치: `docs/sprints/sprint-N/sprint-N-plan.md`
+- 스프린트 종료 시 해당 버전의 team-ax 플러그인을 배포한다.
+
+### 진행 중
+
+| 스프린트 | 목표 | 상태 |
+|---|---|---|
+| sprint-1 | team-ax **v0.1** 배포 — `define` 단계 구현 | 진행 중 |
+
 ## 디렉토리
 
 ```
@@ -14,8 +27,11 @@ moomoo-ax/
 ├── CLAUDE.md              # 이 파일
 ├── LICENSE, .env.example
 ├── .claude-plugin/        # 루트 marketplace.json
+├── docs/
+│   └── sprints/           # 스프린트별 plan/report
+├── notes/                 # 논의·리서치 기록
 └── plugin/                # team-ax 플러그인
-    ├── .claude-plugin/    # plugin.json + marketplace.json
+    ├── .claude-plugin/    # plugin.json
     ├── agents/
     ├── skills/
     ├── hooks/
