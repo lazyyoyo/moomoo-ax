@@ -21,7 +21,7 @@ team-ax 플러그인의 **제품 버전 시작 시 1번 실행** 스킬. 외부 
 | 구분 | 내용 |
 |---|---|
 | **입력** | 적용 대상 제품 리포의 `BACKLOG.md` inbox, 기존 `docs/specs/` 전체, 오너 인터뷰 응답 |
-| **출력 (플러그인 v0.1)** | `versions/undefined/` 하위 Phase A 산출물 6개 + `scope.md` (모든 섹션) / `docs/specs/` in-place 갱신 (`⏳ planned` 마커) / `BACKLOG.md` inbox 채택 항목 제거 |
+| **출력 (플러그인 v0.1.1)** | `versions/undefined/` 하위 Phase A 산출물 **3개**(`intake.md` / `interview.md` / `scope.md`) + scope.md 8개 섹션 모두 채움 / `docs/specs/` in-place 갱신 (`⏳ planned` 마커) / `BACKLOG.md` inbox 채택 항목 제거 |
 
 > 플러그인 v0.2 도입 후 출력에 **폴더 승격(`versions/vX.Y.Z/`)**, **`cycle/X.Y.Z` 브랜치**, **worktree**가 추가된다 (Phase B). 본 v0.1은 Phase B를 건너뛴다.
 
@@ -51,20 +51,48 @@ Phase C — plan/write/review (9~11) → analyst (9·10) + ax-review doc (11)
 2. `versions/undefined/` 폴더가 없으면 생성. 이미 있으면 기존 산출물을 무시하지 않고 이어가기.
 3. `BACKLOG.md`, `docs/specs/` 존재 확인. 없으면 오너에게 보고하고 중단(제품이 `/product-init` 같은 부트스트랩을 거치지 않은 경우).
 
-### Phase A — 범위 분석 (`product-owner` 호출)
+### Phase A — 범위 분석 (`product-owner` 호출 + 메인 라운드트립)
 
-`product-owner` 서브에이전트에게 다음 단계를 순서대로 실행시킨다 — 각 단계 산출물은 `versions/undefined/`에 즉시 저장(세션 유실 대비).
+> **v0.1.1 변경** — Phase A 산출물을 **3개 파일로 축소**. 3~5단계 결과는 별도 파일을 만들지 않고 scope.md 해당 섹션에 **직접 기록**. 2단계 인터뷰는 **메인 세션 라운드트립**(B안)으로 수행 — AskUserQuestion은 메인 세션에서만 안정 작동.
 
-| # | 단계 | 입력 | 산출물 | 저장 위치 |
+**산출 파일**
+
+| 파일 | 역할 |
+|---|---|
+| `versions/undefined/intake.md` | 1단계 수집 노트 + 비자명 항목 목록 (재진입 시 참조) |
+| `versions/undefined/interview.md` | 2단계 질문 + 오너 답 로그 (재진입 시 참조) |
+| `versions/undefined/scope.md` | 3~6단계 결과가 **직접 기록되는 유일한 산출물**. Phase C 단일 입력 |
+
+**단계별 흐름**
+
+| # | 단계 | 입력 | 산출물 | 기록 위치 |
 |---|---|---|---|---|
-| 1 | 입력 수집 | `BACKLOG.md` inbox + 기존 `docs/specs/` + `PROJECT_BRIEF.md` | 수집·분석 노트 | `versions/undefined/intake.md` |
-| 2 | 오너 인터뷰 | 수집 노트 (비자명한 질문만 묶어서) | 인터뷰 로그 | `versions/undefined/interview.md` |
-| 3 | JTBD 정의 | 인터뷰 + 수집 | JTBD 한 줄 ("And 없는 한 문장" 통과) | `versions/undefined/jtbd.md` |
-| 4 | Story Map | JTBD | Activity × Story 그리드 | `versions/undefined/story-map.md` |
-| 5 | SLC 체크 | Story Map + 슬라이스 후보 | 3축 통과 근거 | `versions/undefined/slc.md` |
-| 6 | 버전명 결정 + scope.md 초안 | SLC 통과 슬라이스 + `references/semver.md` + 오너 승인 | semver 판정 + `scope.md` (§버전 메타 / §JTBD / §Story Map / §SLC 체크 / §비범위) | `versions/undefined/scope.md` |
+| 1 | 입력 수집 | `BACKLOG.md` inbox + 기존 `docs/specs/` + `PROJECT_BRIEF.md` | 수집·분석 노트 + 비자명 항목 목록 | `versions/undefined/intake.md` |
+| 2 | 오너 인터뷰 (**라운드트립**) | intake의 비자명 항목 | 질문 목록 작성 → **메인 라운드트립** → 답 수신 후 채움 | `versions/undefined/interview.md` |
+| 3 | JTBD 정의 | 인터뷰 + 수집 | JTBD 한 줄 ("And 없는 한 문장" 통과) | `scope.md §JTBD` (별도 파일 생성 금지) |
+| 4 | Story Map | JTBD | Activity × Story 그리드 + spec 매핑 | `scope.md §Story Map` (별도 파일 생성 금지) |
+| 5 | SLC 체크 | Story Map + 슬라이스 후보 | 3축 근거 한 줄씩 | `scope.md §SLC 체크` (별도 파일 생성 금지) |
+| 6 | 버전명 결정 + 오너 승인 | SLC 통과 슬라이스 + `references/semver.md` | semver 판정 + 오너 승인 라운드트립 + §비범위 마감 | `scope.md §버전 메타` + `§비범위` |
+
+**2단계 라운드트립 프로토콜 (B안)**
+
+1. `product-owner` 서브에이전트가 `interview.md`에 질문 목록만 작성하고 return.
+2. 본 SKILL.md(메인 세션)가 `AskUserQuestion`을 호출해 오너에게 묻는다.
+3. 답을 받아 `interview.md` 답 섹션을 채운다.
+4. `product-owner`를 3단계로 재호출 (입력: 채워진 interview.md).
+
+> 서브에이전트 세션에서 `AskUserQuestion`은 미가용 반환되는 경우가 있으므로, 인터뷰는 **항상 메인이 수행**한다. product-owner에게는 Hard Guard로 "AskUserQuestion 실패/미가용 시 즉시 중단·자체 추론 금지"가 걸려 있다 (`agents/product-owner.md` Hard Guard 섹션).
+
+**6단계 버전명 승인**
+
+버전명(`vX.Y.Z`)은 `product-owner`가 후보를 제안하더라도 scope.md §버전 메타에 기록하기 전에 **메인 세션이 AskUserQuestion으로 단일 승인 라운드트립**을 돈다. 자답 금지.
 
 > 6단계 종료 시 scope.md의 §수정 계획 / §수정 로그 / §리뷰는 **비워둔다** (Phase C 담당).
+
+**금지 산출물**
+
+- `versions/undefined/jtbd.md`, `story-map.md`, `slc.md` — **만들지 않는다**. 결과는 scope.md 섹션으로 수렴.
+- "탈락 후보 사유표", "실패 시뮬레이션" 등 SKILL.md/references가 요구하지 않는 장식 섹션.
 
 ### Phase B — 건너뜀 (플러그인 v0.2 예정)
 
@@ -118,15 +146,18 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 
 ## 가드레일
 
-1. **제품 버전명 선결정 금지** — Phase A 6단계 SLC 통과 후에만 결정. 1~5단계 중 "v1.7.0 작업 중"이라 부르지 않는다.
-2. **major/minor 분기 금지** — 단일 흐름. 자릿수가 무엇이든 JTBD/Story Map/SLC는 항상 수행 (스코프 크기는 결과물 분량에만 영향).
-3. **JTBD/Story Map/SLC 단계 생략 금지** — minor / 패치 모음이라도 짧게라도 작성. 단계 자체를 빼면 안 됨.
-4. **새 spec 파일 생성 전 매핑 탐색 의무** — `analyst`가 §수정 계획에 매핑 근거 한 줄 명시 (`references/spec-lifecycle.md` 장치 1).
-5. **파일명 접미사 금지** — `-fix` / `-patch` / `-enhance` / `-redesign` / `-v2` / `.old` / `.legacy` (장치 2).
-6. **시간 축 본문 금지** — spec 본문에 "v1.5에서 추가" 등 누적 기술 금지 (장치 3).
-7. **spec vs CHANGELOG 분리** — 핫픽스를 신규 spec 파일로 만들지 않음. CHANGELOG는 deploy 단계 (장치 4).
-8. **Phase B 액션 금지** — 폴더 승격·브랜치 생성·worktree는 플러그인 v0.2 도입 후. v0.1은 모두 `versions/undefined/`.
-9. **review는 codex 위임만** — Claude 서브에이전트로 review를 실행하지 않는다. 작성 엔진 ≠ 검증 엔진 분리 원칙.
+1. **인터뷰 우회 금지 (v0.1.1 신설)** — 2단계는 반드시 메인 세션 라운드트립. 서브에이전트가 AskUserQuestion 실패 시 자체 추론으로 답 생성 금지. `product-owner` Hard Guard 위반 감지 시 즉시 중단.
+2. **Phase A 단일 파일 원칙 (v0.1.1 신설)** — `versions/undefined/`에는 `intake.md` / `interview.md` / `scope.md` **3개만** 존재해야 한다. `jtbd.md` / `story-map.md` / `slc.md` 생성 시 위반. 3~5단계 결과는 scope.md 섹션에 직접 기록.
+3. **제품 버전명 선결정 금지** — Phase A 6단계 SLC 통과 + 오너 승인 후에만 결정. 1~5단계 중 "v1.7.0 작업 중"이라 부르지 않는다.
+4. **major/minor 분기 금지** — 단일 흐름. 자릿수가 무엇이든 JTBD/Story Map/SLC는 항상 수행 (스코프 크기는 결과물 분량에만 영향).
+5. **JTBD/Story Map/SLC 단계 생략 금지** — minor / 패치 모음이라도 짧게라도 작성. 단계 자체를 빼면 안 됨.
+6. **오버스펙 장식 금지 (v0.1.1 신설)** — scope.md 8개 섹션 외 장식("탈락 후보 사유표", "실패 시뮬레이션", "대안 분석 매트릭스" 등) 추가 금지.
+7. **새 spec 파일 생성 전 매핑 탐색 의무** — `analyst`가 §수정 계획에 매핑 근거 한 줄 명시 (`references/spec-lifecycle.md` 장치 1).
+8. **파일명 접미사 금지** — `-fix` / `-patch` / `-enhance` / `-redesign` / `-v2` / `.old` / `.legacy` (장치 2).
+9. **시간 축 본문 금지** — spec 본문에 "v1.5에서 추가" 등 누적 기술 금지 (장치 3).
+10. **spec vs CHANGELOG 분리** — 핫픽스를 신규 spec 파일로 만들지 않음. CHANGELOG는 deploy 단계 (장치 4).
+11. **Phase B 액션 금지** — 폴더 승격·브랜치 생성·worktree는 플러그인 v0.2 도입 후. v0.1.x는 모두 `versions/undefined/`.
+12. **review는 codex 위임만** — Claude 서브에이전트로 review를 실행하지 않는다. 작성 엔진 ≠ 검증 엔진 분리 원칙.
 
 ## 참조
 

@@ -9,7 +9,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 > **운영 규칙**
 > - inbox: 아이디어 캡처. 스프린트 미배정.
 > - ready: 다음 스프린트 후보로 정제된 항목 (sprint-N-plan 진입 대기).
-> - done: 스프린트 종료 시 이관. 스프린트 번호 + 플러그인 버전 표기.
+> - done: 스프린트/hotfix 종료 시 이관. 스프린트 번호 or hotfix 버전 표기.
 
 ## inbox
 
@@ -38,6 +38,14 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### hotfix v0.1.1 — Phase A 구조 개선 (2026-04-15)
+
+yoyowiki 도그푸딩에서 발견된 버그 3종 수정. sprint 밖 hotfix 진행.
+
+- B-AUQGUARD: `product-owner` 에이전트에 `AskUserQuestion` 미가용 하드 가드 추가 — 실패 시 질문 목록만 작성하고 즉시 중단, 자체 추론 금지. (yoyowiki에서 에이전트가 6개 질문 전부 자답한 사고 대응)
+- B-INTERVIEWRT: Phase A 2단계를 B안으로 구조 변경 — 서브에이전트가 interview.md에 질문 목록만 작성 → 메인 세션이 AskUserQuestion 호출 → 답을 다음 Task 호출 입력으로 전달. 작성/인터뷰 엔진 분리 유지.
+- B-PHASEAFILE: Phase A 산출물 6개 → 3개로 축소 — `intake.md` / `interview.md` / `scope.md`만 유지. `jtbd.md` / `story-map.md` / `slc.md`는 폐지하고 scope.md 해당 섹션으로 단계별 in-place 기록. (downstream이 읽는 건 scope.md 한 장뿐)
 
 ### sprint-1 — 플러그인 v0.1.0 (2026-04-15)
 
