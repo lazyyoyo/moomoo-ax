@@ -1,11 +1,4 @@
-.harness/
 .env
-.venv/
-__pycache__/
-*.pyc
 .DS_Store
 .obsidian/
-node_modules/
-meta/collected/
 .claude/scheduled_tasks.lock
-.playwright-mcp/
