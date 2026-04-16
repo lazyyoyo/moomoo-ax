@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-15
+last-updated: 2026-04-16
 ---
 
 # moomoo-ax 백로그
@@ -38,6 +38,12 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### hotfix v0.1.2 — ax-review doc 평가 대상 한정 (2026-04-16)
+
+yoyowiki v0.1.1 도그푸딩에서 발견. working tree diff에 §수정 계획 밖 잔재가 섞이면 FAIL 오판이 남.
+
+- B-DOCSCOPE: `doc-checklist.md` 검증 입력에 "평가 대상 한정 규칙" 추가 — §수정 계획에 명시된 파일에만 체크리스트 적용, 나머지는 판정하지 않음. `SKILL.md` doc 동작 3번 스텝에도 동일 규칙 명시.
 
 ### hotfix v0.1.1 — Phase A 구조 개선 (2026-04-15)
 
