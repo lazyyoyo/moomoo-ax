@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-15
+last-updated: 2026-04-16
 ---
 
 # moomoo-ax 백로그
@@ -17,12 +17,11 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## ready
 
-### sprint-2 후보 — 플러그인 v0.2 (`docs/sprints/sprint-2/sprint-2-plan.md` 초안 참조)
+### sprint-2 — 완료 → done 섹션으로 이관
 
-- [feature] Phase B 부트스트랩 — `versions/undefined/` → `versions/vX.Y.Z/` 폴더 승격 + `cycle/X.Y.Z` 사이클 브랜치 + `../{repo}-X.Y.Z` worktree 자동 생성
-- [feature] 분리 감지 (제품 버전 분리) — Phase A에서 JTBD가 "And 없는 한 문장" 실패 시 복수 제품 버전 후보로 쪼개고 각각 Phase B+C 순차 실행
-- [feature] 의존성 분석 — 복수 제품 버전 간 관계 판정(독립/파일 중복/기능 선행/상호 배타) + scope.md `§의존성` 섹션
-- [feature] (선택) 의존성 그래프 요약 문서 — `versions/graph.md` 또는 인덱스
+### sprint-3 후보
+
+(버전 전략 변경으로 분리 감지/의존성 분석 폐기 — v0.2에서 "하나의 minor + Story 분해" 모델로 전환)
 
 ## inbox (장기 후보)
 
@@ -38,6 +37,21 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-2 — 플러그인 v0.2.0 (2026-04-16)
+
+Phase B 인프라 + 버전 전략 재설계 + 병렬 개발 설계.
+
+- B-PHASEB: `phase-b-setup.sh` — Phase A 산출물 커밋 → 폴더 승격 → version branch → Story별 worktree 생성. `ax-define/SKILL.md` Phase B 단계 구현.
+- B-VERSTRAT: 버전 전략 재설계 — "JTBD 분리 → 복수 버전" 폐기, minor(Story 분해) + patch(hotfix) 이원 체계. `jtbd.md`, `slc.md`, `semver.md`, `scope.md` 템플릿 갱신.
+- B-DOCCHECK: `doc-checklist.md` diff 기준을 version branch 기점으로 변경.
+- B-PARSPEC: `docs/specs/parallel-dev-spec.md` — v0.3 Build 오케스트레이션 설계 (파일 의존성/머지 순서/Story별 태스크 계획).
+
+### hotfix v0.1.2 — ax-review doc 평가 대상 한정 (2026-04-16)
+
+yoyowiki v0.1.1 도그푸딩에서 발견. working tree diff에 §수정 계획 밖 잔재가 섞이면 FAIL 오판이 남.
+
+- B-DOCSCOPE: `doc-checklist.md` 검증 입력에 "평가 대상 한정 규칙" 추가 — §수정 계획에 명시된 파일에만 체크리스트 적용, 나머지는 판정하지 않음. `SKILL.md` doc 동작 3번 스텝에도 동일 규칙 명시.
 
 ### hotfix v0.1.1 — Phase A 구조 개선 (2026-04-15)
 

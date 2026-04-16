@@ -42,8 +42,9 @@ target = 나머지 (공백 포함 가능)
 
 1. `references/doc-checklist.md` 본문을 로드.
 2. 대상 문서 + §수정 계획에서 언급된 파일들을 함께 읽도록 codex에 지시.
-3. 체크리스트 5종 항목별로 PASS/FAIL을 채우고 첫 줄에 `APPROVE` 또는 `REQUEST_CHANGES: {핵심 이유}`로 판정.
-4. 호출자가 출력 전체를 scope.md `§리뷰` 섹션에 그대로 붙여넣는다.
+3. **평가 대상 한정**: diff에 §수정 계획 밖 파일이 섞여 있으면 무시한다 (사전 unstaged 잔재 등). 체크리스트 5종은 §수정 계획에 명시된 파일에만 적용.
+4. 체크리스트 5종 항목별로 PASS/FAIL을 채우고 첫 줄에 `APPROVE` 또는 `REQUEST_CHANGES: {핵심 이유}`로 판정.
+5. 호출자가 출력 전체를 scope.md `§리뷰` 섹션에 그대로 붙여넣는다.
 
 **호출 예시 (Codex 직접 / Claude → codex 위임 둘 다 동일 인자)**
 
