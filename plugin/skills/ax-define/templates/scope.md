@@ -1,9 +1,8 @@
 <!--
 scope.md 템플릿 — team-ax `define` 스킬의 최종 산출물.
-저장 위치 (플러그인 v0.1): versions/undefined/scope.md
-저장 위치 (플러그인 v0.2+): versions/vX.Y.Z/scope.md (Phase B 폴더 승격 후)
+저장 위치: versions/vX.Y.Z/scope.md (Phase B 폴더 승격 후)
 
-본 템플릿은 8개 섹션을 모두 채워야 한다. SLC 통과 + §리뷰 APPROVE까지가 define 완료 조건.
+본 템플릿은 9개 섹션을 모두 채워야 한다. SLC 통과 + §리뷰 APPROVE까지가 define 완료 조건.
 -->
 
 # scope — {제품 이름} {제품 버전명 or undefined}
@@ -15,8 +14,8 @@ scope.md 템플릿 — team-ax `define` 스킬의 최종 산출물.
 - **제품 이름**: {예: rubato}
 - **제품 버전명**: {예: v1.7.0 — 또는 'undefined' (Phase A 미완료 시)}
 - **시맨틱 구분**: {MAJOR | MINOR | PATCH} — 근거: {한 줄}
-- **사이클 브랜치**: (플러그인 v0.2부터) `cycle/X.Y.Z`
-- **worktree 경로**: (플러그인 v0.2부터) `../{repo}-X.Y.Z`
+- **version branch**: `version/vX.Y.Z`
+- **worktree 경로**: `.claude/worktrees/story-N/` (Story별)
 
 ## § JTBD
 
@@ -52,6 +51,14 @@ Story 2~N개 + 각 Story 아래 태스크 bullet (spec 링크 포함).
 
 - {제외 항목 1} — {이유 한 줄}
 - {제외 항목 2} — {이유 한 줄}
+
+## § 버전 전략
+
+<!-- minor/patch 구분. -->
+
+- **타입**: {MINOR | PATCH}
+- **minor**: 계획된 feature 묶음 → A → B(worktree) → C → Story별 병렬 개발 → 머지 → QA → 배포
+- **patch**: 긴급 수정 → main hotfix 브랜치 → 즉시 배포
 
 ## § 수정 계획
 

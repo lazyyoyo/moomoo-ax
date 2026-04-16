@@ -50,7 +50,14 @@
 1. Phase A 6단계 — `product-owner`가 SLC 통과한 슬라이스에 대해 **위 플로우로 판정**.
 2. 오너에게 한 줄로 보고 (`v1.7.0 (MINOR — 마이페이지 신규)`).
 3. 오너 승인 후 scope.md `§ 버전 메타`에 기록.
-4. **폴더 승격·브랜치 생성은 하지 않는다** (플러그인 v0.1) — 산출물은 `versions/undefined/`에 머문다.
+4. Phase B에서 `versions/vX.Y.Z/` 폴더 승격 + `version/vX.Y.Z` 브랜치 + Story별 worktree 자동 생성.
+
+**minor vs patch 흐름 분기:**
+
+| 구분 | 흐름 |
+|---|---|
+| **minor** | Phase A → B(worktree) → C → Story별 병렬 개발 → version branch 머지 → QA → 배포 |
+| **patch** | main에서 hotfix 브랜치 → 수정 → 즉시 배포 (Phase A~C 경량 실행 또는 생략) |
 
 ## 가드레일
 

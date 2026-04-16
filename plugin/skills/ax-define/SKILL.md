@@ -21,9 +21,7 @@ team-ax 플러그인의 **제품 버전 시작 시 1번 실행** 스킬. 외부 
 | 구분 | 내용 |
 |---|---|
 | **입력** | 적용 대상 제품 리포의 `BACKLOG.md` inbox, 기존 `docs/specs/` 전체, 오너 인터뷰 응답 |
-| **출력 (플러그인 v0.1.1)** | `versions/undefined/` 하위 Phase A 산출물 **3개**(`intake.md` / `interview.md` / `scope.md`) + scope.md 8개 섹션 모두 채움 / `docs/specs/` in-place 갱신 (`⏳ planned` 마커) / `BACKLOG.md` inbox 채택 항목 제거 |
-
-> 플러그인 v0.2 도입 후 출력에 **폴더 승격(`versions/vX.Y.Z/`)**, **`cycle/X.Y.Z` 브랜치**, **worktree**가 추가된다 (Phase B). 본 v0.1은 Phase B를 건너뛴다.
+| **출력 (플러그인 v0.2)** | Phase A 산출물 3개(`intake.md` / `interview.md` / `scope.md`) → Phase B 폴더 승격(`versions/vX.Y.Z/`) + version branch + Story별 worktree → Phase C `docs/specs/` in-place 갱신 + `BACKLOG.md` inbox 정리 |
 
 ## 에이전트 / 스킬 구성
 
@@ -36,12 +34,12 @@ team-ax 플러그인의 **제품 버전 시작 시 1번 실행** 스킬. 외부 
 ## Phase 순서 제어
 
 ```
-Phase A — 범위 분석 (1~6)         → product-owner
-Phase B — 부트스트랩 (7~8)        → 플러그인 v0.2 예정 (이번 스프린트 건너뜀)
+Phase A — 범위 분석 (1~6)         → product-owner + 메인 라운드트립
+Phase B — 부트스트랩 (7~8)        → phase-b-setup.sh (결정적 스크립트)
 Phase C — plan/write/review (9~11) → analyst (9·10) + ax-review doc (11)
 ```
 
-본 v0.1은 Phase B를 **건너뛴다**. Phase A 산출물은 `versions/undefined/`에 머물고, Phase C도 같은 위치의 `scope.md`에 작성한다. 작업은 실행 시점의 현재 브랜치에서 진행.
+Phase A가 `versions/undefined/`에 산출물을 만들면, Phase B가 자동 커밋 + 폴더 승격 + version branch + Story별 worktree를 생성한다. Phase C는 worktree 안에서 실행된다.
 
 ## 동작 순서
 
@@ -69,7 +67,7 @@ Phase C — plan/write/review (9~11) → analyst (9·10) + ax-review doc (11)
 |---|---|---|---|---|
 | 1 | 입력 수집 | `BACKLOG.md` inbox + 기존 `docs/specs/` + `PROJECT_BRIEF.md` | 수집·분석 노트 + 비자명 항목 목록 | `versions/undefined/intake.md` |
 | 2 | 오너 인터뷰 (**라운드트립**) | intake의 비자명 항목 | 질문 목록 작성 → **메인 라운드트립** → 답 수신 후 채움 | `versions/undefined/interview.md` |
-| 3 | JTBD 정의 | 인터뷰 + 수집 | JTBD 한 줄 ("And 없는 한 문장" 통과) | `scope.md §JTBD` (별도 파일 생성 금지) |
+| 3 | JTBD 정의 | 인터뷰 + 수집 | JTBD 한 줄 ("And 없는 한 문장" 통과). 복합적이면 Story로 분해 — 버전은 쪼개지 않는다. | `scope.md §JTBD` (별도 파일 생성 금지) |
 | 4 | Story Map | JTBD | Activity × Story 그리드 + spec 매핑 | `scope.md §Story Map` (별도 파일 생성 금지) |
 | 5 | SLC 체크 | Story Map + 슬라이스 후보 | 3축 근거 한 줄씩 | `scope.md §SLC 체크` (별도 파일 생성 금지) |
 | 6 | 버전명 결정 + 오너 승인 | SLC 통과 슬라이스 + `references/semver.md` | semver 판정 + 오너 승인 라운드트립 + §비범위 마감 | `scope.md §버전 메타` + `§비범위` |
@@ -94,11 +92,41 @@ Phase C — plan/write/review (9~11) → analyst (9·10) + ax-review doc (11)
 - `versions/undefined/jtbd.md`, `story-map.md`, `slc.md` — **만들지 않는다**. 결과는 scope.md 섹션으로 수렴.
 - "탈락 후보 사유표", "실패 시뮬레이션" 등 SKILL.md/references가 요구하지 않는 장식 섹션.
 
-### Phase B — 건너뜀 (플러그인 v0.2 예정)
+### Phase B — 부트스트랩 (`phase-b-setup.sh`)
 
-폴더 승격(`versions/undefined/` → `versions/vX.Y.Z/`), 사이클 브랜치(`cycle/X.Y.Z`), worktree 생성은 본 v0.1에서 수행하지 않는다. 모든 산출물은 `versions/undefined/`에 머문다.
+Phase A 6단계 완료(버전명 오너 승인) 직후, 메인 세션이 스크립트를 실행한다.
+
+```bash
+bash plugin/scripts/phase-b-setup.sh vX.Y.Z
+```
+
+**스크립트 동작 (결정적 — 판단 없음):**
+
+| 스텝 | 동작 |
+|---|---|
+| 7 | `versions/undefined/` Phase A 산출물 자동 커밋 |
+| 8-a | `versions/undefined/` → `versions/vX.Y.Z/` 폴더 승격 + 커밋 |
+| 8-b | `version/vX.Y.Z` 브랜치 생성 (main에서 분기) |
+| 8-c | scope.md §Story Map에서 Story 수 파싱 → `.claude/worktrees/story-N/` worktree 생성 (Story당 1개) |
+
+**stdout 출력** (메인 세션이 파싱):
+```
+---
+version_dir: versions/vX.Y.Z
+branch: version/vX.Y.Z
+worktrees: 3
+.claude/worktrees/story-1
+.claude/worktrees/story-2
+.claude/worktrees/story-3
+```
+
+> 각 worktree에서 독립 Claude 세션을 띄워 **병렬 개발**이 가능하다. Codex도 worktree 내에서 정상 동작한다 (검증 완료).
+
+**Phase B 실패 시**: 스크립트가 비정상 종료하면 오너에게 에러 보고 + Phase C 진입 금지.
 
 ### Phase C — plan / write / review 사이클
+
+> Phase C는 Phase B가 생성한 **worktree 안에서** 실행된다. `versions/vX.Y.Z/scope.md`를 대상으로 작업한다.
 
 #### 9단계 — plan (`analyst` 호출)
 
@@ -122,7 +150,7 @@ Phase C — plan/write/review (9~11) → analyst (9·10) + ax-review doc (11)
 본 SKILL.md가 직접 codex에 위임:
 
 ```bash
-codex exec '$ax-review doc versions/undefined/scope.md'
+codex exec '$ax-review doc versions/vX.Y.Z/scope.md'
 ```
 
 - 출력 첫 줄을 grep해 판정:
@@ -134,7 +162,7 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 
 - 11단계 판정이 `APPROVE`임을 확인.
 - scope.md 8개 섹션 모두 채워졌는지 self-check (§버전 메타 / §JTBD / §Story Map / §SLC 체크 / §비범위 / §수정 계획 / §수정 로그 / §리뷰).
-- 오너에게 완료 보고 + define 산출물 경로 출력.
+- 오너에게 완료 보고 + define 산출물 경로 + **worktree 경로 목록** 출력 (병렬 개발 안내).
 
 ## Phase C 루프 재진입 규칙
 
@@ -156,8 +184,7 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 8. **파일명 접미사 금지** — `-fix` / `-patch` / `-enhance` / `-redesign` / `-v2` / `.old` / `.legacy` (장치 2).
 9. **시간 축 본문 금지** — spec 본문에 "v1.5에서 추가" 등 누적 기술 금지 (장치 3).
 10. **spec vs CHANGELOG 분리** — 핫픽스를 신규 spec 파일로 만들지 않음. CHANGELOG는 deploy 단계 (장치 4).
-11. **Phase B 액션 금지** — 폴더 승격·브랜치 생성·worktree는 플러그인 v0.2 도입 후. v0.1.x는 모두 `versions/undefined/`.
-12. **review는 codex 위임만** — Claude 서브에이전트로 review를 실행하지 않는다. 작성 엔진 ≠ 검증 엔진 분리 원칙.
+11. **review는 codex 위임만** — Claude 서브에이전트로 review를 실행하지 않는다. 작성 엔진 ≠ 검증 엔진 분리 원칙.
 
 ## 참조
 
