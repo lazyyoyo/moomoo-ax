@@ -56,15 +56,18 @@ $ax-review doc versions/undefined/scope.md
 codex exec '$ax-review doc versions/undefined/scope.md'
 ```
 
-### `code` (v0.1 stub)
+### `code` (v0.4 구현)
 
-`references/code-checklist.md`가 단일 줄 stub. 본 스킬이 호출되면:
+대상: 구현 코드. ax-build에서 Codex에 위임하여 호출.
 
+1. `references/code-checklist.md` 본문을 로드.
+2. 대상 파일 + 관련 spec을 함께 읽도록 codex에 지시.
+3. 체크리스트 항목별로 PASS/FAIL을 채우고 첫 줄에 `APPROVE` 또는 `REQUEST_CHANGES: {핵심 이유}`로 판정.
+
+**호출 예시:**
+```bash
+codex exec '$ax-review code src/app/api/auth/pin/'
 ```
-NOT_IMPLEMENTED: ax-review code 타입은 v0.1 미구현. 후속 스프린트(ax-build 도입 시) 작성 예정.
-```
-
-위 한 줄을 출력하고 즉시 중단. APPROVE/REQUEST_CHANGES 판정 없음.
 
 ### `pr` (v0.1 stub)
 
