@@ -17,6 +17,8 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [arch] tmux 기반 워크트리 세션 관리 (확정) — 메인에서 `tmux new-window`로 worktree별 Claude 세션 자동 생성. 오너가 tmux 윈도우 전환으로 해당 세션과 직접 대화. 완료 시그널은 `.ax-status` 파일로 메인에 전달.
 - [arch] ax-design을 ax-build 안으로 통합 — 디자인이 독립 스킬이면 오너가 수동으로 실행해야 함. Story별로 "디자인 필요 → 디자인 → 구현" 또는 "디자인 불필요 → 바로 구현"이 build 안에서 자동 분기되어야 오너 개입 없이 흐름이 이어짐.
 - [arch] 디자인 중 스펙 변경 처리 — 디자인 피드백 과정에서 스펙(docs/specs/) 변경이 발생할 수 있음. worktree 분리 상태에서 스펙 변경 시 다른 worktree에 전파하는 방법 + 충돌 해소 프로토콜 필요.
+- [arch] DS 수정 순차성 제약 명시 — DESIGN_SYSTEM.md와 DS 프리뷰 페이지는 1개뿐이라 병렬 worktree에서 동시 수정 시 충돌. DS 수정은 version branch에서 순차 진행, worktree에서는 DS 읽기만 허용. 구현(빌드)만 병렬.
+- [arch] worktree별 포트 할당 규칙 — 로컬 테스트 시 Story worktree마다 dev server 포트가 겹치면 안 됨. Story 번호 기반 자동 할당 규칙 필요 (예: 기본 포트 + Story 번호 오프셋).
 - [arch] 빌드→QA 전체 흐름 정의 — Story별 빌드(디자인 포함) → lint/test 기본 통과 → 브랜치에 커밋 → main session에서 오너 피드백+수정 → 전체 머지 후 QA. "이 버전의 모든 수정사항이 반영된 상태에서 정상 동작하는가"를 검증하는 흐름.
 
 ## ready
