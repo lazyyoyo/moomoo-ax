@@ -13,35 +13,38 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-- [arch] 워크트리 세션 자동 생성 — 메인 세션에서 worktree 생성 후 각 worktree에 Claude 세션을 자동으로 열어줌. 오너가 수동으로 cd + claude 하지 않아도 됨. (오너 개입 최소화 핵심)
-- [arch] tmux 기반 워크트리 세션 관리 (확정) — 메인에서 `tmux new-window`로 worktree별 Claude 세션 자동 생성. 오너가 tmux 윈도우 전환으로 해당 세션과 직접 대화. 완료 시그널은 `.ax-status` 파일로 메인에 전달.
-- [arch] ax-design을 ax-build 안으로 통합 — 디자인이 독립 스킬이면 오너가 수동으로 실행해야 함. Story별로 "디자인 필요 → 디자인 → 구현" 또는 "디자인 불필요 → 바로 구현"이 build 안에서 자동 분기되어야 오너 개입 없이 흐름이 이어짐.
-- [arch] 디자인 중 스펙 변경 처리 — 디자인 피드백 과정에서 스펙(docs/specs/) 변경이 발생할 수 있음. worktree 분리 상태에서 스펙 변경 시 다른 worktree에 전파하는 방법 + 충돌 해소 프로토콜 필요.
-- [arch] Story 분리 기준 — UX 흐름 의존성 판단 필요. 연결된 UX 흐름(같은 화면을 공유하거나 이동 경로가 이어지는 Story)은 같은 worktree에서 함께 작업해야 함. 무조건 Story=worktree 1:1이 아니라 "독립/연결" 판단 후 그루핑. rubato v1.9.0에서 연결된 흐름을 나눠서 작업했다가 전체 되돌림 경험.
-- [arch] DS 수정 순차성 제약 명시 — DESIGN_SYSTEM.md와 DS 프리뷰 페이지는 1개뿐이라 병렬 worktree에서 동시 수정 시 충돌. DS 수정은 version branch에서 순차 진행, worktree에서는 DS 읽기만 허용. 구현(빌드)만 병렬.
-- [arch] worktree별 포트 할당 규칙 — 로컬 테스트 시 Story worktree마다 dev server 포트가 겹치면 안 됨. Story 번호 기반 자동 할당 규칙 필요 (예: 기본 포트 + Story 번호 오프셋).
-- [arch] 빌드→QA 전체 흐름 정의 — Story별 빌드(디자인 포함) → lint/test 기본 통과 → 브랜치에 커밋 → main session에서 오너 피드백+수정 → 전체 머지 후 QA. "이 버전의 모든 수정사항이 반영된 상태에서 정상 동작하는가"를 검증하는 흐름.
+(없음)
 
 ## ready
 
-### sprint-2/3 — 완료 → done 섹션으로 이관
+### sprint-2/3/4 — 완료 → done 섹션으로 이관
 
 ## inbox (장기 후보)
 
 - [dogfood] team-ax 자체 도그푸딩 — rubato 또는 rofan-world에 실제 `/ax-define` 1회 실행, 실측 보고서 작성 (sprint-1 비범위로 미룸)
-- [feature] `ax-build` 스킬 — 제품 사이클의 build 단계 (Story Map의 Story 단위 worktree 분기 포함, 플러그인 v0.3+)
-- [feature] `ax-design` / `ax-qa` / `ax-deploy` 스킬 — 나머지 제품 사이클 단계 (CHANGELOG 작성, `⏳ planned` 마커 제거 포함)
-- [feature] `ax-review code` 타입 구현 — `references/code-checklist.md` 본격 작성 (ax-build 도입 시)
+- [feature] `ax-deploy` 스킬 — 배포 자동화 + `⏳ planned` 마커 잔존 체크 + CHANGELOG 작성
 - [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정, ax-deploy 도입 시)
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
-- [feature] Story 단위 worktree 병렬 실행 오케스트레이션 (플러그인 v0.3+)
-- [feature] 의존성 그래프 기반 merge 순서 자동 관리 (플러그인 v0.3+ deploy)
-- [feature] `ax-deploy` — deploy 시 `⏳ planned` 마커 잔존 체크 포함. spec 파일에 마커가 남아있으면 deploy 차단.
+- [feature] 의존성 그래프 기반 merge 순서 자동 관리 (deploy 단계)
 - [feature] `ax-clean` 스킬 — 프로젝트 디렉토리 점검 + 최적화. 불필요한 파일(미사용 컴포넌트, 고아 시안, 빈 디렉토리, 캐시 잔재 등) 탐지 + 정리 제안
 - [infra] team-ax 자기 진화 — meta loop, 외부 패턴 자동 흡수 (PROJECT_BRIEF 장기 비전)
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-4 — 플러그인 v0.4.0 (2026-04-17)
+
+ax-build + ax-qa + ax-review code. 개발팀 역할 전체 사이클.
+
+- B-AXBUILD: `ax-build` 스킬 — 7단계 플로우 (plan → 공통 기반 → 실행 → 오너 확인 → 머지 → 최종 확인 → QA). Phase B를 ax-define에서 이동.
+- B-ORCHESTRATOR: `ax-build-orchestrator.sh` — version branch + 워크트리 + tmux 세션 + 머지 자동화
+- B-PLANNER: `planner` 에이전트 — gap 분석 + 실행 전략(워크트리 여부) 결정
+- B-EXECUTOR: `executor` 에이전트 — TDD + backpressure 구현
+- B-AXQA: `ax-qa` 스킬 — 통합 테스트 + code review + PR→main
+- B-AXREVIEWCODE: `ax-review code` 타입 — stub → 7종 체크리스트 구현
+- B-DESIGNMOD: ax-design SKILL.md 수정 — ax-build 호출 시 워크트리 실행 가능
+- B-DEFINEMOD: ax-define SKILL.md 수정 — Phase B 제거 (scope 확정까지만)
+- BACKLOG inbox 8건 해소: tmux 세션 관리, 디자인 통합, 스펙 변경 전파, Story 분리 기준, DS 순차성, 포트 할당, 빌드→QA 흐름
 
 ### sprint-3 — 플러그인 v0.3.0 (2026-04-16)
 
