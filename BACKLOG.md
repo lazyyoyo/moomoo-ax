@@ -13,7 +13,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-(없음)
+- [bug] team-design/team-product 플러그인 충돌 — ax-design 실행 시 "UX", "디자인" 키워드가 team-design의 ux-reviewer를 트리거. team-product의 product-design도 동일 문제. 대상 프로젝트에서 team-design/team-product 비활성화 필요. 장기적으로 team-ax가 완전 대체 후 제거.
 
 ## ready
 
