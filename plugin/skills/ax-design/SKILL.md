@@ -8,7 +8,7 @@ argument-hint: "<대상 제품 리포 경로>"
 
 team-ax의 디자인 스킬. **"시안 만들고 피드백 받기"가 아니라 "컴포넌트 단위 확정 → 조합"**으로 오너 개입을 앞당겨 품질을 보장한다.
 
-> **실행 위치**: `version/vX.Y.Z` 브랜치 (ax-define Phase B 산출물). Story worktree는 ax-build에서 사용.
+> **실행 위치**: `version/vX.Y.Z` 브랜치 (독립 실행 시) 또는 워크트리 (ax-build에서 호출 시).
 
 ## 입력 / 출력
 
@@ -28,9 +28,11 @@ team-ax의 디자인 스킬. **"시안 만들고 피드백 받기"가 아니라 
 
 ### 사전 점검
 
-1. `version/vX.Y.Z` 브랜치에 있는지 확인. 아니면 중단.
-2. `versions/vX.Y.Z/scope.md` 존재 확인 (ax-define 완료 전제).
-3. Story worktree(`.claude/worktrees/story-N/`) 존재 확인.
+1. **실행 위치 판단**:
+   - `version/vX.Y.Z` 브랜치에 있으면 → 독립 실행 모드
+   - `.ax-brief.md`가 존재하면 → ax-build 호출 모드 (워크트리)
+   - 둘 다 아니면 → 중단
+2. scope.md 존재 확인 (독립: `versions/vX.Y.Z/scope.md`, ax-build 호출: `.ax-brief.md`에서 경로 확인).
 
 ### 1단계 — DS 토큰 확인
 
@@ -186,12 +188,9 @@ team-ax의 디자인 스킬. **"시안 만들고 피드백 받기"가 아니라 
 ### 완료 처리
 
 - 오너 프리뷰 승인 확인
-- version branch의 DS + 컴포넌트를 Story worktree에 전파:
-  ```bash
-  cd .claude/worktrees/story-N/
-  git merge version/vX.Y.Z
-  ```
-- 오너에게 완료 보고 + worktree 경로 안내 (ax-build 진입 가능)
+- 오너에게 완료 보고
+- **독립 실행 시**: 다음 단계 `/ax-build` 안내
+- **ax-build 호출 시**: ax-build로 제어 반환 (구현 단계로 이어짐)
 
 ## 오너 리젝 시 재작업 프로토콜
 
@@ -222,7 +221,7 @@ team-ax의 디자인 스킬. **"시안 만들고 피드백 받기"가 아니라 
 
 ## 가드레일
 
-1. **version branch 실행** — ax-design은 `version/vX.Y.Z` 브랜치에서만 실행. main이나 story worktree에서 실행 금지.
+1. **실행 위치** — version branch (독립 실행) 또는 워크트리 (ax-build 호출 시). main에서 직접 실행 금지. 워크트리에서 DS 수정이 필요하면 → "DS 수정은 version branch에서 처리 필요" 출력 + 메인 세션에 보고. 워크트리에서 DS 직접 수정 금지.
 2. **브랜드 톤 유지** — 오너가 명시적으로 리뉴얼 요청하지 않는 한 기존 brand/ 톤 유지.
 3. **주관적 인터뷰 금지** — "느낌/무드", "피하고 싶은 스타일" 같은 질문 금지. 구체적 결정만.
 4. **억지 새 디자인 금지** — 기존 DS 컴포넌트로 조합 가능하면 새 시안 만들지 않음.
