@@ -13,7 +13,11 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-(없음)
+- [arch] 워크트리 세션 자동 생성 — 메인 세션에서 worktree 생성 후 각 worktree에 Claude 세션을 자동으로 열어줌. 오너가 수동으로 cd + claude 하지 않아도 됨. (오너 개입 최소화 핵심)
+- [arch] tmux 기반 워크트리 세션 관리 (확정) — 메인에서 `tmux new-window`로 worktree별 Claude 세션 자동 생성. 오너가 tmux 윈도우 전환으로 해당 세션과 직접 대화. 완료 시그널은 `.ax-status` 파일로 메인에 전달.
+- [arch] ax-design을 ax-build 안으로 통합 — 디자인이 독립 스킬이면 오너가 수동으로 실행해야 함. Story별로 "디자인 필요 → 디자인 → 구현" 또는 "디자인 불필요 → 바로 구현"이 build 안에서 자동 분기되어야 오너 개입 없이 흐름이 이어짐.
+- [arch] 디자인 중 스펙 변경 처리 — 디자인 피드백 과정에서 스펙(docs/specs/) 변경이 발생할 수 있음. worktree 분리 상태에서 스펙 변경 시 다른 worktree에 전파하는 방법 + 충돌 해소 프로토콜 필요.
+- [arch] 빌드→QA 전체 흐름 정의 — Story별 빌드(디자인 포함) → lint/test 기본 통과 → 브랜치에 커밋 → main session에서 오너 피드백+수정 → 전체 머지 후 QA. "이 버전의 모든 수정사항이 반영된 상태에서 정상 동작하는가"를 검증하는 흐름.
 
 ## ready
 
@@ -29,6 +33,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
 - [feature] Story 단위 worktree 병렬 실행 오케스트레이션 (플러그인 v0.3+)
 - [feature] 의존성 그래프 기반 merge 순서 자동 관리 (플러그인 v0.3+ deploy)
+- [feature] `ax-deploy` — deploy 시 `⏳ planned` 마커 잔존 체크 포함. spec 파일에 마커가 남아있으면 deploy 차단.
 - [feature] `ax-clean` 스킬 — 프로젝트 디렉토리 점검 + 최적화. 불필요한 파일(미사용 컴포넌트, 고아 시안, 빈 디렉토리, 캐시 잔재 등) 탐지 + 정리 제안
 - [infra] team-ax 자기 진화 — meta loop, 외부 패턴 자동 흡수 (PROJECT_BRIEF 장기 비전)
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
