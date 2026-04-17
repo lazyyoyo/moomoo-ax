@@ -57,7 +57,7 @@ WORKTREE_PATHS=""
 for STORY_NUM in $STORIES; do
   WT_NAME="story-${STORY_NUM}"
   WT_PATH="${WORKTREE_BASE}/${WT_NAME}"
-  WT_BRANCH="${BRANCH_NAME}/story-${STORY_NUM}"
+  WT_BRANCH="${BRANCH_NAME}-story-${STORY_NUM}"
 
   if [[ -d "$WT_PATH" ]]; then
     echo "SKIP: $WT_PATH 이미 존재" >&2
