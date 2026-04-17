@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f DESIGN_SYSTEM.md ]; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"[DS 규칙] DESIGN_SYSTEM.md가 존재합니다. 디자인 작업 시 반드시 DS 토큰만 사용하세요. 하드코딩 색상/간격/폰트 금지. 기존 컴포넌트 조합 우선.\"}}'; fi",
+            "statusMessage": "DS 규칙 확인 중..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' 2>/dev/null | { read -r f; case \"$f\" in *.tsx|*.css) if [ -f DESIGN_SYSTEM.md ]; then grep -nE '(#[0-9a-fA-F]{3,8}|rgb\\(|rgba\\(|hsl\\()' \"$f\" 2>/dev/null | head -3 | while read -r line; do echo \"{\\\"systemMessage\\\":\\\"[DS 린트] $f 에 하드코딩 색상 발견: $line\\\"}\"; done; fi ;; esac; } 2>/dev/null || true",
+            "statusMessage": "DS 린트 체크..."
+          }
+        ]
+      }
+    ]
+  }
+}

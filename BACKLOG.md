@@ -17,11 +17,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## ready
 
-### sprint-2 — 완료 → done 섹션으로 이관
-
-### sprint-3 후보
-
-(버전 전략 변경으로 분리 감지/의존성 분석 폐기 — v0.2에서 "하나의 minor + Story 분해" 모델로 전환)
+### sprint-2/3 — 완료 → done 섹션으로 이관
 
 ## inbox (장기 후보)
 
@@ -33,10 +29,23 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
 - [feature] Story 단위 worktree 병렬 실행 오케스트레이션 (플러그인 v0.3+)
 - [feature] 의존성 그래프 기반 merge 순서 자동 관리 (플러그인 v0.3+ deploy)
+- [feature] `ax-clean` 스킬 — 프로젝트 디렉토리 점검 + 최적화. 불필요한 파일(미사용 컴포넌트, 고아 시안, 빈 디렉토리, 캐시 잔재 등) 탐지 + 정리 제안
 - [infra] team-ax 자기 진화 — meta loop, 외부 패턴 자동 흡수 (PROJECT_BRIEF 장기 비전)
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-3 — 플러그인 v0.3.0 (2026-04-16)
+
+ax-design 스킬 신규 구현. 컴포넌트 단위 오너 확정 → 조합 패러다임.
+
+- B-AXDESIGN: `ax-design` 스킬 — 8단계 플로우 (DS 토큰 확인 → 오너 인터뷰 → UX 플로우 → Story별 분기 → 컴포넌트 확정 → 전체 구성 → 게이트 → 프리뷰)
+- B-UXDESIGNER: `ux-designer` 에이전트 — UX 플로우 설계 + 컴포넌트 필요 목록 산출
+- B-DESIGNBUILDER: `design-builder` 에이전트 — DS 위에서 컴포넌트 개발 + 전체 구성
+- B-DSGATE: `ds-completeness-check.sh` + `design-gate.sh` — DS 토큰 완성도 + DS 준수 린트 + 레이아웃 규칙
+- B-CHECKEVAL: CheckEval 동적 체크리스트 — UX 기반 Yes/No 자동 생성 + 실패→재작업 자동 변환
+- B-HOOKS: UserPromptSubmit DS 자동 주입 + PostToolUse DS 린트 훅
+- B-REFS: references 8종 이식 (team-design) + reference-readme-template 부분 태깅 확장
 
 ### sprint-2 — 플러그인 v0.2.0 (2026-04-16)
 
