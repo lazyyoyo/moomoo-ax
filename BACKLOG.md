@@ -13,7 +13,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-- [feature] `ax-deploy` 스킬 (sprint-5) — 배포 자동화 + `⏳ planned` 마커 잔존 체크 + CHANGELOG 작성 + define/build 단계 산출물 최종 확인 (scope.md 섹션 완성도, build-plan.md 태스크 전체 완료, flows/ 정합, DS 프리뷰 페이지 최신화, 미커밋 파일 없음 등)
+- [feature] `ax-deploy` 스킬 (sprint-5) — 배포 자동화 + `⏳ planned` 마커 잔존 체크 + CHANGELOG 작성 + define/build 산출물 최종 확인 + **워크트리 분기 작업의 deploy 처리** (워크트리에서 작업 완료 → 머지 → 태그 → 배포까지. 원본 repo 세션 제약 없이 워크트리에서도 실행 가능해야 함. 제품 semver과 독립된 트랙도 지원.)
 - [infra] moomoo-ax용 statusline 설정 — 현재 my-agent-office 기준 statusline 사용 중. moomoo-ax 프로젝트에 맞는 statusline 필요.
 - [bug] team-design/team-product 플러그인 충돌 — ax-design 실행 시 "UX", "디자인" 키워드가 team-design의 ux-reviewer를 트리거. team-product의 product-design도 동일 문제. 대상 프로젝트에서 team-design/team-product 비활성화 필요. 장기적으로 team-ax가 완전 대체 후 제거.
 
