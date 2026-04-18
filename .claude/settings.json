@@ -1,5 +1,9 @@
 {
   "enabledPlugins": {
     "team-product@my-agent-office": false
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/plugin/scripts/ax-statusline.sh\""
   }
 }

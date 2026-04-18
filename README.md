@@ -18,6 +18,10 @@ IT 제품 제작 자동화 Claude Code 플러그인 **team-ax** 배포 리포.
 - [Claude Code](https://claude.com/claude-code) 설치
 - GitHub 저장소 구조의 프로젝트 (`docs/specs/`, `BACKLOG.md` 등을 따르는 것이 권장)
 
+## 다른 플러그인과의 충돌
+
+team-ax는 기존 `team-design` / `team-product` 플러그인과 키워드가 겹쳐 의도치 않은 에이전트가 트리거될 수 있다. 대상 프로젝트에서 비활성화 권장 — [docs/guides/plugin-compatibility.md](./docs/guides/plugin-compatibility.md) 참고.
+
 ## 라이선스
 
 [MIT](./LICENSE)

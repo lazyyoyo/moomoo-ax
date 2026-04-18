@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-16
+last-updated: 2026-04-18
 ---
 
 # moomoo-ax 백로그
@@ -13,25 +13,29 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-- [infra] moomoo-ax용 statusline 설정 — 현재 my-agent-office 기준 statusline 사용 중. moomoo-ax 프로젝트에 맞는 statusline 필요.
-- [bug] team-design/team-product 플러그인 충돌 — ax-design 실행 시 "UX", "디자인" 키워드가 team-design의 ux-reviewer를 트리거. team-product의 product-design도 동일 문제. 대상 프로젝트에서 team-design/team-product 비활성화 필요. 장기적으로 team-ax가 완전 대체 후 제거.
-
 ## ready
 
-### sprint-2/3/4/5 — 완료 → done 섹션으로 이관
+### sprint-2/3/4/5/6 — 완료 → done 섹션으로 이관
 
 ## inbox (장기 후보)
 
-- [dogfood] team-ax 자체 도그푸딩 — rubato 또는 rofan-world에 실제 `/ax-define` 1회 실행, 실측 보고서 작성 (sprint-1 비범위로 미룸)
-- [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정, ax-deploy 도입 시)
+- [dogfood] team-ax 도그푸딩 실측 — v0.6 기준 define→build→qa→deploy 1회 완주 (sprint-6에서 릴리즈 직후로 미룸, 별도 세션 진행 예정)
+- [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정)
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
 - [feature] 의존성 그래프 기반 merge 순서 자동 관리 (deploy 단계)
-- [feature] `ax-paperwork` 스킬 — 프로젝트 문서 품질 관리. spec/ARCHITECTURE/BACKLOG/CHANGELOG/flows/DESIGN_SYSTEM 등의 정합성 체크 + 최적화. 코드와 문서 간 불일치 탐지 (spec에 있는데 코드에 없는 것, 코드에 있는데 spec에 없는 것), 중복 문서 식별, 오래된 내용 갱신 제안, 문서 간 참조 깨짐 탐지.
-- [feature] `ax-clean` 스킬 — 프로젝트 디렉토리 점검 + 최적화. (1) 불필요한 파일: 미사용 컴포넌트, 고아 시안, 빈 디렉토리, 캐시 잔재 (2) 관리 안 되는 문서: 참조 없는 고아 spec, 오래된 flows/, 미정리 versions/, 미아카이브 레퍼런스 (3) QA/디자인 잔재: Playwright 스크린샷이 루트에 방치되는 문제 — 스크린샷 경로 지정(`.ax/screenshots/`) 또는 deploy 시 정리
 - [infra] team-ax 자기 진화 — meta loop, 외부 패턴 자동 흡수 (PROJECT_BRIEF 장기 비전)
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-6 — 플러그인 v0.6.0 (2026-04-18)
+
+문서/디렉토리 품질 관리 + 환경 정리.
+
+- B-AXPAPERWORK: `ax-paperwork` 스킬 — 문서-코드 정합성 탐지 + 중복/stale/참조깨짐 + in-place 갱신 + 오너 게이트
+- B-AXCLEAN: `ax-clean` 스킬 — 미사용 파일/고아 문서/QA잔재 탐지 + 휴지통 이동 (`mv ~/.Trash/`, `rm` 금지)
+- B-STATUSLINE: moomoo-ax 전용 statusline — repo/branch/sprint/version/worktree 표시, 프로젝트 `.claude/settings.json`에 등록
+- B-PLUGINCONFLICT: team-design/team-product 충돌 해소 가이드 — `docs/guides/plugin-compatibility.md`, README 링크
 
 ### sprint-5 — 플러그인 v0.5.0 (2026-04-18)
 
