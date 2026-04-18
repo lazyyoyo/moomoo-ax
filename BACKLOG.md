@@ -27,6 +27,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정, ax-deploy 도입 시)
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
 - [feature] 의존성 그래프 기반 merge 순서 자동 관리 (deploy 단계)
+- [feature] `ax-help` 스킬 — 플러그인 안내. team-ax가 뭔지, 사용 가능한 스킬 목록, 각 스킬의 역할과 실행 순서, 현재 프로젝트 상태(어느 단계까지 진행됐는지) 표시. `/ax-help` 또는 `/ax` 로 호출.
 - [feature] `ax-paperwork` 스킬 — 프로젝트 문서 품질 관리. spec/ARCHITECTURE/BACKLOG/CHANGELOG/flows/DESIGN_SYSTEM 등의 정합성 체크 + 최적화. 코드와 문서 간 불일치 탐지 (spec에 있는데 코드에 없는 것, 코드에 있는데 spec에 없는 것), 중복 문서 식별, 오래된 내용 갱신 제안, 문서 간 참조 깨짐 탐지.
 - [feature] `ax-clean` 스킬 — 프로젝트 디렉토리 점검 + 최적화. (1) 불필요한 파일: 미사용 컴포넌트, 고아 시안, 빈 디렉토리, 캐시 잔재 (2) 관리 안 되는 문서: 참조 없는 고아 spec, 오래된 flows/, 미정리 versions/, 미아카이브 레퍼런스 (3) QA/디자인 잔재: Playwright 스크린샷이 루트에 방치되는 문제 — 스크린샷 경로 지정(`.ax/screenshots/`) 또는 deploy 시 정리
 - [infra] team-ax 자기 진화 — meta loop, 외부 패턴 자동 흡수 (PROJECT_BRIEF 장기 비전)
