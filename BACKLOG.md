@@ -13,13 +13,12 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-- [feature] `ax-deploy` 스킬 (sprint-5) — 배포 자동화 + `⏳ planned` 마커 잔존 체크 + CHANGELOG 작성 + define/build 산출물 최종 확인 + **워크트리 분기 작업의 deploy 처리** (워크트리에서 작업 완료 → 머지 → 태그 → 배포까지. 원본 repo 세션 제약 없이 워크트리에서도 실행 가능해야 함. 제품 semver과 독립된 트랙도 지원.)
 - [infra] moomoo-ax용 statusline 설정 — 현재 my-agent-office 기준 statusline 사용 중. moomoo-ax 프로젝트에 맞는 statusline 필요.
 - [bug] team-design/team-product 플러그인 충돌 — ax-design 실행 시 "UX", "디자인" 키워드가 team-design의 ux-reviewer를 트리거. team-product의 product-design도 동일 문제. 대상 프로젝트에서 team-design/team-product 비활성화 필요. 장기적으로 team-ax가 완전 대체 후 제거.
 
 ## ready
 
-### sprint-2/3/4 — 완료 → done 섹션으로 이관
+### sprint-2/3/4/5 — 완료 → done 섹션으로 이관
 
 ## inbox (장기 후보)
 
@@ -27,18 +26,22 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정, ax-deploy 도입 시)
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
 - [feature] 의존성 그래프 기반 merge 순서 자동 관리 (deploy 단계)
-- [perf] ax-build 속도 개선 — build 단계가 매우 길고 느림 (codex review 1시간 30분 등). 원인 분석 + 개선 (code review 범위 최소화, 캐시 활용, 불필요한 반복 제거 등)
-- [bug] tmux 세션 자동 생성 미연결 — worktree 생성 시 statusline에 표시만 되고 실제 tmux 세션이 뜨지 않음. orchestrator → 스킬 호출 연결 필요.
-- [feature] ax-qa 동적 검증 강화 — 현재 정적 검증 + codex review만. product-qa 수준으로 강화 필요: QA 인벤토리(flows 기반), Functional QA(Playwright 유저 시뮬레이션), Visual QA(스크린샷+목업 대비), Viewport(Desktop+Mobile), 접근성(axe-core), 성능(Lighthouse), off-happy-path 필수, 오너 수동 사용성 테스트(편향 없는 시나리오).
-- [bug] ax-qa 오너 게이트 누락 — QA 통과 후 바로 PR로 가는데, 로컬 서버 띄우고 오너가 최종 동작 확인한 뒤 PR이 맞음. QA 판정 → 서버 띄우기 → 오너 확인 → PR 순서로 변경.
-- [ux] build 중 안전 작업 가이드 — build가 오래 걸릴 때 오너가 다른 작업(BACKLOG 정리, 문서 작업 등)을 해도 되는지 안내. 코드 파일 안 건드리는 작업은 안전하다는 가이드를 ax-build 또는 ax-help에 포함.
-- [feature] `ax-help` 스킬 — 플러그인 안내. team-ax가 뭔지, 사용 가능한 스킬 목록, 각 스킬의 역할과 실행 순서, 현재 프로젝트 상태(어느 단계까지 진행됐는지) 표시. `/ax-help` 또는 `/ax` 로 호출.
 - [feature] `ax-paperwork` 스킬 — 프로젝트 문서 품질 관리. spec/ARCHITECTURE/BACKLOG/CHANGELOG/flows/DESIGN_SYSTEM 등의 정합성 체크 + 최적화. 코드와 문서 간 불일치 탐지 (spec에 있는데 코드에 없는 것, 코드에 있는데 spec에 없는 것), 중복 문서 식별, 오래된 내용 갱신 제안, 문서 간 참조 깨짐 탐지.
 - [feature] `ax-clean` 스킬 — 프로젝트 디렉토리 점검 + 최적화. (1) 불필요한 파일: 미사용 컴포넌트, 고아 시안, 빈 디렉토리, 캐시 잔재 (2) 관리 안 되는 문서: 참조 없는 고아 spec, 오래된 flows/, 미정리 versions/, 미아카이브 레퍼런스 (3) QA/디자인 잔재: Playwright 스크린샷이 루트에 방치되는 문제 — 스크린샷 경로 지정(`.ax/screenshots/`) 또는 deploy 시 정리
 - [infra] team-ax 자기 진화 — meta loop, 외부 패턴 자동 흡수 (PROJECT_BRIEF 장기 비전)
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-5 — 플러그인 v0.5.0 (2026-04-18)
+
+전 사이클 완성 + 도그푸딩 피드백 반영.
+
+- B-AXDEPLOY: `ax-deploy` 스킬 — 산출물 확인 → CHANGELOG → PR → preview → 오너 승인 → 머지+태그 → 배포 → BACKLOG 정리 → 잔재 정리. 워크트리/독립 트랙 지원.
+- B-AXQAV2: `ax-qa` 강화 — product-qa 수준 (인벤토리 + Playwright + Visual + Viewport + 접근성 + 성능 + 오너 게이트)
+- B-TMUXFIX: tmux 세션 자동 생성 수정 — .ax-brief.md 존재 확인 + tmux 세션 밖 감지 + 절대 경로
+- B-AXHELP: `ax-help` 스킬 — 스킬 목록 + 실행 순서 + 프로젝트 상태 자동 감지 + 안전 작업 가이드
+- B-SPEEDUP: ax-build 속도 개선 — 파일 경로만 전달 + 작업 단위 diff + 동일 사유 2회 오너 위임 + stub 사전 체크
 
 ### sprint-4 — 플러그인 v0.4.0 (2026-04-17)
 
