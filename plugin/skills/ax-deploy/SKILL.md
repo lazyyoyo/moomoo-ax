@@ -88,6 +88,12 @@ git push origin vX.Y.Z
 - Playwright 스크린샷 (루트에 방치된 `.png` 파일)
 - 임시 파일 (`.ax-status`, `.ax-brief.md`)
 - 워크트리 정리 (`git worktree remove`)
+- **version branch 삭제** (main 머지 완료 후):
+  ```bash
+  git branch -d version/vX.Y.Z
+  git push origin --delete version/vX.Y.Z
+  ```
+- story branch 삭제 (`version/vX.Y.Z-work-*`)
 - `reference/vX.Y.Z-*/` → `reference/archive/`로 이동
 
 ## 가드레일
