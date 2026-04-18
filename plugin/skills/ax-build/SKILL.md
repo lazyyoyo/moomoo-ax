@@ -150,8 +150,12 @@ build-plan.md의 실행 전략에 따라 진행.
 ```bash
 codex exec '$ax-review code {변경 파일 경로}'
 ```
+- **변경 파일 경로만 전달** — 전체 컨텍스트/diff를 프롬프트에 붙이지 않음 (속도)
+- **작업 단위 diff만** — 전체 diff가 아니라 이번 작업에서 변경된 파일만
 - spec 정합 / DS 준수 / silent failure / 보안 / 텍스트 하드코딩 검증
 - APPROVE → review-ready. REQUEST_CHANGES → 수정 후 재리뷰.
+- **동일 사유 2회 연속 REQUEST_CHANGES → 오너에게 위임** (무한 루프 방지)
+- **사전 체크**: `$ax-review code`가 stub(구 버전 캐시)이면 경고 출력 + 플러그인 업데이트 안내
 
 **포트 할당:**
 ```

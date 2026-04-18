@@ -64,12 +64,22 @@ case "$COMMAND" in
     # .ax-status 초기화
     echo '{"status":"building"}' > "${WT_PATH}/.ax-status"
 
-    # tmux 세션 생성
-    if tmux list-windows -F '#{window_name}' 2>/dev/null | grep -q "^${WORK_NAME}$"; then
-      echo "tmux 윈도우 이미 존재: ${WORK_NAME}"
+    # .ax-brief.md 존재 확인
+    if [[ ! -f "${WT_PATH}/.ax-brief.md" ]]; then
+      echo "WARNING: ${WT_PATH}/.ax-brief.md 없음. 메인 세션에서 먼저 생성 필요." >&2
+      echo "tmux 세션 생성 스킵."
     else
-      tmux new-window -n "${WORK_NAME}" "cd ${WT_PATH} && claude -p 'Read .ax-brief.md and follow the instructions.'"
-      echo "tmux 세션 생성: ${WORK_NAME}"
+      # tmux 세션 내에서 실행 중인지 확인
+      if [[ -z "${TMUX:-}" ]]; then
+        echo "WARNING: tmux 세션 밖에서 실행 중. tmux를 먼저 시작하세요." >&2
+        echo "  → tmux new-session -s ax-build"
+        echo "  → 그 안에서 다시 실행"
+      elif tmux list-windows -F '#{window_name}' 2>/dev/null | grep -q "^${WORK_NAME}$"; then
+        echo "tmux 윈도우 이미 존재: ${WORK_NAME}"
+      else
+        tmux new-window -n "${WORK_NAME}" "cd $(pwd)/${WT_PATH} && claude -p 'Read .ax-brief.md and follow the instructions.'"
+        echo "tmux 세션 생성: ${WORK_NAME}"
+      fi
     fi
 
     echo "---"
