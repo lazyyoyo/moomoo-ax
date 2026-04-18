@@ -13,6 +13,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
+- [feature] `ax-deploy` 스킬 (sprint-5) — 배포 자동화 + `⏳ planned` 마커 잔존 체크 + CHANGELOG 작성 + define/build 단계 산출물 최종 확인 (scope.md 섹션 완성도, build-plan.md 태스크 전체 완료, flows/ 정합, DS 프리뷰 페이지 최신화, 미커밋 파일 없음 등)
 - [infra] moomoo-ax용 statusline 설정 — 현재 my-agent-office 기준 statusline 사용 중. moomoo-ax 프로젝트에 맞는 statusline 필요.
 - [bug] team-design/team-product 플러그인 충돌 — ax-design 실행 시 "UX", "디자인" 키워드가 team-design의 ux-reviewer를 트리거. team-product의 product-design도 동일 문제. 대상 프로젝트에서 team-design/team-product 비활성화 필요. 장기적으로 team-ax가 완전 대체 후 제거.
 
@@ -23,7 +24,6 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 ## inbox (장기 후보)
 
 - [dogfood] team-ax 자체 도그푸딩 — rubato 또는 rofan-world에 실제 `/ax-define` 1회 실행, 실측 보고서 작성 (sprint-1 비범위로 미룸)
-- [feature] `ax-deploy` 스킬 — 배포 자동화 + `⏳ planned` 마커 잔존 체크 + CHANGELOG 작성
 - [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정, ax-deploy 도입 시)
 - [feature] Hook 기반 자동 강제 — spec-lifecycle 4종 장치를 PreToolUse 훅으로 차단 (현재는 에이전트 규칙 + review만)
 - [feature] 의존성 그래프 기반 merge 순서 자동 관리 (deploy 단계)
