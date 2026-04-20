@@ -12,9 +12,12 @@ source_root="$repo_root/skills"
 codex_root="$HOME/.codex/skills"
 claude_cache_base="$HOME/.claude/plugins/cache/lazyyoyo/team-ax"
 
-# 동기화할 스킬 목록 (현재는 ax-review만 — codex 위임 대상)
+# 동기화할 스킬 목록 (codex 위임 대상)
+# - ax-review: 검증 (작성 ≠ 검증 분리)
+# - execute:   코드 구현 (executor.engine=codex 토글 시 ax-build가 호출)
 skills=(
   "ax-review"
+  "execute"
 )
 
 if [[ ! -d "$source_root" ]]; then
