@@ -13,6 +13,23 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
+### ax-codex
+
+- B-AXCODEXCACHE: `ax-codex.sh`의 Claude 플러그인 캐시 경로 하드코딩 버그 — `CLAUDE_CACHE_BASE="$HOME/.claude/plugins/cache/lazyyoyo/team-ax"`로 하드코딩됐는데 실제 경로는 `moomoo-ax/team-ax` (marketplace name). install 시 "Claude 플러그인 캐시 없음 — skip"이 항상 발생. `.claude-plugin/marketplace.json`의 `name` 읽어서 동적 resolve. (install-local-skills.sh에서 상속된 버그, 기능 자체엔 영향 없음 — 캐시는 플러그인 시스템이 reload 시 갱신)
+
+### statusline — my-agent-office 대비 누락 기능
+
+my-agent-office `plugins/statusline/scripts/statusline.sh` 대비 `ax-statusline.sh`에 빠진 기능들. 각각 판단 후 필요한 것만 채택.
+
+- B-SL-MODEL: **현재 모델명 표시** — stdin JSON의 `.model.id`를 파싱해 `opus4.6 / sonnet4.6 / haiku4.5` 등 short name으로 Line 1에 표시. (오너가 명시 요청)
+- B-SL-FASTMODE: `fastMode` 토글 상태 표시 — `↯fast` 뱃지 (`settings.json .fastMode`)
+- B-SL-EFFORT: `effortLevel` 표시 — `⚡lo/md/hi` 뱃지 (`settings.json .effortLevel`, 기본 high)
+- B-SL-PLUGINSYNC: 설치된 플러그인 sync 상태 — `~/.claude/plugins/installed_plugins.json` 파싱 → 해당 owner의 플러그인 경로 존재 여부 집계 → `mao N/M ✓/⚠` 형태. team-ax는 `ax N/M`로 표시. 토글 키 `.statusline.plugin` 추가
+- B-SL-PHASE: `.phase` 파일 연동 — `${SESSION_ROOT}/.phase` JSON의 `phase` 값(`done` 녹색 / `hotfix` 빨강 / 기타 청록) 읽어 branch row 앞에 표시. team-ax는 sprint/ver로 대체되는 면도 있으니 채택 여부 판단 필요
+- B-SL-WT-BRANCH: worktree branch 이름 표시 — 현재 `wt:N`만 표시. my-agent-office는 1개면 `(+wt: branch)`, 2개 이상은 `(+wt: N trees)`. sprint-7에서 팀-ax는 `wt:N`으로 확정했으니 정책 재검토
+- B-SL-PROJNAME: `/hq/projects/<name>/` 경로에서 프로젝트명만 뽑아 CWD 대신 표시 — team-ax는 현재 `📦 repo`로 이미 표시 중이라 겹칠 수 있음. 보류 판단 필요
+- B-SL-SESSION-ROOT: session root fallback 체인 보강 — `.workspace.project_dir` → `.workspace.current_dir` → `$PWD` (team-ax는 `current_dir`만 봄)
+
 ## ready
 
 ## inbox (장기 후보)
