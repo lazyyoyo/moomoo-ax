@@ -64,12 +64,24 @@ quota API → 캐시 생성 스크립트. 다른 작업의 전제.
 
 ## T4. 검증
 
-- [ ] 본인 환경 — `/ax-status install` → statusline 3행 표시 확인
-- [ ] 토글 — `/ax-status toggle 7d` → 7D 숨김 확인
-- [ ] 재설치 — `/ax-status uninstall` → `/ax-status install` 라운드트립 정상
-- [ ] 플러그인 버전 bump 시뮬레이션 — 래퍼가 새 경로 resolve
-- [ ] 남편 환경 — 플러그인 설치 + `/ax-status install`만으로 동작
-- [ ] 기존 `.claude/settings.json` 프로젝트 레벨 설정과 충돌 확인 (글로벌이 덮어쓰는지, 아니면 프로젝트 우선인지)
+자동화 가능한 항목(렌더 테스트 + 라운드트립)은 T1·T3 안에서 마쳤다. 실제 환경 적용 검증은 v0.7.0 release 직후 별도 세션에서 진행.
+
+### T4-a (T1·T3에서 완료)
+
+- [x] L/M/S 모드 렌더 — `COLUMNS=80/45/30`로 3행 표시 + 바 너비 15/10/5 확인
+- [x] 임계치 색상 — 34%/75%/92% 입력 시 cyan/yellow/red 분기 확인
+- [x] 캐시 기반 5H/7D — `/tmp/claude-usage-cache.json`에서 정상 파싱 (5H 5%, 7D 42%)
+- [x] install 라운드트립 — settings 백업 + statusLine 교체 + 토글 키 주입
+- [x] toggle 7d — settings.json 값 flip 확인 (`7d: true → false`)
+- [x] show 정확성 — false 값도 정확히 표시 (jq fallback 버그 fix 후)
+- [x] uninstall — 백업 복원 + 래퍼 휴지통 이동 + 토글 키 보존
+
+### T4-b (v0.7.0 release 직후 실측 — sprint-7 종료 후)
+
+- [ ] 본인 환경 — release된 v0.7.0 cache로 `/ax-status install` → 실제 Claude Code statusline에 3행 표시
+- [ ] 플러그인 버전 bump 자동 resolve — `installed_plugins.json` 갱신 후 래퍼 재설치 없이 새 경로 resolve
+- [ ] 남편 환경 — clean 환경에서 플러그인 설치 + `/ax-status install`만으로 동작
+- [ ] 프로젝트 vs 글로벌 충돌 — 프로젝트 `.claude/settings.json`에 statusLine이 있을 때 어느 쪽 우선인지 실측 + 결과를 docs/guides/에 명문화
 
 ## T5. B-CODEXEXEC — ax-build executor 엔진 토글
 
