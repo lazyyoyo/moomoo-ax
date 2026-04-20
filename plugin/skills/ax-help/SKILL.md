@@ -34,6 +34,11 @@ team-ax 플러그인 안내.
 | `/ax-design` | 컴포넌트 단위 디자인 확정 (ax-build 안에서 자동 호출되거나 독립 실행) |
 | `/ax-review doc` | 문서 리뷰 (codex 위임) |
 | `/ax-review code` | 코드 리뷰 (codex 위임) |
+| `/ax-execute` | 코드 구현 (codex 위임, `executor.engine=codex` 토글 시 ax-build가 호출) |
+| `/ax-status` | statusline 설치/토글/상태 |
+| `/ax-codex` | codex 스킬 동기화 관리 (`ax-review`/`ax-execute` → `~/.codex/skills/`) |
+| `/ax-paperwork` | 문서-코드 정합성 점검 + in-place 갱신 |
+| `/ax-clean` | 미사용 파일/고아 문서/QA잔재 탐지 + 휴지통 이동 |
 | `/ax-help` | 이 안내 |
 
 ### 3. 현재 프로젝트 상태
