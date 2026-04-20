@@ -2,6 +2,44 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.7.0 — 2026-04-20
+
+**statusline v2 + executor 엔진 토글 + define wireframe + preflight fix.**
+
+### Added
+- `ax-statusline.sh` v2 — CTX/5H/7D 행 + 반응형 레이아웃(L/M/S) + settings.json 토글 키(`.statusline.{ctx,5h,7d,branch}`) + stale 감지
+- `plugin/scripts/fetch-usage.sh` — Anthropic OAuth quota 캐시(`/tmp/claude-usage-cache.json`, TTL 120s). my-agent-office/statusline에서 이식
+- `plugin/scripts/templates/hud-wrapper.sh` — 버전 무관 statusline 래퍼. `installed_plugins.json`에서 team-ax 경로 런타임 resolve (플러그인 업데이트 시 재설치 불필요)
+- `/ax-status` 스킬 + `plugin/scripts/ax-status.sh` 통합 엔진 — install / uninstall / toggle / on / off / show. 글로벌 `~/.claude/settings.json` `statusLine.command` 교체 + 백업 자동 생성 + 토글 키 기본값 주입
+- `/execute` 스킬 (`plugin/skills/execute/SKILL.md`) — codex가 직접 실행하는 코드 구현 스킬. TDD/backpressure/영역 침범 가드 포함. 출력 첫 줄 `DONE` / `BLOCKED: {이유}`
+- `plugin/skills/ax-define/templates/wireframe.html` — Phase C 13단계 wireframe 템플릿 (단일 정적 HTML, 디자인 없음 가드)
+- scope.md `§ 화면 정의` 섹션 — 화면 ID/주요 영역/상태 변형/다음 화면 표준 (wireframe 입력)
+- ax-define Phase C 13단계 — wireframe.html 생성 게이트 (오너 AskUserQuestion, 기본 미생성)
+
+### Changed
+- `plugin/agents/executor.md` — Constraint #12 영역 침범 가드 추가 (차단 영역 명시 + git status self-check + 임의 되돌리기 금지 + 공유 파일 사전 처리). Investigation Protocol/Failure Modes/Final Checklist 동기화
+- `plugin/agents/ux-designer.md` — 두 모드 분기(`flows-and-components` / `wireframe-only`). wireframe-only는 색상/폰트/컴포넌트 가드 6종
+- `plugin/skills/ax-build/SKILL.md` — `executor.engine: claude | codex` 토글 (`.claude/settings.json`). claude는 기존 executor 에이전트, codex는 `$execute` 스킬. 영역 침범 가드(#12)와 공유 파일 처리(#13) 가드레일 추가
+- `plugin/skills/ax-build/templates/ax-brief.md` — 허용/차단 영역 섹션 추가, 완료 조건에 self-check 명시
+- `plugin/scripts/install-local-skills.sh` — `execute` 스킬도 `~/.codex/skills/`로 동기화
+- `plugin/scripts/deploy-preflight.sh` — 버그 3종 fix (rubato admin 도그푸딩 피드백):
+  - spec 경로 자동 탐지 (`docs/specs/` 하드코딩 제거 → `find` 기반, dev/docs/specs/ 같은 subdirectory 인지)
+  - `grep -c` 다중 결과 안전 처리 (`safe_grep_count` 헬퍼, `[[: 0\n0` syntax error 제거)
+  - 본 트랙 scope 한정 마커 검사 (`git diff` 기반, 다른 도메인 잔재 무시)
+  - § 화면 정의 섹션 검사 추가 (T6 동기화)
+  - macOS bash 3.2 호환
+
+### Deferred (v0.8+)
+- `ax-review pr` 타입 본격 구현
+- Hook 기반 자동 강제 (PreToolUse)
+- 의존성 그래프 기반 머지 순서 자동화
+- ax-deploy v2 묶음 (rubato admin 도그푸딩 피드백 4건):
+  - track-type 메타 분기 (product/admin/infra)
+  - worktree 환경 호환성 (gh pr merge 에러 + 임시 worktree 패턴)
+  - Vercel "Ignored Build Step" 인지
+  - cleanup PR 패턴 명문화
+- 도그푸딩 실측 1회 (별도 세션)
+
 ## v0.6.0 — 2026-04-18
 
 **문서/디렉토리 품질 관리 + 환경 정리.**

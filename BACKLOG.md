@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-18
+last-updated: 2026-04-20
 ---
 
 # moomoo-ax 백로그
@@ -15,9 +15,16 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## ready
 
-### sprint-2/3/4/5/6 — 완료 → done 섹션으로 이관
-
 ## inbox (장기 후보)
+
+### sprint-8 후보 — ax-deploy v2 묶음 (rubato admin 도그푸딩 피드백)
+
+- B-TRACKTYPE: ax-deploy 트랙별 정책 분기 — `scope.md §버전 메타`에 `track-type: product | admin | infra` 추가. admin/internal-tools는 (1) CHANGELOG 작성 강제 부적합(GitHub Release만 사용), (2) BACKLOG done 이관 강제 부적합(Release로 추적), (3) 제품 semver 기반 `/product-deploy` 부적합 → ax-deploy가 트랙 타입에 따라 분기
+- B-WTHOST: ax-build/ax-deploy worktree 환경 호환성 — (1) `gh pr merge --squash --delete-branch` 시 "main is already checked out at <other-worktree>" 에러(머지는 정상이나 사용자 혼란), (2) main 워크트리가 다른 트랙 점유 중일 때 pull 차단 → 임시 worktree 패턴(`git worktree add /tmp/<name> main` → pull → `.vercel/` 복사 → vercel --prod → worktree remove) 가이드 + ax-deploy가 `git worktree list`로 환경 인지 + main checkout 실패 시 자동 안내
+- B-VERCELIGN: ax-deploy Vercel "Ignored Build Step" 인지 — git push deploy를 모두 cancel하는 프로젝트(rubato 등)에서 dashboard "Redeploy"가 빌드 skip → 6단계 실행 전 `vercel ls <project>` 최근 5건 status 검사. 모두 Canceled면 자동 배포 disabled 안내 + vercel CLI 직접 실행 절차로 분기
+- B-CLEANUPPR: ax-deploy 후처리 cleanup PR 패턴 명문화 — 머지·태그·Release 완료 후 ⏳ planned 마커 제거 + build-plan 체크박스 [x] 처리는 별도 cleanup PR로 분리해야 함(rubato admin-v0.2.0 PR #17). 1단계 preflight가 차단 사유로 잡지만 처리 절차 안내 부족 → main 기반 임시 브랜치(`chore/<version>-cleanup`) → 마커 제거 + 체크박스 → push → squash merge 패턴 매뉴얼화 + 가능하면 자동화
+
+### 장기
 
 - [dogfood] team-ax 도그푸딩 실측 — v0.6 기준 define→build→qa→deploy 1회 완주 (sprint-6에서 릴리즈 직후로 미룸, 별도 세션 진행 예정)
 - [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정)
@@ -27,6 +34,18 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-7 — 플러그인 v0.7.0 (2026-04-20)
+
+statusline v2 + executor 엔진 토글 + define wireframe + preflight fix.
+
+- B-STATUSLINE-V2: `ax-statusline.sh` v2 — CTX/5H/7D + 반응형 L/M/S + settings.json 토글 키 + stale 감지
+- B-FETCHUSAGE: `fetch-usage.sh` 이식 — Anthropic OAuth quota 캐시(`/tmp/claude-usage-cache.json`, TTL 120s)
+- B-AXSTATUS: `/ax-status` 스킬 + `ax-status.sh` 통합 엔진 — install/uninstall/toggle/on/off/show + 글로벌 settings.json statusLine 교체 + 백업 자동
+- B-HUDWRAPPER: `templates/hud-wrapper.sh` 버전 무관 래퍼 — `installed_plugins.json` 런타임 resolve (플러그인 업데이트 시 재설치 불필요)
+- B-CODEXEXEC: ax-build `executor.engine: claude | codex` 토글 — 신규 `/execute` 스킬 (executor 로직 이관 + codex 동기화). 영역 침범 가드 5종 (claude/codex 양쪽 적용)
+- B-WIREFRAME: ax-define Phase C 13단계 wireframe.html 생성 게이트 — `ux-designer` 모드 분기(`wireframe-only`) + scope.md `§ 화면 정의` 표준 + 단일 정적 HTML 템플릿(디자인 없음 가드)
+- B-PREFLIGHTFIX: `deploy-preflight.sh` 버그 3종 fix (rubato admin 도그푸딩) — spec 경로 자동 탐지 + `grep -c` 다중 결과 안전 처리 + 본 트랙 scope 한정 마커 검사 + macOS bash 3.2 호환
 
 ### sprint-6 — 플러그인 v0.6.0 (2026-04-18)
 

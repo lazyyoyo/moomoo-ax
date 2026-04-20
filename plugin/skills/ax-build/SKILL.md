@@ -25,8 +25,28 @@ team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — pla
 | 에이전트 | 담당 | 책임 |
 |---|---|---|
 | `planner` | 1단계 | gap 분석 + 작업 분해 + 실행 전략 결정 |
-| `executor` | 3단계 | BE/FE 구현 (TDD + backpressure) |
+| `executor` (claude) | 3단계 | BE/FE 구현 (TDD + backpressure + 영역 침범 가드) |
+| `execute` 스킬 (codex) | 3단계 | 동일 책임을 codex가 수행 (`executor.engine=codex` 토글 시) |
 | `design-builder` | 3단계 | 디자인 필요 작업에서 ax-design 호출 후 FE 구현 |
+
+### executor.engine 토글
+
+3단계 코드 구현의 작성 엔진을 **claude / codex** 중 선택할 수 있다. 위치는 프로젝트 `.claude/settings.json`:
+
+```json
+{
+  "executor": { "engine": "claude" }
+}
+```
+
+| 값 | 동작 |
+|---|---|
+| `claude` (기본) | `executor` 에이전트(`plugin/agents/executor.md`)를 메인 세션의 Task 도구로 호출 |
+| `codex` | `codex exec '$execute <task-spec> [--allow ...] [--block ...]'`로 위임 (`plugin/skills/execute/SKILL.md`) |
+
+두 엔진 모두 동일한 제약(TDD / backpressure / 영역 침범 가드 / 보안)을 따른다. ax-build 오케스트레이터(워크트리 / tmux / 머지)는 그대로 유지되고 **executor 단계만 분기**한다.
+
+산출물 인터페이스도 동일: 태스크 단위 git 커밋 + 결과 요약. codex의 경우 stdout 첫 줄이 `DONE` / `BLOCKED: {이유}`이며, 메인 세션이 이를 보고 다음 태스크 진행 또는 오너 보고 결정.
 
 ## 동작 순서
 
@@ -108,12 +128,23 @@ build-plan.md에 공통 기반 항목이 없으면 이 단계 스킵.
 
 build-plan.md의 실행 전략에 따라 진행.
 
+**진입 시 `executor.engine` 확인:**
+```bash
+ENGINE=$(jq -r '.executor.engine // "claude"' .claude/settings.json 2>/dev/null || echo "claude")
+```
+
+- `claude` → `executor` 에이전트 호출 (메인 세션의 Task 도구)
+- `codex` → `codex exec '$execute <task-spec> --allow <허용경로> --block <차단경로>'`
+
+두 엔진 모두 **차단 파일 경로를 반드시 명시해서 호출**한다 (영역 침범 가드 발동 조건).
+
 #### 3-a. 워크트리 없이 (version branch에서 순차)
 
-메인 세션에서 `executor` / `design-builder` 에이전트로 직접 구현:
+메인 세션에서 `executor` 에이전트(claude) 또는 `$execute` 스킬(codex)로 직접 구현:
 
 ```
-태스크 선택 → 구현 → backpressure → 커밋 → codex code review → 다음 태스크
+태스크 선택 → 차단 영역 명시 → 구현 → backpressure → git status self-check
+        → 커밋 → codex code review → 다음 태스크
 ```
 
 완료 → 서버 띄우기 → 4단계(오너 확인)로.
@@ -132,14 +163,16 @@ build-plan.md의 실행 전략에 따라 진행.
 **각 세션 내부 흐름:**
 
 ```
-.ax-brief.md 읽기
+.ax-brief.md 읽기 (현재 작업 + 차단 영역 + executor.engine 확인)
   → 디자인 필요? → ax-design 실행 → 구현
   → 디자인 불필요? → 바로 구현
-  → 태스크별: 구현 → backpressure → 커밋
+  → 태스크별: 구현 → backpressure → git status self-check → 커밋
   → 전체 완료 → codex code review
   → 서버 띄우기 (할당 포트)
   → .ax-status = "review-ready"
 ```
+
+`.ax-brief.md`에는 반드시 **차단 영역**을 명시한다. `executor.engine=codex`로 호출 시 `--allow` / `--block` 인자에 그대로 전달된다.
 
 **backpressure (모든 세션 공통):**
 - lint + typecheck + unit + build 통과 전 다음 태스크 금지
@@ -231,6 +264,8 @@ git merge version/vX.Y.Z-work-b
 9. **code review는 Codex 위임** — 작성 엔진 ≠ 검증 엔진.
 10. **발견한 버그** → 해결하거나 plan에 기록 (무시 금지).
 11. **스펙 불일치** → 메인 세션에 보고.
+12. **영역 침범 가드 필수** — executor 호출 시 차단 영역 명시 + 각 태스크 후 `git status` self-check. 침범 발견 시 임의 되돌리기 금지, 오너 보고. claude/codex 양쪽 동일 적용.
+13. **공유 파일은 공통 기반에서 처리** — 타입 정의 등 여러 태스크 공유 파일은 2단계(공통 기반)에서 미리. 3단계의 individual executor가 만지지 않음.
 
 ## 참조
 
@@ -241,7 +276,8 @@ git merge version/vX.Y.Z-work-b
 - `templates/ax-brief.md` — 워크트리 작업 지시서 포맷
 - `plugin/scripts/ax-build-orchestrator.sh` — tmux + 워크트리 + 머지 자동화
 - `plugin/agents/planner.md` — 구현 계획 에이전트
-- `plugin/agents/executor.md` — 구현 에이전트
+- `plugin/agents/executor.md` — 구현 에이전트 (claude 분기, 영역 침범 가드 포함)
+- `../execute/SKILL.md` — 코드 구현 스킬 (codex 분기, `$execute`로 호출)
 - `../ax-design/SKILL.md` — 디자인 필요 시 호출
 - `../ax-qa/SKILL.md` — QA 넘기기
 - `../ax-review/SKILL.md` — code review (Codex 위임)

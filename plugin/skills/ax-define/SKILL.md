@@ -30,6 +30,7 @@ team-ax 플러그인의 **제품 버전 시작 시 1번 실행** 스킬. 외부 
 | `product-owner` (Claude 서브에이전트) | **Phase A 전체 (1~6)** | intake / 인터뷰 / JTBD / Story Map / SLC / 제품 버전명 결정 + scope.md 초안 |
 | `analyst` (Claude 서브에이전트) | **Phase C plan + write (9·10)** | §수정 계획 / specs in-place 갱신 / BACKLOG inbox 정리 / §수정 로그 |
 | `ax-review doc` (스킬 — codex 위임) | **Phase C review (11)** | §수정 계획 vs 실제 diff 대조 + 강제 장치 4종 검증 + APPROVE/REQUEST_CHANGES |
+| `ux-designer` (Claude 서브에이전트, 모드 `wireframe-only`) | **Phase C wireframe (13, 선택)** | scope.md §화면 정의 → `versions/<버전>/wireframe.html` 단일 정적 HTML 생성 |
 
 ## Phase 순서 제어
 
@@ -128,8 +129,42 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 #### 12단계 — 완료 처리
 
 - 11단계 판정이 `APPROVE`임을 확인.
-- scope.md 8개 섹션 모두 채워졌는지 self-check (§버전 메타 / §JTBD / §Story Map / §SLC 체크 / §비범위 / §수정 계획 / §수정 로그 / §리뷰).
-- 오너에게 완료 보고 + define 산출물 경로 출력. **다음 단계: `/ax-build` 실행 안내.**
+- scope.md **9개 섹션** 모두 채워졌는지 self-check (§버전 메타 / §JTBD / §Story Map / **§화면 정의** / §SLC 체크 / §비범위 / §수정 계획 / §수정 로그 / §리뷰).
+  - **§화면 정의는 "(없음 — 화면 산출물 없는 작업)"으로 명시한 경우도 채워진 것으로 인정** (인프라/스크립트/문서 작업).
+- 13단계(wireframe) 게이트로 진입.
+
+#### 13단계 — wireframe.html (선택적, 오너 게이트)
+
+scope.md §화면 정의를 화면 단위 정적 HTML로 시각화. **확정 flow를 화면 기준으로 한눈에 검토**하기 위함.
+
+**조건:**
+- §화면 정의가 "(없음)"이면 본 단계 자동 스킵 (게이트도 묻지 않음).
+- 그 외에는 항상 오너에게 묻는다 — 기본은 생성 안 함.
+
+**오너 게이트 (메인 세션 라운드트립):**
+1. 메인 세션이 `AskUserQuestion`으로 묻는다:
+   `wireframe.html을 생성할까요? (scope.md §화면 정의 N건 → versions/<버전>/wireframe.html)`
+2. **No** → 본 단계 스킵 + 14단계 안내로 진행.
+3. **Yes** → `ux-designer` 서브에이전트를 `mode: wireframe-only`로 호출.
+
+**ux-designer 호출 인자:**
+- 모드: `wireframe-only`
+- 입력: `versions/<버전>/scope.md` §화면 정의
+- 템플릿: `plugin/skills/ax-define/templates/wireframe.html`
+- 출력: `versions/<버전>/wireframe.html`
+
+**ux-designer 가드** (`plugin/agents/ux-designer.md`의 `wireframe-only` Constraints 참조):
+- 색상은 흑백 + 회색만 / 폰트는 system-ui / 컴포넌트 라이브러리 사용 금지 / 단일 HTML 의존성 0
+- §화면 정의가 "(없음)"이거나 누락이면 빈 파일 생성 거부 후 보고
+
+**완료 후:**
+- ux-designer가 콘솔에 렌더된 화면 수와 누락 항목을 출력.
+- 메인 세션은 산출 경로(`versions/<버전>/wireframe.html`)와 "브라우저에서 더블클릭으로 열기" 안내를 오너에게 출력.
+
+#### 14단계 — 완료 보고
+
+- 오너에게 define 산출물 경로 출력 (scope.md, 선택 시 wireframe.html).
+- **다음 단계: `/ax-build` 실행 안내.**
 
 ## Phase C 루프 재진입 규칙
 
@@ -161,7 +196,9 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 - `references/semver.md` — 제품 버전명(MAJOR/MINOR/PATCH) 판정 플로우
 - `references/spec-lifecycle.md` — in-place 갱신 + `⏳ planned` 마커 + 강제 장치 4종
 - `references/docs-structure.md` — BACKLOG / scope / CHANGELOG 3-문서 책임 분리 (ROADMAP 제거 근거 포함)
-- `templates/scope.md` — scope.md 8개 섹션 템플릿
+- `templates/scope.md` — scope.md 9개 섹션 템플릿 (§화면 정의 포함)
+- `templates/wireframe.html` — Phase C 13단계 wireframe 템플릿 (단일 정적 HTML, 디자인 없음)
 - `../ax-review/SKILL.md` — Phase C review 단계의 codex 위임 스킬
 - `plugin/agents/product-owner.md` — Phase A 전담 서브에이전트
 - `plugin/agents/analyst.md` — Phase C plan + write 전담 서브에이전트
+- `plugin/agents/ux-designer.md` — Phase C 13단계 wireframe-only 모드 + ax-design flows-and-components 모드

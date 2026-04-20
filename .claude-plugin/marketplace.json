@@ -7,9 +7,9 @@
     {
       "name": "team-ax",
       "description": "IT 제품 제작 자동화 Claude Code 플러그인",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "source": "./plugin"
     }
   ],
-  "version": "0.6.0"
+  "version": "0.7.0"
 }

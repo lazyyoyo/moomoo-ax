@@ -6,12 +6,41 @@ IT 제품 제작 자동화 Claude Code 플러그인 **team-ax** 배포 리포.
 
 상세 정의는 [`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md) 참고 (SSOT).
 
-## 제공 기능 (v0.1)
+## 제공 기능 (v0.7)
 
 | 스킬 | 설명 |
 |---|---|
-| `/ax-define` | 제품 버전 스코프 결정 + 스펙 in-place 갱신 + plan/write/review 검증 |
-| `/ax-review` | 범용 리뷰 (doc/code/pr 분기 — v0.1은 doc 타입만 구현) |
+| `/ax-define` | 제품 버전 스코프 결정 + 스펙 in-place 갱신 + plan/write/review 검증 + (선택) wireframe.html 산출 |
+| `/ax-build` | 개발팀 — plan → 공통 기반 → 구현(claude/codex 토글 + 영역 침범 가드) → 머지 |
+| `/ax-design` | 컴포넌트 단위 디자인 확정 (ax-build 안에서 자동 호출 또는 독립 실행) |
+| `/ax-qa` | 통합 테스트 + code review + PR → main |
+| `/ax-deploy` | 산출물 확인 → CHANGELOG → PR → 오너 승인 → 배포 |
+| `/ax-paperwork` | 문서-코드 정합성 점검 + in-place 갱신 |
+| `/ax-clean` | 미사용 파일/고아 문서/QA잔재 탐지 + 휴지통 이동 |
+| `/ax-review` | 범용 리뷰 (doc/code/pr 분기) |
+| `/ax-status` | statusline 설치/토글/상태 — `install` / `uninstall` / `toggle <ctx\|5h\|7d\|branch>` / `show` |
+| `/ax-help` | 스킬 목록 + 실행 순서 + 현재 상태 |
+| `/execute` | (codex 위임) 코드 구현 스킬. ax-build가 `executor.engine=codex` 토글 시 호출 |
+
+## statusline (v0.7)
+
+CTX 사용량 / 5H·7D quota를 한눈에 보여주는 multi-row statusline. 글로벌 한 번 설치 후 어느 프로젝트에서나 작동.
+
+```bash
+# 설치 (글로벌 ~/.claude/settings.json statusLine 교체 + 백업 자동 생성)
+/ax-status install
+
+# 특정 행만 끄기
+/ax-status toggle 7d
+
+# 현재 상태
+/ax-status show
+
+# 원복
+/ax-status uninstall
+```
+
+플러그인 버전이 올라도 래퍼가 자동 resolve하므로 재설치 불필요.
 
 ## 요구 사항
 

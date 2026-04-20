@@ -1,0 +1,190 @@
+<!--
+wireframe.html 템플릿 — ax-define Phase C 13단계(선택적)에서 ux-designer가 생성.
+
+생성 위치: versions/<버전>/wireframe.html
+
+원칙 (디자인 없음 가드):
+- 색상은 흑백 + 회색 단계만 사용. 브랜드/액센트 컬러 금지.
+- 폰트는 system-ui. 커스텀 폰트 금지.
+- 컴포넌트 라이브러리 사용 금지 — 박스/라벨/화살표만.
+- 의존성 0 (단일 HTML 파일, 브라우저 더블클릭으로 열림).
+- 목적은 "확정된 flow를 화면 단위로 검토"하는 것. 시안 아님.
+
+ux-designer 가이드:
+1. scope.md §화면 정의 섹션을 읽어 화면 노드 + edge 추출.
+2. 각 화면은 .screen 카드로 렌더 — id는 화면 ID(kebab-case) 그대로.
+3. .screen.story-N 클래스로 Story 그룹화 (legend에서 색상 구분).
+4. 다음 화면 링크는 <a href="#화면-id"> 사용.
+5. 화면 0개면 wireframe 생성 자체를 거부 (오너에게 보고).
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>wireframe — {제품 이름} {제품 버전}</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #fafafa;
+    color: #222;
+    margin: 0;
+    padding: 24px;
+    line-height: 1.5;
+  }
+  header { margin-bottom: 24px; }
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+  }
+  header .meta {
+    color: #888;
+    font-size: 13px;
+  }
+  .legend {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    font-size: 12px;
+    color: #666;
+  }
+  .legend .chip {
+    padding: 2px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #fff;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .screen {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 16px;
+    scroll-margin-top: 24px;
+  }
+  .screen.story-1 { border-left: 4px solid #444; }
+  .screen.story-2 { border-left: 4px solid #888; }
+  .screen.story-3 { border-left: 4px solid #bbb; }
+
+  .screen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed #ddd;
+    padding-bottom: 8px;
+  }
+  .screen-name { font-weight: 600; font-size: 14px; }
+  .screen-id { font-family: monospace; font-size: 11px; color: #888; }
+
+  .areas {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0;
+  }
+  .area {
+    border: 1px dashed #aaa;
+    background: #f5f5f5;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .area-label { color: #666; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .meta-row {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #555;
+  }
+  .meta-row .key {
+    color: #888;
+    margin-right: 4px;
+  }
+
+  .nexts {
+    margin-top: 8px;
+    border-top: 1px dotted #ddd;
+    padding-top: 8px;
+  }
+  .nexts ul { margin: 4px 0 0 0; padding-left: 18px; font-size: 12px; }
+  .nexts li { margin: 2px 0; }
+  .nexts a {
+    color: #222;
+    text-decoration: underline dotted;
+  }
+  .nexts a:hover { background: #eee; }
+
+  footer {
+    margin-top: 32px;
+    color: #999;
+    font-size: 11px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>wireframe — {제품 이름} {제품 버전}</h1>
+  <div class="meta">scope.md §화면 정의 기반 · ax-define Phase C 산출 · {생성일 YYYY-MM-DD}</div>
+  <div class="legend">
+    <span class="chip" style="border-left:4px solid #444">Story 1</span>
+    <span class="chip" style="border-left:4px solid #888">Story 2</span>
+    <span class="chip" style="border-left:4px solid #bbb">Story 3</span>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- 카드 1개당 1화면. ux-designer가 §화면 정의 행마다 반복 생성. -->
+  <section id="{화면-id}" class="screen story-1">
+    <div class="screen-header">
+      <span class="screen-name">{화면 이름}</span>
+      <span class="screen-id">#{화면-id}</span>
+    </div>
+
+    <div class="areas">
+      <div class="area">
+        <div class="area-label">헤더</div>
+        {헤더 영역의 핵심 요소}
+      </div>
+      <div class="area">
+        <div class="area-label">콘텐츠</div>
+        {콘텐츠 영역의 핵심 요소}
+      </div>
+      <div class="area">
+        <div class="area-label">액션</div>
+        {액션 버튼/링크}
+      </div>
+    </div>
+
+    <div class="meta-row">
+      <span class="key">상태:</span>{loading / error / empty / 권한없음}
+    </div>
+
+    <div class="nexts">
+      <span class="key">다음 화면:</span>
+      <ul>
+        <li><a href="#{다음-화면-id}">{다음 화면 이름}</a> — {조건}</li>
+        <li><a href="#{다음-화면-id}">{다음 화면 이름}</a> — {조건}</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 추가 화면 카드 ... -->
+
+</main>
+
+<footer>
+  team-ax wireframe · 디자인 시안 아님 (확정 flow의 화면 단위 검토용)
+</footer>
+
+</body>
+</html>
