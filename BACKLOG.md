@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-18
+last-updated: 2026-04-20
 ---
 
 # moomoo-ax 백로그
@@ -13,11 +13,35 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
+### sprint-7 후보
+
+**statusline v2 묶음:**
+- B-STATUSLINE-V2: `ax-statusline.sh` v2 — CTX%/5H/7D + 반응형 레이아웃(L/M/S) + settings.json 토글 키(`.statusline.{ctx,5h,7d,branch,plugin}`) 읽기. 참고: `~/.claude/plugins/marketplaces/my-agent-office/plugins/statusline/scripts/statusline.sh`
+- B-FETCHUSAGE: `fetch-usage.sh` 이식 — quota API 호출 → `/tmp/claude-usage-cache.json` 캐시 생성(백그라운드 fire-and-forget). stale 감지
+- B-AXSTATUS: `/ax-status` 스킬 — install / uninstall / toggle <key> / on / off / show. 글로벌 `~/.claude/settings.json`의 `statusLine.command` 교체(기존값 백업) + 토글 키 기본값 주입
+- B-HUDWRAPPER: `~/.claude/hud/ax-statusline.sh` 버전 무관 래퍼 — 설치된 team-ax 플러그인 경로를 런타임 resolve. install 시 자동 생성
+
+**executor 위임 + 시각화:**
+- B-CODEXEXEC: `ax-build` executor 엔진 토글 — `executor.engine = claude | codex` 옵션 추가. 신규 `execute` 스킬로 분리 (executor 에이전트 로직 이관 + `~/.codex/skills/execute/` 동기화 + codex 주입). ax-build 오케스트레이터는 그대로 유지, executor 단계만 분기. 영역 침범 가드 포함(차단 파일 경로 명시 + git status self-check + 침범 발견 시 보고 의무)
+- B-WIREFRAME: `ax-define` Phase C 끝 — 선택적 `wireframe.html` 생성. UI wireframe 형태(화면 박스 + 화면 간 이동 화살표). 디자인 토큰/스타일 없이 레이아웃 골격만. scope.md의 확정 flow를 화면 단위로 시각화. `ux-designer` 에이전트 재사용(`mode: wireframe-only`). scope.md 화면 정의 섹션 표준 보강 포함
+
+**rubato admin 도그푸딩 피드백:**
+- B-PREFLIGHTFIX: `deploy-preflight.sh` 버그 3종 수정 — (1) `docs/specs/` 하드코딩 → spec 경로 자동 탐지(`find . -path "*/docs/specs" -type d`), (2) line 48 `[[: 0\n0` syntax error(`grep -c` 다중 결과 처리), (3) 본 트랙 scope에서 변경된 파일만 ⏳ planned 마커 검사 (다른 도메인 spec 잔재가 본 트랙 deploy 차단하지 않도록)
+
 ## ready
 
 ### sprint-2/3/4/5/6 — 완료 → done 섹션으로 이관
 
 ## inbox (장기 후보)
+
+### sprint-8 후보 — ax-deploy v2 묶음 (rubato admin 도그푸딩 피드백)
+
+- B-TRACKTYPE: ax-deploy 트랙별 정책 분기 — `scope.md §버전 메타`에 `track-type: product | admin | infra` 추가. admin/internal-tools는 (1) CHANGELOG 작성 강제 부적합(GitHub Release만 사용), (2) BACKLOG done 이관 강제 부적합(Release로 추적), (3) 제품 semver 기반 `/product-deploy` 부적합 → ax-deploy가 트랙 타입에 따라 분기
+- B-WTHOST: ax-build/ax-deploy worktree 환경 호환성 — (1) `gh pr merge --squash --delete-branch` 시 "main is already checked out at <other-worktree>" 에러(머지는 정상이나 사용자 혼란), (2) main 워크트리가 다른 트랙 점유 중일 때 pull 차단 → 임시 worktree 패턴(`git worktree add /tmp/<name> main` → pull → `.vercel/` 복사 → vercel --prod → worktree remove) 가이드 + ax-deploy가 `git worktree list`로 환경 인지 + main checkout 실패 시 자동 안내
+- B-VERCELIGN: ax-deploy Vercel "Ignored Build Step" 인지 — git push deploy를 모두 cancel하는 프로젝트(rubato 등)에서 dashboard "Redeploy"가 빌드 skip → 6단계 실행 전 `vercel ls <project>` 최근 5건 status 검사. 모두 Canceled면 자동 배포 disabled 안내 + vercel CLI 직접 실행 절차로 분기
+- B-CLEANUPPR: ax-deploy 후처리 cleanup PR 패턴 명문화 — 머지·태그·Release 완료 후 ⏳ planned 마커 제거 + build-plan 체크박스 [x] 처리는 별도 cleanup PR로 분리해야 함(rubato admin-v0.2.0 PR #17). 1단계 preflight가 차단 사유로 잡지만 처리 절차 안내 부족 → main 기반 임시 브랜치(`chore/<version>-cleanup`) → 마커 제거 + 체크박스 → push → squash merge 패턴 매뉴얼화 + 가능하면 자동화
+
+### 장기
 
 - [dogfood] team-ax 도그푸딩 실측 — v0.6 기준 define→build→qa→deploy 1회 완주 (sprint-6에서 릴리즈 직후로 미룸, 별도 세션 진행 예정)
 - [feature] `ax-review pr` 타입 구현 — `references/pr-checklist.md` 본격 작성 + sandbox 정책 확정 (`workspace-read` 추정)

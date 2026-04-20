@@ -17,7 +17,7 @@ moomoo-ax는 **스프린트 단위**로 돌린다. 각 스프린트는 **작업 
 
 | 스프린트 | 목표 | 상태 |
 |---|---|---|
-| sprint-1 | team-ax **v0.1** 배포 — `define` 단계 구현 | 진행 중 |
+| sprint-7 | team-ax **v0.7** 배포 — statusline v2 + `/ax-status` 스킬 | 진행 중 |
 
 ## 디렉토리
 
