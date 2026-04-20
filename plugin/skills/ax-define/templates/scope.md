@@ -2,7 +2,8 @@
 scope.md 템플릿 — team-ax `define` 스킬의 최종 산출물.
 저장 위치: versions/vX.Y.Z/scope.md (Phase B 폴더 승격 후)
 
-본 템플릿은 9개 섹션을 모두 채워야 한다. SLC 통과 + §리뷰 APPROVE까지가 define 완료 조건.
+본 템플릿은 10개 섹션을 모두 채워야 한다. SLC 통과 + §리뷰 APPROVE까지가 define 완료 조건.
+§화면 정의는 wireframe.html 생성을 위한 입력 — 화면이 등장하지 않는 작업(인프라/스크립트 등)에서는 "(없음)"으로 명시.
 -->
 
 # scope — {제품 이름} {제품 버전명 or undefined}
@@ -36,6 +37,30 @@ Story 2~N개 + 각 Story 아래 태스크 bullet (spec 링크 포함).
 
 ### Story 2: {Story 이름}
 - {태스크 1} (spec: {기능명}.md)
+
+## § 화면 정의
+
+<!--
+Story별 화면 단위 정의. wireframe.html 생성의 입력.
+- 화면이 없는 작업(인프라/스크립트/문서 작업)은 "(없음 — 화면 산출물 없는 작업)"으로 명시.
+- 화면 ID는 kebab-case (예: `home`, `book-detail`, `pin-gate`). HTML id로 사용됨.
+- "다음 화면" 링크는 화면 ID 참조 (조건 한 줄 명시).
+- 상태 변형은 화면 단위로 명시 (loading/error/empty/권한없음).
+-->
+
+### 화면: {화면-id} — {화면 이름}
+- **속한 Story**: Story 1
+- **주요 영역**: 헤더 / 콘텐츠 / 액션 (각 영역의 핵심 요소 한 줄씩)
+- **상태 변형**: loading / error / empty / (해당 시) 권한없음
+- **다음 화면**:
+  - `{화면-id}` (조건: {액션 또는 조건 한 줄})
+  - `{화면-id}` (조건: ...)
+
+### 화면: {화면-id} — {화면 이름}
+- **속한 Story**: Story 2
+- **주요 영역**: ...
+- **상태 변형**: ...
+- **다음 화면**: ...
 
 ## § SLC 체크
 
