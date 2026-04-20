@@ -1,16 +1,16 @@
 ---
-name: execute
-description: "team-ax 코드 구현 스킬 (codex 위임 가능). TDD + backpressure + 태스크 단위 커밋 + 영역 침범 가드. ax-build 3단계에서 executor.engine=codex 토글 시 호출. Use when: ax-build 코드 구현, codex execute, $execute."
+name: ax-execute
+description: "team-ax 코드 구현 스킬 (codex 위임 가능). TDD + backpressure + 태스크 단위 커밋 + 영역 침범 가드. ax-build 3단계에서 executor.engine=codex 토글 시 호출. Use when: ax-build 코드 구현, codex execute, $ax-execute."
 argument-hint: "<task-spec 파일 경로> [--allow <파일|디렉토리>] [--block <파일|디렉토리>]"
 ---
 
-# /execute (또는 codex `$execute`)
+# /ax-execute (또는 codex `$ax-execute`)
 
 team-ax의 **코드 구현** 단계를 떼어낸 스킬. 작성 엔진이 claude이든 codex이든 동일한 규칙/가드 아래 동작하도록 분리.
 
 > **역할 경계**
 > - `/ax-build` = 오케스트레이터 (plan / 공통 기반 / 워크트리 / 머지)
-> - `/execute` = **코드 구현만** (한 태스크 분량)
+> - `/ax-execute` = **코드 구현만** (한 태스크 분량)
 > - `/ax-review code` = 검증 (read-only, codex 위임)
 
 ## 입력 / 출력
@@ -93,7 +93,7 @@ rubato admin-v0.2.0 도그푸딩에서 발견된 사고 — executor가 "작업 
 ### codex에서 직접 (executor.engine=codex)
 
 ```bash
-codex exec '$execute .claude/worktrees/work-a/.ax-brief.md --allow src/admin/timeseries/ --block src/admin/users/'
+codex exec '$ax-execute .claude/worktrees/work-a/.ax-brief.md --allow src/admin/timeseries/ --block src/admin/users/'
 ```
 
 ### Claude executor 에이전트가 동일 규칙 적용 (executor.engine=claude)
@@ -118,11 +118,12 @@ codex exec '$execute .claude/worktrees/work-a/.ax-brief.md --allow src/admin/tim
 - `../ax-build/references/security-rules.md` — 보안 규칙
 - `../../agents/executor.md` — claude 분기 에이전트 (동일 규칙)
 - `../ax-review/SKILL.md` — 검증 단계 (codex 위임, 작성 ≠ 검증)
+- `../ax-codex/SKILL.md` — codex 스킬 동기화 (`install` / `status`)
 
 ## 설치
 
-`~/.codex/skills/execute/`로 동기화하면 codex가 `$execute`로 발견.
+`/ax-codex install`로 `~/.codex/skills/ax-execute/`에 동기화하면 codex가 `$ax-execute`로 발견.
 
 ```bash
-bash plugin/scripts/install-local-skills.sh
+bash plugin/scripts/ax-codex.sh install
 ```

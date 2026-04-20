@@ -113,10 +113,14 @@ NOT_IMPLEMENTED: ax-review pr 타입은 v0.1 미구현. 후속 스프린트(ax-d
 
 ## 설치
 
-본 스킬을 Codex `$ax-review`로 호출하려면 `~/.codex/skills/ax-review/`로 동기화 필요.
+본 스킬을 Codex `$ax-review`로 호출하려면 `~/.codex/skills/ax-review/`로 동기화 필요. `/ax-codex` 스킬로 관리한다.
 
 ```bash
-bash plugin/scripts/install-local-skills.sh
+# Claude 세션에서
+/ax-codex install
+
+# 또는 직접
+bash plugin/scripts/ax-codex.sh install
 ```
 
 자세한 내용은 루트 `AGENTS.md` 참조.

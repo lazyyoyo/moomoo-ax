@@ -2,6 +2,19 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.7.1 — 2026-04-20 (hotfix)
+
+**ax-codex 스킬 + execute → ax-execute rename.**
+
+### Added
+- `/ax-codex` 스킬 (`plugin/skills/ax-codex/SKILL.md`) + `plugin/scripts/ax-codex.sh` — codex 위임 스킬 동기화 관리. 서브커맨드: `install` / `uninstall` / `status`. ax-status와 동일 패턴. 구버전 `~/.codex/skills/execute/` 자동 휴지통 이동
+
+### Changed
+- `plugin/skills/execute/` → `plugin/skills/ax-execute/` rename — team-ax 플러그인 `ax-` 프리픽스 통일. codex 호출도 `$execute` → `$ax-execute`
+- `plugin/skills/ax-build/SKILL.md` — codex 엔진 호출부를 `$ax-execute`로 갱신
+- `AGENTS.md` — 활성 스킬 표에 ax-execute/ax-codex 추가, 설치 안내를 `/ax-codex install`로 일원화
+- `plugin/scripts/install-local-skills.sh` — deprecated stub. 내부적으로 `ax-codex.sh install`로 위임 (하위 호환)
+
 ## v0.7.0 — 2026-04-20
 
 **statusline v2 + executor 엔진 토글 + define wireframe + preflight fix.**
