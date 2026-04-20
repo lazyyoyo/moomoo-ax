@@ -13,24 +13,7 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## inbox
 
-### sprint-7 후보
-
-**statusline v2 묶음:**
-- B-STATUSLINE-V2: `ax-statusline.sh` v2 — CTX%/5H/7D + 반응형 레이아웃(L/M/S) + settings.json 토글 키(`.statusline.{ctx,5h,7d,branch,plugin}`) 읽기. 참고: `~/.claude/plugins/marketplaces/my-agent-office/plugins/statusline/scripts/statusline.sh`
-- B-FETCHUSAGE: `fetch-usage.sh` 이식 — quota API 호출 → `/tmp/claude-usage-cache.json` 캐시 생성(백그라운드 fire-and-forget). stale 감지
-- B-AXSTATUS: `/ax-status` 스킬 — install / uninstall / toggle <key> / on / off / show. 글로벌 `~/.claude/settings.json`의 `statusLine.command` 교체(기존값 백업) + 토글 키 기본값 주입
-- B-HUDWRAPPER: `~/.claude/hud/ax-statusline.sh` 버전 무관 래퍼 — 설치된 team-ax 플러그인 경로를 런타임 resolve. install 시 자동 생성
-
-**executor 위임 + 시각화:**
-- B-CODEXEXEC: `ax-build` executor 엔진 토글 — `executor.engine = claude | codex` 옵션 추가. 신규 `execute` 스킬로 분리 (executor 에이전트 로직 이관 + `~/.codex/skills/execute/` 동기화 + codex 주입). ax-build 오케스트레이터는 그대로 유지, executor 단계만 분기. 영역 침범 가드 포함(차단 파일 경로 명시 + git status self-check + 침범 발견 시 보고 의무)
-- B-WIREFRAME: `ax-define` Phase C 끝 — 선택적 `wireframe.html` 생성. UI wireframe 형태(화면 박스 + 화면 간 이동 화살표). 디자인 토큰/스타일 없이 레이아웃 골격만. scope.md의 확정 flow를 화면 단위로 시각화. `ux-designer` 에이전트 재사용(`mode: wireframe-only`). scope.md 화면 정의 섹션 표준 보강 포함
-
-**rubato admin 도그푸딩 피드백:**
-- B-PREFLIGHTFIX: `deploy-preflight.sh` 버그 3종 수정 — (1) `docs/specs/` 하드코딩 → spec 경로 자동 탐지(`find . -path "*/docs/specs" -type d`), (2) line 48 `[[: 0\n0` syntax error(`grep -c` 다중 결과 처리), (3) 본 트랙 scope에서 변경된 파일만 ⏳ planned 마커 검사 (다른 도메인 spec 잔재가 본 트랙 deploy 차단하지 않도록)
-
 ## ready
-
-### sprint-2/3/4/5/6 — 완료 → done 섹션으로 이관
 
 ## inbox (장기 후보)
 
@@ -51,6 +34,18 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-7 — 플러그인 v0.7.0 (2026-04-20)
+
+statusline v2 + executor 엔진 토글 + define wireframe + preflight fix.
+
+- B-STATUSLINE-V2: `ax-statusline.sh` v2 — CTX/5H/7D + 반응형 L/M/S + settings.json 토글 키 + stale 감지
+- B-FETCHUSAGE: `fetch-usage.sh` 이식 — Anthropic OAuth quota 캐시(`/tmp/claude-usage-cache.json`, TTL 120s)
+- B-AXSTATUS: `/ax-status` 스킬 + `ax-status.sh` 통합 엔진 — install/uninstall/toggle/on/off/show + 글로벌 settings.json statusLine 교체 + 백업 자동
+- B-HUDWRAPPER: `templates/hud-wrapper.sh` 버전 무관 래퍼 — `installed_plugins.json` 런타임 resolve (플러그인 업데이트 시 재설치 불필요)
+- B-CODEXEXEC: ax-build `executor.engine: claude | codex` 토글 — 신규 `/execute` 스킬 (executor 로직 이관 + codex 동기화). 영역 침범 가드 5종 (claude/codex 양쪽 적용)
+- B-WIREFRAME: ax-define Phase C 13단계 wireframe.html 생성 게이트 — `ux-designer` 모드 분기(`wireframe-only`) + scope.md `§ 화면 정의` 표준 + 단일 정적 HTML 템플릿(디자인 없음 가드)
+- B-PREFLIGHTFIX: `deploy-preflight.sh` 버그 3종 fix (rubato admin 도그푸딩) — spec 경로 자동 탐지 + `grep -c` 다중 결과 안전 처리 + 본 트랙 scope 한정 마커 검사 + macOS bash 3.2 호환
 
 ### sprint-6 — 플러그인 v0.6.0 (2026-04-18)
 
