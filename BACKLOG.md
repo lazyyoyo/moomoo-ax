@@ -35,6 +35,11 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ## done
 
+### hotfix v0.7.1 — ax-codex 스킬 + execute rename (2026-04-20)
+
+- B-EXECUTERENAME: `execute` → `ax-execute` rename — `ax-` 프리픽스 통일. `plugin/skills/ax-execute/`, ax-build SKILL.md 호출부, AGENTS.md 업데이트
+- B-AXCODEX: `/ax-codex` 스킬 신규 — ax-status 패턴. `install` / `uninstall` / `status` 서브커맨드. `~/.codex/skills/{ax-review,ax-execute}/` 동기화 + 구 `execute/` 휴지통 이동. 기존 `install-local-skills.sh` → `ax-codex.sh`로 흡수
+
 ### sprint-7 — 플러그인 v0.7.0 (2026-04-20)
 
 statusline v2 + executor 엔진 토글 + define wireframe + preflight fix.

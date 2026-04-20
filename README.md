@@ -19,8 +19,9 @@ IT 제품 제작 자동화 Claude Code 플러그인 **team-ax** 배포 리포.
 | `/ax-clean` | 미사용 파일/고아 문서/QA잔재 탐지 + 휴지통 이동 |
 | `/ax-review` | 범용 리뷰 (doc/code/pr 분기) |
 | `/ax-status` | statusline 설치/토글/상태 — `install` / `uninstall` / `toggle <ctx\|5h\|7d\|branch>` / `show` |
+| `/ax-codex` | codex 스킬 동기화 관리 — `install` / `uninstall` / `status` (`ax-review` / `ax-execute`를 `~/.codex/skills/`로) |
 | `/ax-help` | 스킬 목록 + 실행 순서 + 현재 상태 |
-| `/execute` | (codex 위임) 코드 구현 스킬. ax-build가 `executor.engine=codex` 토글 시 호출 |
+| `/ax-execute` | (codex 위임) 코드 구현 스킬. ax-build가 `executor.engine=codex` 토글 시 호출 |
 
 ## statusline (v0.7)
 

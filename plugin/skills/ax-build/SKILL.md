@@ -26,7 +26,7 @@ team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — pla
 |---|---|---|
 | `planner` | 1단계 | gap 분석 + 작업 분해 + 실행 전략 결정 |
 | `executor` (claude) | 3단계 | BE/FE 구현 (TDD + backpressure + 영역 침범 가드) |
-| `execute` 스킬 (codex) | 3단계 | 동일 책임을 codex가 수행 (`executor.engine=codex` 토글 시) |
+| `ax-execute` 스킬 (codex) | 3단계 | 동일 책임을 codex가 수행 (`executor.engine=codex` 토글 시) |
 | `design-builder` | 3단계 | 디자인 필요 작업에서 ax-design 호출 후 FE 구현 |
 
 ### executor.engine 토글
@@ -42,7 +42,7 @@ team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — pla
 | 값 | 동작 |
 |---|---|
 | `claude` (기본) | `executor` 에이전트(`plugin/agents/executor.md`)를 메인 세션의 Task 도구로 호출 |
-| `codex` | `codex exec '$execute <task-spec> [--allow ...] [--block ...]'`로 위임 (`plugin/skills/execute/SKILL.md`) |
+| `codex` | `codex exec '$ax-execute <task-spec> [--allow ...] [--block ...]'`로 위임 (`plugin/skills/ax-execute/SKILL.md`) |
 
 두 엔진 모두 동일한 제약(TDD / backpressure / 영역 침범 가드 / 보안)을 따른다. ax-build 오케스트레이터(워크트리 / tmux / 머지)는 그대로 유지되고 **executor 단계만 분기**한다.
 
@@ -134,13 +134,13 @@ ENGINE=$(jq -r '.executor.engine // "claude"' .claude/settings.json 2>/dev/null 
 ```
 
 - `claude` → `executor` 에이전트 호출 (메인 세션의 Task 도구)
-- `codex` → `codex exec '$execute <task-spec> --allow <허용경로> --block <차단경로>'`
+- `codex` → `codex exec '$ax-execute <task-spec> --allow <허용경로> --block <차단경로>'`
 
 두 엔진 모두 **차단 파일 경로를 반드시 명시해서 호출**한다 (영역 침범 가드 발동 조건).
 
 #### 3-a. 워크트리 없이 (version branch에서 순차)
 
-메인 세션에서 `executor` 에이전트(claude) 또는 `$execute` 스킬(codex)로 직접 구현:
+메인 세션에서 `executor` 에이전트(claude) 또는 `$ax-execute` 스킬(codex)로 직접 구현:
 
 ```
 태스크 선택 → 차단 영역 명시 → 구현 → backpressure → git status self-check
@@ -277,7 +277,8 @@ git merge version/vX.Y.Z-work-b
 - `plugin/scripts/ax-build-orchestrator.sh` — tmux + 워크트리 + 머지 자동화
 - `plugin/agents/planner.md` — 구현 계획 에이전트
 - `plugin/agents/executor.md` — 구현 에이전트 (claude 분기, 영역 침범 가드 포함)
-- `../execute/SKILL.md` — 코드 구현 스킬 (codex 분기, `$execute`로 호출)
+- `../ax-execute/SKILL.md` — 코드 구현 스킬 (codex 분기, `$ax-execute`로 호출)
+- `../ax-codex/SKILL.md` — codex 스킬 동기화 (install/uninstall/status)
 - `../ax-design/SKILL.md` — 디자인 필요 시 호출
 - `../ax-qa/SKILL.md` — QA 넘기기
 - `../ax-review/SKILL.md` — code review (Codex 위임)
