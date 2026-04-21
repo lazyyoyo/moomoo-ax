@@ -1,6 +1,6 @@
 ---
 name: ax-build
-description: "team-ax 빌드 스킬 (v0.8 병렬 엔진). 개발팀 역할 전체 — plan(파일 분할) → 공통 기반 → 병렬 라운드(codex 워커 N개) → 오너 확인 → QA. worktree 없음, 단일 브랜치. Use when: /ax-build, 구현, 빌드, 개발."
+description: "team-ax 빌드 스킬. 개발팀 역할 전체 — plan(파일 분할) → 공통 기반 → 병렬 라운드(codex 워커 N개) → 오너 확인 → QA. 단일 브랜치 + 파일 whitelist 격리. Use when: /ax-build, 구현, 빌드, 개발."
 argument-hint: "<대상 제품 리포 경로>"
 ---
 
@@ -12,8 +12,8 @@ team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — pla
 > - ax-define = PM ("무엇을 만들지" — scope 확정)
 > - ax-build = 개발팀 ("어떻게 만들지" — plan → 구현 → 리뷰 → 오너 확인)
 > - ax-qa = QA ("제대로 됐는지" — 통합 테스트)
->
-> **v0.8 재설계**: worktree/워커 브랜치 제거. 단일 브랜치 위에서 **파일 whitelist 격리**로 Codex 워커 N개 병렬. lead(Claude main session)는 오케스트레이션만, 코드 작성은 전부 codex가 담당.
+
+lead(Claude main session)는 오케스트레이션 전담. 코드 작성은 전부 codex 워커가 담당. 단일 `version/vX.Y.Z` 브랜치 위에서 **파일 whitelist 격리**로 병렬 라운드를 돌린다.
 
 ## 모델
 
@@ -28,8 +28,8 @@ lead (Claude main session)
 - **단일 브랜치**: `version/vX.Y.Z`. 워커 브랜치 없음, 머지 없음.
 - **격리**: 파일 whitelist. planner가 파일 경로가 겹치지 않게 태스크 분할.
 - **워커**: codex `exec` one-shot. lead 일괄 커밋이므로 워커는 커밋/푸시 금지.
-- **프로토콜**: 파일시스템만 (`.ax/plan.json`, `.ax/workers/<id>/inbox.md`, `.ax/workers/<id>/result.json`). 공식 team-mode/MCP 불필요.
-- **가시성**: tmux 윈도우 `ax-workers` 안에 워커 pane tiled. 메인 윈도우는 lead 대화 입구로 별도.
+- **프로토콜**: 파일시스템만 (`.ax/plan.json`, `.ax/workers/<id>/inbox.md`, `.ax/workers/<id>/result.json`).
+- **가시성**: **메인 window를 수직 split**. 왼쪽 pane = lead(claude main), 오른쪽 pane = 워커들(추가 spawn 시 수평 split으로 워커 영역 내부 분할). 오너가 한 화면에서 전부 관찰 가능.
 
 ## 입력 / 출력
 
@@ -135,13 +135,7 @@ bash plugin/scripts/ax-build-orchestrator.sh init vX.Y.Z
 
 preamble/가드 룰은 inbox에 복제하지 않음 (ax-execute SKILL.md에 내재).
 
-#### 3-c. tmux 윈도우 + 워커 스폰 (orchestrator)
-
-```bash
-bash plugin/scripts/ax-build-orchestrator.sh prepare-window
-```
-
-→ `ax-workers` 윈도우 준비 (tiled 레이아웃).
+#### 3-c. 워커 pane 스폰 (orchestrator)
 
 각 태스크마다:
 
@@ -149,17 +143,24 @@ bash plugin/scripts/ax-build-orchestrator.sh prepare-window
 bash plugin/scripts/ax-build-orchestrator.sh spawn vX.Y.Z <task_id> [model]
 ```
 
-내부적으로 pane split + 아래 명령 주입:
+내부 동작:
+- 첫 워커 → 메인 window를 수직 split (왼쪽 lead 60%, 오른쪽 워커 40%)
+- 추가 워커 → 첫 워커 pane을 수평 split (워커 영역 내부에서 나눔)
+- 각 pane에 아래 명령 주입:
 
 ```bash
 codex exec --dangerously-bypass-approvals-and-sandbox -s workspace-write \
-  -c model='gpt-5-codex' \
   '$ax-execute .ax/workers/<task_id>/inbox.md'
 ```
 
-- `$AX_CODEX_MODEL` env 또는 명령 3번째 인자로 모델 오버라이드 가능 (기본 `gpt-5-codex`)
-- pane title = task_id (식별 용이)
+**모델 선택:**
+- 기본: codex CLI 기본값 (`~/.codex/config.toml`의 `model`)
+- 오버라이드: `AX_CODEX_MODEL` env 또는 spawn 3번째 인자 — 지정 시 `-c model=<값>` 주입
+
+**pane 관리:**
+- pane title = `ax:<task_id>` (식별 용이)
 - `remain-on-exit on` — 비정상 종료 시 pane 잔존 (디버깅)
+- 스폰 직후 포커스는 자동으로 메인 pane 복귀
 
 #### 3-d. 폴링 + 수렴 감지 (lead)
 
@@ -208,7 +209,7 @@ total=3 done=2 blocked=0 error=0 in-progress=1
 bash plugin/scripts/ax-build-orchestrator.sh cleanup
 ```
 
-→ `ax-workers` 윈도우 제거. `.ax/` 디렉토리는 로그로 남김(선택).
+→ 워커 pane 전부 kill. `.ax/` 디렉토리는 로그로 남김(선택).
 
 `/ax-qa` 실행 안내. ax-qa가 통합 테스트 + code review + PR → main.
 
@@ -250,8 +251,8 @@ v0.7 사용자 migration: `/ax-codex install` 재실행으로 새 ax-execute 주
 - `references/preflight-checklist.md` — 빌드 전 체크리스트
 - `references/security-rules.md` — 보안 규칙
 - `templates/build-plan.md` — 사람 읽는 계획서 포맷
-- `templates/worker-inbox.md.tmpl` — 워커 inbox 포맷 (v0.8 신규)
-- `plugin/scripts/ax-build-orchestrator.sh` — v0.8 orchestrator (precheck/init/prepare-window/spawn/status/cleanup)
+- `templates/worker-inbox.md.tmpl` — 워커 inbox 포맷
+- `plugin/scripts/ax-build-orchestrator.sh` — orchestrator (precheck/init/spawn/status/cleanup)
 - `plugin/agents/planner.md` — 계획 + 파일 분할 에이전트
 - `../ax-execute/SKILL.md` — 워커 프로토콜 엔진 (codex 스킬, `$ax-execute`)
 - `../ax-codex/SKILL.md` — codex 스킬 동기화
@@ -268,5 +269,5 @@ v0.7 사용자 migration: `/ax-codex install` 재실행으로 새 ax-execute 주
 - [ ] 병렬 라운드 루프에서 모든 task 완료
 - [ ] 모든 result.json `status: done` + lead 일괄 커밋 완료
 - [ ] 4단계 오너 통합 확인 완료
-- [ ] `ax-workers` 윈도우 cleanup
+- [ ] 워커 pane cleanup
 - [ ] `/ax-qa` 안내
