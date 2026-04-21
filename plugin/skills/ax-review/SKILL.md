@@ -1,6 +1,6 @@
 ---
 name: ax-review
-description: "team-ax 범용 리뷰 스킬 (codex 위임). doc/code/pr 타입 분기. v0.1은 doc 타입만 구현 — code/pr는 stub. Use when: ax-review, 문서 리뷰, 구현 리뷰, PR 리뷰, scope.md 검증."
+description: "team-ax 범용 리뷰 스킬 (codex 위임). doc/code/pr 타입 분기. doc 구현, code·pr는 stub. Use when: ax-review, 문서 리뷰, 구현 리뷰, PR 리뷰, scope.md 검증."
 argument-hint: "<doc|code|pr> <대상>"
 ---
 
@@ -26,17 +26,17 @@ type   = $ARGUMENTS의 첫 단어
 target = 나머지 (공백 포함 가능)
 ```
 
-| type | 매핑되는 체크리스트 | v0.1 상태 | 호출 sandbox |
+| type | 매핑되는 체크리스트 | 상태 | 호출 sandbox |
 |---|---|---|---|
 | `doc` | `references/doc-checklist.md` | **구현** | `read-only` (codex 기본값) |
 | `code` | `references/code-checklist.md` | stub (미구현 안내 후 중단) | `read-only` |
-| `pr` | `references/pr-checklist.md` | stub (미구현 안내 후 중단) | (후속 스프린트에서 `workspace-read`) |
+| `pr` | `references/pr-checklist.md` | stub (미구현 안내 후 중단) | (구현 시 `workspace-read`) |
 
 타입이 없거나 위 3종이 아니면 → 오너에게 `doc | code | pr` 중 무엇인지 확인 후 중단.
 
 ## 타입별 동작
 
-### `doc` (v0.1 구현)
+### `doc`
 
 대상: 문서(주로 `versions/undefined/scope.md`)와 그 문서의 §수정 계획에 등장한 파일들.
 
