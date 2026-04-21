@@ -1,6 +1,6 @@
 ---
 name: ax-review
-description: "team-ax 범용 리뷰 스킬 (codex 위임). doc/code/pr 타입 분기. doc 구현, code·pr는 stub. Use when: ax-review, 문서 리뷰, 구현 리뷰, PR 리뷰, scope.md 검증."
+description: "team-ax 범용 리뷰 스킬 (codex 위임). doc/code/pr 타입 분기. v0.1은 doc 타입만 구현 — code/pr는 stub. Use when: ax-review, 문서 리뷰, 구현 리뷰, PR 리뷰, scope.md 검증."
 argument-hint: "<doc|code|pr> <대상>"
 ---
 
@@ -26,17 +26,17 @@ type   = $ARGUMENTS의 첫 단어
 target = 나머지 (공백 포함 가능)
 ```
 
-| type | 매핑되는 체크리스트 | 상태 | 호출 sandbox |
+| type | 매핑되는 체크리스트 | v0.1 상태 | 호출 sandbox |
 |---|---|---|---|
 | `doc` | `references/doc-checklist.md` | **구현** | `read-only` (codex 기본값) |
 | `code` | `references/code-checklist.md` | stub (미구현 안내 후 중단) | `read-only` |
-| `pr` | `references/pr-checklist.md` | stub (미구현 안내 후 중단) | (구현 시 `workspace-read`) |
+| `pr` | `references/pr-checklist.md` | stub (미구현 안내 후 중단) | (후속 스프린트에서 `workspace-read`) |
 
 타입이 없거나 위 3종이 아니면 → 오너에게 `doc | code | pr` 중 무엇인지 확인 후 중단.
 
 ## 타입별 동작
 
-### `doc`
+### `doc` (v0.1 구현)
 
 대상: 문서(주로 `versions/undefined/scope.md`)와 그 문서의 §수정 계획에 등장한 파일들.
 
@@ -56,7 +56,7 @@ $ax-review doc versions/undefined/scope.md
 codex exec '$ax-review doc versions/undefined/scope.md'
 ```
 
-### `code`
+### `code` (v0.4 구현)
 
 대상: 구현 코드. ax-build에서 Codex에 위임하여 호출.
 
@@ -69,15 +69,15 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 codex exec '$ax-review code src/app/api/auth/pin/'
 ```
 
-### `pr` (stub)
+### `pr` (v0.1 stub)
 
 `references/pr-checklist.md`도 단일 줄 stub. 본 스킬이 호출되면:
 
 ```
-NOT_IMPLEMENTED: ax-review pr 타입 미구현.
+NOT_IMPLEMENTED: ax-review pr 타입은 v0.1 미구현. 후속 스프린트(ax-deploy 도입 시) 작성 예정.
 ```
 
-위 한 줄 출력 후 중단. (`gh pr diff` 실행을 위한 sandbox 정책 확정 후 구현 예정.)
+위 한 줄 출력 후 중단. (후속 스프린트에서 `gh pr diff` 실행을 위한 sandbox 정책도 함께 결정.)
 
 ## 출력 포맷
 
@@ -107,9 +107,9 @@ NOT_IMPLEMENTED: ax-review pr 타입 미구현.
 
 ## 참조
 
-- `references/doc-checklist.md` — 문서 리뷰 체크리스트
-- `references/code-checklist.md` — 구현 리뷰 (stub)
-- `references/pr-checklist.md` — PR 리뷰 (stub)
+- `references/doc-checklist.md` — 문서 리뷰 체크리스트 (v0.1 구현)
+- `references/code-checklist.md` — 구현 리뷰 (v0.1 stub)
+- `references/pr-checklist.md` — PR 리뷰 (v0.1 stub)
 
 ## 설치
 

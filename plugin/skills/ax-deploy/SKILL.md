@@ -18,9 +18,9 @@ team-ax의 배포 스킬. QA 통과 후 마지막 단계. **배포해도 되는 
 
 ## 실행 위치
 
-version branch. **원본 repo 세션 제약 없음.**
-- 표준 흐름은 version branch에서 실행
-- 독립 트랙이 필요하면 별도 version branch 또는 별도 리포 사용
+version branch 또는 워크트리. **원본 repo 세션 제약 없음.**
+- version branch에서 실행 → 표준 흐름
+- 워크트리에서 실행 → 독립 트랙 배포 (rubato admin 같은 케이스)
 
 ## 동작 순서
 
@@ -86,16 +86,14 @@ git push origin vX.Y.Z
 ### 8단계 — 잔재 정리
 
 - Playwright 스크린샷 (루트에 방치된 `.png` 파일)
-- 임시 파일 (`.ax/` 디렉토리 — `.ax/plan.json`, `.ax/workers/*/`). `.gitignore`에 있으면 자동 정리, 아니면 `mv ~/.Trash/`
-- 남은 워커 프로세스가 있으면 ax-build orchestrator로 정리 (`$ORCH` resolve는 ax-build SKILL.md §오케스트레이터 스크립트 경로 resolve 참조):
-  ```bash
-  bash "$ORCH" cleanup
-  ```
+- 임시 파일 (`.ax-status`, `.ax-brief.md`)
+- 워크트리 정리 (`git worktree remove`)
 - **version branch 삭제** (main 머지 완료 후):
   ```bash
   git branch -d version/vX.Y.Z
   git push origin --delete version/vX.Y.Z
   ```
+- story branch 삭제 (`version/vX.Y.Z-work-*`)
 - `reference/vX.Y.Z-*/` → `reference/archive/`로 이동
 
 ## 가드레일
@@ -104,7 +102,7 @@ git push origin vX.Y.Z
 2. **산출물 체크 실패 시 중단** — 1건이라도 실패하면 배포 진행 금지.
 3. **오너 승인 없이 머지 금지** — preview 보고 승인 받아야 함.
 4. **CHANGELOG 누락 금지** — CHANGELOG 작성 없이 태그 생성 금지.
-5. **version branch에서 실행** — 원본 repo 세션 제약 없음. 독립 트랙은 별도 브랜치 또는 별도 리포로 분리.
+5. **워크트리에서도 실행 가능** — 원본 repo 세션 제약 없음.
 
 ## 참조
 

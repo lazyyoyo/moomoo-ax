@@ -2,7 +2,42 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
-## v0.8.3 — 2026-04-21 (hotfix)
+## v0.9.0 — 2026-04-21 (롤백 릴리즈)
+
+**v0.8 계열(0.8.0 / 0.8.1 / 0.8.2 / 0.8.3) 일괄 무효화 + v0.7.2 구조 복원.**
+
+### 왜
+
+v0.7.2까지 `ax-execute` 본문에는 **태스크 단위 Ralph loop**가 박혀 있었다 — 워커가 태스크를 끝낼 때마다 `codex exec '$ax-review code <files>'`를 호출하고, 첫 줄 `APPROVE|REQUEST_CHANGES`를 파싱해 재리뷰·재구현을 반복. 동일 사유 2회 연속 `REQUEST_CHANGES`면 오너에게 위임해 무한 루프를 차단. 이 구조 덕에 엔진(claude/codex) 독립적으로 품질 게이트가 작동했다.
+
+v0.8은 "병렬 속도 + Claude 토큰 절약"을 목표로 워커를 **codex 백그라운드 + 파일시스템 프로토콜(`result.json`) + lead 일괄 커밋**으로 재설계했는데, 그 과정에서 **reviewer 훅이 이식되지 않고 유실**됐다. `ax-build` 3-e에는 whitelist 대조 + placeholder grep만 남았고, `ax-review`의 `code` 타입은 체크리스트(7종)가 그대로 있는데도 SKILL.md 디스패치가 `stub` 표기로 퇴화해 호출되지 않는다.
+
+결과: 태스크 단위 품질 게이트 부재, 자동 재작업 루프 부재, 모든 문제가 오너 인터럽트로 수렴. 남편 환경 실사용 체감 품질이 v0.7.2 대비 급락. 추가 패치 누적보다 **v0.7.2로 통째 롤백 + 버전만 전진**이 합리적이라 판단.
+
+### Reverted
+- **`plugin/` 디렉토리 전체 v0.7.2 태그 상태로 복원** — 스킬 12종, 에이전트, 스크립트, 템플릿, references 모두 v0.7.2 스냅샷
+- `docs/specs/parallel-dev-spec.md` v0.7.2 버전 복원 (v0.8 재작성 본 대체)
+- `docs/guides/v0.7-to-v0.8-migration.md` 휴지통 이동 (의미 상실)
+- `plugin/skills/ax-build/templates/worker-inbox.md.tmpl` 휴지통 이동 (v0.8 신설, 롤백으로 불필요)
+
+### Bump
+- `.claude-plugin/marketplace.json` · `plugin/.claude-plugin/plugin.json` → `0.9.0`
+
+### Kept (역사 기록)
+- `docs/sprints/sprint-8/*` — v0.8 plan/task/flow 문서는 남김 (실험 기록)
+- BACKLOG done 섹션의 v0.8 계열 엔트리 — "⚠ v0.9.0에서 롤백됨" 주석만 추가
+
+### 사용자 조치
+
+- `/plugin update` → 버전 `0.9.0` 수신 → `/ax-build` 재개
+- v0.7.2 hotfix가 고친 3가지(`claude -p` 제거 / `tmux new-window -d` / `remain-on-exit on`)도 그대로 살아있어 남편 환경 화면 깨짐 재발 없음
+
+### 향후
+
+- sprint-10: v0.7.2 Ralph loop 강화 (rework 태스크 자동 append 등)
+- sprint-11+: 병렬 엔진 재도입 검토 — 이번엔 `ax-execute`에 reviewer 훅을 먼저 박고 그 위에 codex/claude 엔진 토글 유지한 채 파일 whitelist 격리. v0.8 아이디어 전면 폐기가 아니라 설계 순서 교정
+
+## v0.8.3 — 2026-04-21 (hotfix) ⚠ v0.9.0에서 롤백됨
 
 v0.8.2 릴리즈 직후 paperwork 재점검 + skill-creator audit 결과를 한 번에 반영. 스킬/에이전트 본문에서 **사고 기록·외부 제품 언급·시간축 주석**을 제거하고 개선된 규칙만 남겼다. pane→백그라운드 전환 잔재도 마저 정리.
 
@@ -36,7 +71,7 @@ PROJECT_BRIEF §6 원칙 재확립:
 - ax-design 게이트 자동 재작업 로직 script 이관 (progressive codification)
 - ax-help 보조 스킬 목록에서 deprecated executor 제외
 
-## v0.8.2 — 2026-04-21 (hotfix)
+## v0.8.2 — 2026-04-21 (hotfix) ⚠ v0.9.0에서 롤백됨
 
 v0.8.0 rubato 실검증 8건 피드백 반영. **워커 실행 모델을 tmux pane split → 백그라운드 프로세스 + 로그 파일**로 근본 단순화. tmux 의존 제거, pane 관리 복잡성 전부 소멸.
 
@@ -67,7 +102,7 @@ v0.8.0 rubato 실검증 8건 피드백 반영. **워커 실행 모델을 tmux pa
 - `docs/specs/parallel-dev-spec.md` — 전면 재작성. 백그라운드 프로세스 모델, glue 태스크, 재개 모드 반영. §breaking change 섹션 제거(이제 CHANGELOG+migration guide로 역사 일원화)
 - `plugin/skills/ax-build/SKILL.md` — 워커 기동 / 가시성 / 검증 훅 / 재개 모드 / 경로 resolve 가이드 재작성
 
-## v0.8.1 — 2026-04-21 (hotfix)
+## v0.8.1 — 2026-04-21 (hotfix) ⚠ v0.9.0에서 롤백됨
 
 v0.8.0 실검증에서 발견된 3건 수정.
 
@@ -84,7 +119,7 @@ v0.8.0 실검증에서 발견된 3건 수정.
 - `ax-build` SKILL.md §가시성 / §3-c 흐름 / 참조 섹션을 메인 window split 모델에 맞게 재서술
 - `ax-execute` SKILL.md 호출 예시의 `gpt-5-codex` 하드코딩 제거
 
-## v0.8.0 — 2026-04-21
+## v0.8.0 — 2026-04-21 ⚠ v0.9.0에서 롤백됨
 
 **ax-build 병렬 엔진 재설계 (breaking).** worktree 제거 + Codex 워커 N개 + 파일 whitelist 격리 + 단일 브랜치. lead(Claude main session)는 오케스트레이션만, 코드 작성은 전부 codex로 이관해 Claude 토큰 부담 완화 + tmux pane grid로 병렬 관찰성 확보.
 

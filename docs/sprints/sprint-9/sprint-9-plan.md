@@ -102,9 +102,14 @@ git checkout v0.7.2 -- plugin/
 - [x] 원인 진단 — Ralph loop 유실이 v0.8 재설계 유실임을 git blame으로 확정 (v0.7.0/v0.7.2 SKILL.md에 명시, 59fbd6c 커밋에서 증발)
 - [x] 롤백 경로 합의 (v0.7.2 → v0.9.0 bump)
 - [x] sprint-9-plan.md 작성 (본 문서)
-- [ ] 오너 승인
-- [ ] `hotfix/rollback-to-v0.7.2` 브랜치 생성 + 실행
-- [ ] PR 생성 + 리뷰
+- [x] plan + 롤백 단일 PR로 묶기 결정 (오너 지시)
+- [x] `sprint-9/v0.9-rollback-plan` 브랜치에서 plan 커밋
+- [x] `git checkout v0.7.2 -- plugin/ docs/specs/parallel-dev-spec.md`
+- [x] v0.8 신설 파일 휴지통 (`docs/guides/v0.7-to-v0.8-migration.md`, `plugin/skills/ax-build/templates/worker-inbox.md.tmpl`)
+- [x] 버전 필드 bump (marketplace.json + plugin.json → 0.9.0)
+- [x] CHANGELOG v0.9.0 엔트리 + v0.8 계열 주석
+- [x] BACKLOG done 이관 + v0.8 엔트리 주석
+- [ ] PR 생성 → 오너 리뷰
 - [ ] squash merge + v0.9.0 태그 push
 - [ ] 실환경 검증 (오너 + 남편)
 - [ ] sprint-9 retrospective + sprint-10 범위 합의

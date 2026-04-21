@@ -12,7 +12,7 @@
 | **MINOR** | 새 기능 추가 (호환 유지) | new feature, additive API, additive schema |
 | **PATCH** | 버그 수정 / 내부 개선 (호환 유지) | bug fix, perf, refactor, copy 변경 |
 
-> 0.x 시리즈는 "공개 안정 보장 전" 상태로 간주 — 0.MINOR.PATCH 자리에서 breaking change가 일어나도 MAJOR(`1.0.0`)로 올리지 않을 수 있다. 단, 외부 사용자가 있는 제품은 0.x여도 가급적 정식 규칙을 따른다.
+> 0.x 시리즈는 "공개 안정 보장 전" 상태로 간주 — 0.MINOR.PATCH 자리에서 breaking change가 일어나도 MAJOR(`1.0.0`)로 올리지 않을 수 있다. 단, 본 프로젝트는 외부 사용자가 있는 제품(rubato, rofan-world)이므로 0.x여도 가급적 정식 규칙을 따른다.
 
 ## 판정 플로우
 
@@ -41,7 +41,7 @@
 | 로그인 화면 카피 수정 | PATCH |
 | 정렬 알고리즘 내부 변경 (사용자 영향 없음) | PATCH |
 | 로그인 모달에 소셜 로그인 버튼 추가 | MINOR |
-| 마이페이지 신규 도입 (v1.7.0) | MINOR |
+| 마이페이지 신규 도입 (rubato v1.7.0) | MINOR |
 | package.json 의존성 보안 패치만 | PATCH |
 | 환경 변수 이름 변경 (배포 문서 갱신 필요) | MAJOR (배포자 입장 호환 깨짐) |
 
@@ -50,13 +50,13 @@
 1. Phase A 6단계 — `product-owner`가 SLC 통과한 슬라이스에 대해 **위 플로우로 판정**.
 2. 오너에게 한 줄로 보고 (`v1.7.0 (MINOR — 마이페이지 신규)`).
 3. 오너 승인 후 scope.md `§ 버전 메타`에 기록.
-4. Phase B(ax-build 2단계)에서 `versions/vX.Y.Z/` 폴더 승격 + `version/vX.Y.Z` 브랜치 자동 생성. 병렬 빌드는 단일 브랜치 위에서 파일 whitelist로 격리.
+4. Phase B에서 `versions/vX.Y.Z/` 폴더 승격 + `version/vX.Y.Z` 브랜치 + Story별 worktree 자동 생성.
 
 **minor vs patch 흐름 분기:**
 
 | 구분 | 흐름 |
 |---|---|
-| **minor** | Phase A → B(version branch) → C → 파일 집합 기반 병렬 빌드 → QA → 배포 |
+| **minor** | Phase A → B(worktree) → C → Story별 병렬 개발 → version branch 머지 → QA → 배포 |
 | **patch** | main에서 hotfix 브랜치 → 수정 → 즉시 배포 (Phase A~C 경량 실행 또는 생략) |
 
 ## 가드레일

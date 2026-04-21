@@ -30,9 +30,9 @@ Stories (세로):      Story A1       Story B1       Story C1   ← 우선순위
 
 "앱 안정성 회복" 같은 패치 모음 제품 버전은 **Story 없이 태스크 목록만** 둘 수 있다. JTBD 한 줄이 추상 단어 하나로 묶이는 경우다. scope.md `§Story Map`에는 `(패치 모음 — Story 없음)` 표기 + 태스크 bullet 목록.
 
-## 예시 — 마이페이지 제품 버전 재구성
+## 예시 — rubato 제품 v1.7.0 재구성
 
-원본 BACKLOG에 "마이페이지 만들기"가 한 줄로 있었다고 가정. Story Map으로 분해하면:
+원본 BACKLOG에는 "마이페이지 만들기"가 한 줄로 있었다. Story Map으로 분해하면:
 
 ```
 JTBD: 내 프로필과 설정을 한 곳에서 관리한다.
@@ -62,7 +62,7 @@ scope.md `§Story Map` 표기:
 - 비밀번호 모달 + 인라인 검증 + 성공 화면 (spec: auth.md)
 ```
 
-> Story 단위는 build 단계에서 planner가 파일 집합 단위로 재분할하는 입력이 된다. scope 단계의 책임은 scope.md 안의 Story 그룹핑까지.
+> Story 단위가 곧 build 단계의 worktree 분기 단위가 된다 (플러그인 v0.3+ 예정). 지금은 **scope.md 안의 그룹핑**만 책임진다.
 
 ## 참고
 
