@@ -66,20 +66,30 @@ case "$COMMAND" in
 
     # .ax-brief.md 존재 확인
     if [[ ! -f "${WT_PATH}/.ax-brief.md" ]]; then
-      echo "WARNING: ${WT_PATH}/.ax-brief.md 없음. 메인 세션에서 먼저 생성 필요." >&2
-      echo "tmux 세션 생성 스킵."
+      echo "ERROR: ${WT_PATH}/.ax-brief.md 없음. 메인 세션에서 먼저 생성 필요." >&2
+      exit 1
+    fi
+
+    # 메인 세션이 tmux 안에서 구동 중이어야 함. 밖이면 무음 스킵 대신 ERROR로 중단.
+    if [[ -z "${TMUX:-}" ]]; then
+      echo "ERROR: tmux 세션 밖에서 실행 중. ax-build 3-b(병렬)는 tmux 안에서만 동작합니다." >&2
+      echo "  → tmux new-session -s ax-build" >&2
+      echo "  → 그 안에서 claude 세션 시작 → /ax-build 재실행" >&2
+      exit 1
+    fi
+
+    # 워커 비정상 종료 시 윈도우가 사라지면 디버깅 흔적이 증발하므로 현재 세션 remain-on-exit on.
+    tmux set-option remain-on-exit on 2>/dev/null || true
+
+    if tmux list-windows -F '#{window_name}' 2>/dev/null | grep -q "^${WORK_NAME}$"; then
+      echo "tmux 윈도우 이미 존재: ${WORK_NAME}"
     else
-      # tmux 세션 내에서 실행 중인지 확인
-      if [[ -z "${TMUX:-}" ]]; then
-        echo "WARNING: tmux 세션 밖에서 실행 중. tmux를 먼저 시작하세요." >&2
-        echo "  → tmux new-session -s ax-build"
-        echo "  → 그 안에서 다시 실행"
-      elif tmux list-windows -F '#{window_name}' 2>/dev/null | grep -q "^${WORK_NAME}$"; then
-        echo "tmux 윈도우 이미 존재: ${WORK_NAME}"
-      else
-        tmux new-window -n "${WORK_NAME}" "cd $(pwd)/${WT_PATH} && claude -p 'Read .ax-brief.md and follow the instructions.'"
-        echo "tmux 세션 생성: ${WORK_NAME}"
-      fi
+      # -d: 포커스를 메인에 유지 (자동 전환으로 오너 키 입력이 워커로 새는 것 방지)
+      # -p 제거: claude는 기본 인터랙티브 TUI. -p를 주면 응답 1회 출력 후 종료하여 워커가 조용히 죽음.
+      # positional prompt: TUI 시작과 동시에 brief 참조 지시 주입.
+      tmux new-window -d -n "${WORK_NAME}" \
+        "cd $(pwd)/${WT_PATH} && claude 'Read .ax-brief.md and follow the instructions.'"
+      echo "tmux 윈도우 생성: ${WORK_NAME} (백그라운드, 포커스 유지)"
     fi
 
     echo "---"

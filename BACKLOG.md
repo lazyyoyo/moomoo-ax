@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-20
+last-updated: 2026-04-21
 ---
 
 # moomoo-ax 백로그
@@ -12,6 +12,12 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 > - done: 스프린트/hotfix 종료 시 이관. 스프린트 번호 or hotfix 버전 표기.
 
 ## inbox
+
+### ax-build 병렬 흐름 관련 (v0.7.2 이후 후속)
+
+- B-AXBUILD-CLAUDENATIVE: Claude CLI 빌트인 `--worktree --tmux` 활용 검토 — `claude --help`에 `-w/--worktree [name]`, `--tmux` 플래그 존재 (iTerm2 native panes 우선, `--tmux=classic` 옵션). 현재 우리 orchestrator가 직접 git worktree + tmux new-window를 쓰는데 빌트인으로 위임 가능 여부 분석. 단 branch 네이밍(`version/vX.Y.Z-<name>`) / `.ax-status` 초기화 / 포트 할당 등 커스텀 훅 지점 유지 방법 필요
+- B-AXBUILD-BRIEF-INJECT: `.ax-brief.md` 주입 방식 재설계 — 현재 positional prompt로 "Read .ax-brief.md and follow" 지시만 주입. brief 내용을 Claude가 Read 도구로 읽는 2-step 구조. 옵션 재검토: (A) `claude "$(cat .ax-brief.md)"` 내용 직접 주입(escape 문제), (B) `--append-system-prompt` 활용, (C) CLAUDE.md/hook으로 자동 참조
+- B-AXBUILD-MCP-SHARE: 병렬 워커 MCP 중복 부팅 이슈 — 워커 N개마다 MCP 서버 전체 스폰(남편분 환경 7개). 워커별 축소된 `.mcp.json` 지정 가능한지 / 부모-자식 MCP 공유 옵션 있는지 조사. 성능 이슈지 기능 버그 아님
 
 ### ax-codex
 
@@ -51,6 +57,16 @@ my-agent-office `plugins/statusline/scripts/statusline.sh` 대비 `ax-statusline
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### hotfix v0.7.2 — ax-build 병렬 흐름 fix (2026-04-21)
+
+남편분(my-agent-office) 재현 리포트에서 발견. v0.4부터 내재된 dead code를 실동작 상태로.
+
+- B-AXBUILD-P-FLAG: `ax-build-orchestrator.sh`의 `claude -p` → `claude` (positional prompt) — `-p`는 "응답 1회 출력 후 종료" 모드라 워커가 MCP 부팅 후 조용히 종료. 기본 인터랙티브 TUI로 변경
+- B-AXBUILD-NEWWINDOW-D: `tmux new-window` → `tmux new-window -d` — 자동 포커스 전환으로 오너 키 입력이 워커 stdin으로 새서 화면 깨짐 재현됨. `-d`로 메인 포커스 유지
+- B-AXBUILD-TMUX-HARDERROR: tmux 밖에서 orchestrator 호출 시 WARN → ERROR(exit 1) 승격 — 무음 스킵이 버그 은폐의 원인이었음
+- B-AXBUILD-REMAIN-ON-EXIT: 세션 레벨 `remain-on-exit on` 자동 설정 — 워커 비정상 종료 시 디버깅 흔적 유지
+- B-AXBUILD-TMUX-PREREQ: SKILL.md 사전 점검에 "메인 세션이 tmux 안에서 기동" 전제 명시 추가 + §3-b 예시/설명 갱신
 
 ### hotfix v0.7.1 — ax-codex 스킬 + execute rename (2026-04-20)
 

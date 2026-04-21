@@ -2,6 +2,24 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.7.2 — 2026-04-21 (hotfix)
+
+**ax-build 병렬(워크트리) 흐름 — 실동작 fix.** v0.4부터 내재된 dead code였음 (my-agent-office 재현 리포트에서 발견).
+
+### Fixed
+- `plugin/scripts/ax-build-orchestrator.sh` (line 80 근방):
+  - `claude -p '...'` → `claude '...'` — `-p`(print-and-exit) 제거. 기본 인터랙티브 TUI로 동작. 기존엔 워커가 MCP 부팅 후 응답 없이 종료되던 사고
+  - `tmux new-window` → `tmux new-window -d` — 자동 포커스 전환으로 오너 키 입력이 워커 stdin으로 새는 "화면 깨짐" 사고 차단
+  - tmux 세션 밖에서 호출 시 WARN 스킵 → ERROR(exit 1) 승격 — 무음 실패가 버그 은폐 원인이었음
+  - `.ax-brief.md` 없으면 WARN 스킵 → ERROR(exit 1)
+  - 세션 레벨 `remain-on-exit on` 자동 설정 — 워커 비정상 종료 시 디버깅 흔적 유지
+
+### Changed
+- `plugin/skills/ax-build/SKILL.md`:
+  - 사전 점검에 "메인 claude 세션이 tmux 안에서 기동 중인지 확인" 추가
+  - §3-b 예시 코드(`tmux new-window`)를 orchestrator와 동일하게 갱신
+  - `-d` / `-p` 없음 / positional prompt 세 가지 근거 설명 추가
+
 ## v0.7.1 — 2026-04-20 (hotfix)
 
 **ax-codex 스킬 + execute → ax-execute rename.**

@@ -55,6 +55,7 @@ team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — pla
 1. 제품 리포 루트에 있는지 확인 (`pwd`).
 2. `versions/undefined/scope.md` 존재 확인 (ax-define 완료 전제).
 3. `docs/specs/` 존재 확인.
+4. **메인 claude 세션이 tmux 안에서 기동 중인지 확인** (`echo $TMUX`가 비어있지 않아야 함). 3-b(워크트리 병렬) 흐름은 같은 tmux 세션에 새 윈도우를 여는 방식이므로, 메인이 tmux 밖이면 orchestrator가 ERROR로 중단한다. 밖이면 `tmux new-session -s ax-build` 후 그 안에서 claude를 다시 시작할 것.
 
 ### 1단계 — plan (구현 계획 수립)
 
@@ -155,10 +156,16 @@ ENGINE=$(jq -r '.executor.engine // "claude"' .claude/settings.json 2>/dev/null 
 
 1. **워크트리 생성** (build-plan의 작업 단위별)
 2. **`.ax-brief.md` 생성** (templates/ax-brief.md 포맷으로 작업 지시서 작성 → 워크트리에 저장)
-3. **tmux 세션 자동 생성**:
+3. **tmux 윈도우 자동 생성 (백그라운드):**
    ```bash
-   tmux new-window -n "work-a" "cd .claude/worktrees/work-a && claude -p 'Read .ax-brief.md and follow the instructions.'"
+   tmux new-window -d -n "work-a" \
+     "cd .claude/worktrees/work-a && claude 'Read .ax-brief.md and follow the instructions.'"
    ```
+
+   **세 가지 중요:**
+   - `-d` — 메인에 포커스 유지. 미지정 시 새 윈도우로 자동 전환되어 오너 키 입력이 워커 stdin으로 샌다 (과거 "메인 화면 깨짐" 사고 원인).
+   - `-p` 없음 — claude 기본이 인터랙티브 TUI이며, `-p`는 "응답 1회 출력 후 종료" 모드라 워커가 조용히 죽는다.
+   - positional prompt — TUI 시작과 동시에 brief 참조 지시 주입. Claude가 MCP 부팅 후 Read 도구로 `.ax-brief.md`를 읽어 작업을 시작한다.
 
 **각 세션 내부 흐름:**
 
