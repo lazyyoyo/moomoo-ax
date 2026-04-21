@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-21 (v0.8.3 hotfix — 사고 기록·외부 제품·시간축 주석 제거)
+last-updated: 2026-04-21 (sprint-9 신설 — v0.9.0 롤백 릴리즈)
 ---
 
 # moomoo-ax 백로그
@@ -11,9 +11,29 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품의 BACKLOG는 각
 > - ready: 다음 스프린트 후보로 정제된 항목 (sprint-N-plan 진입 대기).
 > - done: 스프린트/hotfix 종료 시 이관. 스프린트 번호 or hotfix 버전 표기.
 
+## ready
+
+### sprint-9 — v0.9.0 롤백 릴리즈 (Ralph loop 복원)
+
+**배경**: v0.7.2까지는 ax-build/ax-execute 안에 태스크 단위 Ralph loop(`$ax-review code` 호출 → APPROVE/REQUEST_CHANGES → 수정 후 재리뷰 → 동일 사유 2회 연속 시 오너 위임)가 명시·동작. v0.8 병렬 엔진 재설계 과정에서 워커 주체를 codex 백그라운드로 바꾸면서 **reviewer 훅이 이식되지 않고 유실**. 3-e에는 whitelist 대조 + placeholder grep만 남아 품질 게이트가 사라짐. 모든 문제는 오너 인터럽트로 수렴하고, 자동 재작업 루프 부재. 실사용(남편 환경) 체감 품질이 v0.7.2 대비 급락.
+
+**방향**: v0.8 병렬 엔진을 더 패치하기보다 **v0.7.2로 plugin/ 디렉토리 통째 롤백 + 버전은 v0.9.0으로 전진**. v0.8의 codex 병렬 아이디어는 폐기가 아니라 sprint-10+에서 "Ralph loop를 먼저 박고 그 위에 병렬" 순서로 재도입 검토.
+
+- **B-ROLLBACK-V072**: `plugin/` 전체를 `v0.7.2` 태그 상태로 복원 (`git checkout v0.7.2 -- plugin/`). `.claude-plugin/marketplace.json` + `plugin/.claude-plugin/plugin.json` 버전 필드만 `v0.9.0`으로 bump. v0.8 계열 코드/문서 전부 제거 (codex 워커, 파일 whitelist, inbox.md 템플릿, parallel-dev-spec v0.8, v0.7-to-v0.8-migration.md 등)
+- **B-V09-CHANGELOG**: CHANGELOG에 v0.8 계열(0.8.0~0.8.3) 롤백 명기 — 사유는 "reviewer 루프 유실 + 자동 재작업 부재 + 실측 품질 저하". v0.9.0 = v0.7.2 구조 복귀. 남편 환경 재사용 경로 안내
+- **B-V09-BACKLOG-SYNC**: BACKLOG done 섹션에 "sprint-9 — 플러그인 v0.9.0 롤백" 엔트리 추가 + v0.8 계열 done 엔트리들에 "v0.9.0에서 롤백됨" 주석
+
+**v0.8 cherry-pick 범위**: 없음. v0.8.1~v0.8.3 hotfix들은 모두 codex 워커/pane 모델에 종속된 fix라 v0.7.2의 claude 워커 구조에 적용할 게 없음.
+
+**후속 구상 (sprint-10+, 본 sprint 범위 아님)**:
+- sprint-10 = v0.7.2 기반으로 Ralph loop 강화 (rework 태스크 자동 append로 오너 인터럽트 축소)
+- sprint-11 = 병렬 엔진 재도입 검토 — ax-execute에 reviewer 훅이 박힌 상태에서 codex/claude 엔진 토글 유지하며 병렬화
+
 ## inbox
 
 ### v0.8.4+ 후보 (paperwork audit 결과 이관)
+
+> **주의 (sprint-9 이후)**: 아래 항목들은 v0.8 계열 구조 기반. sprint-9 롤백 후엔 상당수가 무의미해짐 (ax-execute inbox 프로토콜, ax-build orchestrator v2 경로 등). sprint-9 머지 후 재평가 필요.
 
 - B-SCRIPTS-RESOLVE: `plugin/scripts/...` 경로 systematic resolve — 현재 ax-build만 `$ORCH` 패턴 사용. 다른 스킬(ax-codex, ax-deploy, ax-clean, ax-design, ax-paperwork, ax-status, ax-review, ax-execute)은 여전히 `bash plugin/scripts/...` 직접 참조. 설치된 플러그인 cache 경로로 wrapper 인프라(ax-status hud-wrapper 패턴 차용) 또는 ax-build처럼 각 SKILL.md resolve 가이드 추가
 - B-DESIGN-GATE-CODIFY: `ax-design` 7단계 게이트 자동 재작업 로직(keep/discard/루프 3회)이 SKILL.md 본문에 자연어로 기술됨 → `design-gate.sh` 결정론 로직 강화 (progressive codification)
