@@ -1,0 +1,48 @@
+# inbox — {task_id}: {title}
+
+> 이 파일은 ax-build lead가 생성한 **워커 과제 지시서**. codex 워커 한 명이 읽고 `/ax-execute`로 실행한다.
+> 프로토콜 룰(whitelist 가드 / TDD / backpressure / result.json / no-commit)은 ax-execute SKILL.md에 내재되어 있으므로 이 파일에는 **과제 내용과 허용 범위**만 담는다.
+
+## task_id
+{task_id}
+
+## title
+{title}
+
+## instructions
+
+{task_id} 태스크의 구체 지시. scope.md / build-plan.md에서 추출된 내용.
+
+- 무엇을 구현하는가
+- 어떤 입력/출력이 기대되는가
+- 완료 조건(DoD)
+
+## whitelist (편집 허용 파일/디렉토리)
+
+glob 또는 정확한 경로로 나열. 이 밖의 파일을 편집하면 영역 침범으로 `status: error` 처리된다.
+
+- {경로 1 또는 glob}
+- {경로 2}
+- ...
+
+## result_path
+
+```
+{result.json 저장 경로, 예: .ax/workers/{task_id}/result.json}
+```
+
+워커는 종료 전 반드시 이 경로에 `result.json`을 쓴다. 스키마는 ax-execute SKILL.md 참조.
+
+## hints (선택)
+
+- **참고 spec**: `docs/specs/{spec}.md`
+- **관련 기존 패턴**: `{파일:라인}` 또는 `{디렉토리}`
+- **테스트 위치**: `{테스트 디렉토리}`
+- **주의 사항**: (공유 파일 미처리 시 blocked 리턴, 특정 라이브러리 버전 제약 등)
+
+## blocked / error 처리 가이드
+
+- 스펙 모호 / 외부 답변 필요 → `status: blocked` + notes에 구체 질문
+- whitelist 밖 파일을 만져야 해결 가능 → **만지지 말고** `status: blocked` + notes에 이유
+- 공유 파일(타입 정의 등)이 처리 안 됨 → `status: blocked` + notes "공유 파일 미처리"
+- 복구 불가 실패 → `status: error` + notes에 실패 지점
