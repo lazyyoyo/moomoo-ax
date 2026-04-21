@@ -5,13 +5,13 @@ description: "team-ax define — 제품 버전 스코프 결정 + 스펙 in-plac
 
 # /ax-define
 
-team-ax 플러그인의 **제품 버전 시작 시 1번 실행** 스킬. 외부 IT 제품(rubato, rofan-world 등)에 적용된다.
+team-ax 플러그인의 **제품 버전 시작 시 1번 실행** 스킬. 외부 IT 제품에 적용된다.
 
 > **두 종류의 "버전" 주의**
 >
 > | 용어 | 의미 |
 > |---|---|
-> | **제품 버전** | 본 스킬이 결정·관리하는 외부 제품의 semver (예: rubato `v1.7.0`) |
+> | **제품 버전** | 본 스킬이 결정·관리하는 외부 제품의 semver (예: `v1.7.0`) |
 > | **플러그인 버전** | team-ax 자체의 버전 (예: team-ax `v0.1`) |
 >
 > 본 SKILL.md의 `versions/vX.Y.Z/`, `cycle/X.Y.Z`, `scope.md` 등은 모두 **제품 버전**을 가리킨다.
@@ -51,7 +51,7 @@ Phase A가 `versions/undefined/`에 산출물을 만들면, Phase C가 spec in-p
 
 ### Phase A — 범위 분석 (`product-owner` 호출 + 메인 라운드트립)
 
-> **v0.1.1 변경** — Phase A 산출물을 **3개 파일로 축소**. 3~5단계 결과는 별도 파일을 만들지 않고 scope.md 해당 섹션에 **직접 기록**. 2단계 인터뷰는 **메인 세션 라운드트립**(B안)으로 수행 — AskUserQuestion은 메인 세션에서만 안정 작동.
+> Phase A 산출물은 **3개 파일**로 유지. 3~5단계 결과는 별도 파일을 만들지 않고 scope.md 해당 섹션에 **직접 기록**. 2단계 인터뷰는 **메인 세션 라운드트립**(B안)으로 수행 — AskUserQuestion은 메인 세션에서만 안정 작동.
 
 **산출 파일**
 
@@ -176,12 +176,12 @@ scope.md §화면 정의를 화면 단위 정적 HTML로 시각화. **확정 flo
 
 ## 가드레일
 
-1. **인터뷰 우회 금지 (v0.1.1 신설)** — 2단계는 반드시 메인 세션 라운드트립. 서브에이전트가 AskUserQuestion 실패 시 자체 추론으로 답 생성 금지. `product-owner` Hard Guard 위반 감지 시 즉시 중단.
-2. **Phase A 단일 파일 원칙 (v0.1.1 신설)** — `versions/undefined/`에는 `intake.md` / `interview.md` / `scope.md` **3개만** 존재해야 한다. `jtbd.md` / `story-map.md` / `slc.md` 생성 시 위반. 3~5단계 결과는 scope.md 섹션에 직접 기록.
+1. **인터뷰 우회 금지** — 2단계는 반드시 메인 세션 라운드트립. 서브에이전트가 AskUserQuestion 실패 시 자체 추론으로 답 생성 금지. `product-owner` Hard Guard 위반 감지 시 즉시 중단.
+2. **Phase A 단일 파일 원칙** — `versions/undefined/`에는 `intake.md` / `interview.md` / `scope.md` **3개만** 존재해야 한다. `jtbd.md` / `story-map.md` / `slc.md` 생성 시 위반. 3~5단계 결과는 scope.md 섹션에 직접 기록.
 3. **제품 버전명 선결정 금지** — Phase A 6단계 SLC 통과 + 오너 승인 후에만 결정. 1~5단계 중 "v1.7.0 작업 중"이라 부르지 않는다.
 4. **major/minor 분기 금지** — 단일 흐름. 자릿수가 무엇이든 JTBD/Story Map/SLC는 항상 수행 (스코프 크기는 결과물 분량에만 영향).
 5. **JTBD/Story Map/SLC 단계 생략 금지** — minor / 패치 모음이라도 짧게라도 작성. 단계 자체를 빼면 안 됨.
-6. **오버스펙 장식 금지 (v0.1.1 신설)** — scope.md 8개 섹션 외 장식("탈락 후보 사유표", "실패 시뮬레이션", "대안 분석 매트릭스" 등) 추가 금지.
+6. **오버스펙 장식 금지** — scope.md 8개 섹션 외 장식("탈락 후보 사유표", "실패 시뮬레이션", "대안 분석 매트릭스" 등) 추가 금지.
 7. **새 spec 파일 생성 전 매핑 탐색 의무** — `analyst`가 §수정 계획에 매핑 근거 한 줄 명시 (`references/spec-lifecycle.md` 장치 1).
 8. **파일명 접미사 금지** — `-fix` / `-patch` / `-enhance` / `-redesign` / `-v2` / `.old` / `.legacy` (장치 2).
 9. **시간 축 본문 금지** — spec 본문에 "v1.5에서 추가" 등 누적 기술 금지 (장치 3).
@@ -191,7 +191,7 @@ scope.md §화면 정의를 화면 단위 정적 HTML로 시각화. **확정 flo
 ## 참조
 
 - `references/jtbd.md` — JTBD 정의 + "And 없는 한 문장" 테스트
-- `references/story-map.md` — Activity × Story 그리드 작성법 + rubato v1.7.0 예시
+- `references/story-map.md` — Activity × Story 그리드 작성법 + 마이페이지 예시
 - `references/slc.md` — Simple/Lovable/Complete 3축 + 실패 처방
 - `references/semver.md` — 제품 버전명(MAJOR/MINOR/PATCH) 판정 플로우
 - `references/spec-lifecycle.md` — in-place 갱신 + `⏳ planned` 마커 + 강제 장치 4종

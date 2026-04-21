@@ -108,16 +108,14 @@ $ARGUMENTS = "<inbox.md 경로>"
 워커는 다음을 **절대** 하지 않는다:
 
 - NEVER spawn sub-agents / use Task tool — 이 세션 안에서만 작업
-- NEVER run tmux orchestration — tmux는 lead가 관리
+- NEVER 오케스트레이션 환경 조작 (tmux/윈도우/pane 등) — lead 영역
 - NEVER `git commit` / `git push` — 커밋은 lead가 일괄
 - NEVER edit files outside whitelist — 필요하면 blocked로 보고
 - NEVER `git reset` / `git checkout -- ...` / `git stash` — 변경분을 임의로 되돌리지 않음 (lead/오너 판단)
 
 ## 영역 침범 가드 (필수)
 
-rubato admin-v0.2.0 도그푸딩에서 발견된 사고 — 워커가 "작업 X만"이라는 지시를 받고도 TypeScript 타입 의존 등으로 인접 작업의 파일을 함께 수정해 다른 트랙의 변경분을 uncommitted로 남겼다.
-
-본 스킬의 가드:
+워커가 "작업 X만"이라는 지시를 받고도 TypeScript 타입 의존 등으로 인접 작업의 파일을 함께 수정하면 다른 트랙의 변경분이 uncommitted로 남아 오염된다. 이를 차단하기 위한 가드:
 
 1. **whitelist 명시 의무** — inbox.md에 whitelist가 없으면 `status: error` + notes "whitelist 미명시"
 2. **사전 인지** — 작업 시작 전 whitelist를 stdout에 출력

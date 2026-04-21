@@ -12,7 +12,7 @@ scope.md 템플릿 — team-ax `define` 스킬의 최종 산출물.
 
 <!-- Phase A 6단계에서 확정. 플러그인 v0.1은 폴더 승격·브랜치 생성을 하지 않는다. -->
 
-- **제품 이름**: {예: rubato}
+- **제품 이름**: {예: myproduct}
 - **제품 버전명**: {예: v1.7.0 — 또는 'undefined' (Phase A 미완료 시)}
 - **시맨틱 구분**: {MAJOR | MINOR | PATCH} — 근거: {한 줄}
 - **version branch**: `version/vX.Y.Z`

@@ -26,7 +26,7 @@ IT 제품 제작 자동화 Claude Code 플러그인 **team-ax** 배포 리포.
 ### v0.8 전제 (ax-build 사용 시)
 
 - **codex CLI + 로그인** — `npm install -g @openai/codex` + `codex login`
-- **tmux 안에서 claude 기동** — ax-build는 tmux 윈도우에 워커 pane을 split하는 구조
+- ax-build는 어느 터미널에서든 동작 (tmux 불필요) — 워커는 백그라운드 프로세스로 기동되고 로그는 `.ax/workers/<id>/stdout.log`로 저장
 - **`/ax-codex install` 1회** — codex에 ax-execute 스킬 동기화 (`~/.codex/skills/ax-execute/`)
 
 자세한 사전 점검은 `bash plugin/scripts/ax-build-orchestrator.sh precheck`으로 검증 가능.

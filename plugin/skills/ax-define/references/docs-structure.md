@@ -33,7 +33,7 @@ CHANGELOG.md
 
 ## ROADMAP 제거 근거
 
-team-product 레퍼런스(rubato)에서 다음 문제가 확인됨:
+이전 관찰에서 다음 문제가 확인됨:
 
 1. **이중 유지** — BACKLOG.md ↔ ROADMAP.md가 같은 항목을 두 번 적어 동기화 부담.
 2. **삼중 동기화** — ROADMAP.md ↔ CHANGELOG.md도 과거 버전 기록이 겹쳐, 한 항목이 세 문서에 동시 존재.

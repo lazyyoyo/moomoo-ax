@@ -30,9 +30,9 @@ Stories (세로):      Story A1       Story B1       Story C1   ← 우선순위
 
 "앱 안정성 회복" 같은 패치 모음 제품 버전은 **Story 없이 태스크 목록만** 둘 수 있다. JTBD 한 줄이 추상 단어 하나로 묶이는 경우다. scope.md `§Story Map`에는 `(패치 모음 — Story 없음)` 표기 + 태스크 bullet 목록.
 
-## 예시 — rubato 제품 v1.7.0 재구성
+## 예시 — 마이페이지 제품 버전 재구성
 
-원본 BACKLOG에는 "마이페이지 만들기"가 한 줄로 있었다. Story Map으로 분해하면:
+원본 BACKLOG에 "마이페이지 만들기"가 한 줄로 있었다고 가정. Story Map으로 분해하면:
 
 ```
 JTBD: 내 프로필과 설정을 한 곳에서 관리한다.

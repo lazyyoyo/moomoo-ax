@@ -56,7 +56,7 @@ $ax-review doc versions/undefined/scope.md
 codex exec '$ax-review doc versions/undefined/scope.md'
 ```
 
-### `code` (v0.4 구현)
+### `code`
 
 대상: 구현 코드. ax-build에서 Codex에 위임하여 호출.
 
@@ -69,15 +69,15 @@ codex exec '$ax-review doc versions/undefined/scope.md'
 codex exec '$ax-review code src/app/api/auth/pin/'
 ```
 
-### `pr` (v0.1 stub)
+### `pr` (stub)
 
 `references/pr-checklist.md`도 단일 줄 stub. 본 스킬이 호출되면:
 
 ```
-NOT_IMPLEMENTED: ax-review pr 타입은 v0.1 미구현. 후속 스프린트(ax-deploy 도입 시) 작성 예정.
+NOT_IMPLEMENTED: ax-review pr 타입 미구현.
 ```
 
-위 한 줄 출력 후 중단. (후속 스프린트에서 `gh pr diff` 실행을 위한 sandbox 정책도 함께 결정.)
+위 한 줄 출력 후 중단. (`gh pr diff` 실행을 위한 sandbox 정책 확정 후 구현 예정.)
 
 ## 출력 포맷
 
@@ -107,9 +107,9 @@ NOT_IMPLEMENTED: ax-review pr 타입은 v0.1 미구현. 후속 스프린트(ax-d
 
 ## 참조
 
-- `references/doc-checklist.md` — 문서 리뷰 체크리스트 (v0.1 구현)
-- `references/code-checklist.md` — 구현 리뷰 (v0.1 stub)
-- `references/pr-checklist.md` — PR 리뷰 (v0.1 stub)
+- `references/doc-checklist.md` — 문서 리뷰 체크리스트
+- `references/code-checklist.md` — 구현 리뷰 (stub)
+- `references/pr-checklist.md` — PR 리뷰 (stub)
 
 ## 설치
 
