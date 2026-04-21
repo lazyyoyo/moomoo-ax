@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-21 (sprint-9 완료 — v0.9.0 롤백 릴리즈)
+last-updated: 2026-04-21 (sprint-10+ 후보 5건 추가 — 속도/엔진 배정)
 ---
 
 # moomoo-ax 백로그
@@ -12,6 +12,18 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품의 BACKLOG는 각
 > - done: 스프린트/hotfix 종료 시 이관. 스프린트 번호 or hotfix 버전 표기.
 
 ## inbox
+
+### sprint-10+ 후보 — 속도 + 엔진 배정 (2026-04-21 대화에서 도출)
+
+**맥락**: v0.9.0 롤백으로 Ralph loop는 복원됐지만 체감 속도 저하가 남음. 원인 진단 결과 **태스크당 codex 프로세스 부팅 비용**이 지배적. `executor.engine=codex`면 구현+리뷰로 태스크당 codex × 2, `claude`여도 리뷰는 codex라 × 1. team-product `planner`가 plan.md 태스크마다 `(agent: executor | design-engineer)` 태그를 박아 build 루프가 따르게 한 패턴을 엔진 축으로 확장하는 방향.
+
+> **오너 메모**: 본 항목들은 대화에서 나온 초안. 오너가 완전히 이해한 뒤 직접 재정리해서 sprint-10 plan으로 올릴 예정. 이 블록은 참고용.
+
+- **B-PLAN-ENGINE-ASSIGN**: planner가 태스크마다 `executor` · `reviewer` 엔진 배정 (`codex` / `claude-subagent`). 기준 체크리스트 — 새 기능/3파일+/보안·인증·결제/스키마/경계 작업은 codex, 1~2파일 수정·단순 리팩터·UI 조정·버그픽스는 claude-subagent. `build-plan.md` / `ax-brief.md` 템플릿에 `(executor: X, reviewer: Y)` 필드 추가. ax-build 3단계·3-e가 태그 읽고 분기
+- **B-REVIEWER-SUBAGENT**: `plugin/agents/reviewer.md` 신설 — `ax-review/references/code-checklist.md` 7종 체크리스트를 subagent용으로 포팅. `ax-review/SKILL.md`에 subagent 호출 모드 추가 (현재는 codex exec 전제). 호출 경로 = main session의 `Task` 툴. 작성 엔진 = 리뷰 엔진이 되는 맹점은 "동일 사유 2회 연속 REQUEST_CHANGES → 오너 위임" 조항으로 완화 (완전 엔진 분리 포기하는 대신 컨텍스트 분리는 유지). 오너 철학 검증 필요
+- **B-DEFAULT-POLICY-SETTINGS**: `.claude/settings.json`의 `executor.engine` 단일 키를 `executor.default` · `reviewer.default`로 확장. planner가 태스크별 명시 판정을 안 하면 default 따름. 프로젝트 토큰 예산 / Claude Max quota 여유에 따라 선택
+- **B-FRESH-CONTEXT-ENFORCEMENT**: 워커 claude가 여러 태스크 순차 처리할 때 같은 세션 유지 → Ralph의 fresh context 원칙 깨짐. 태스크당 새 subagent 호출 의무화 또는 codex one-shot 강제. `backpressure-pattern.md` 원칙은 이미 문서화돼 있으나 구조적 강제가 부분적
+- **B-BOOTUP-COST-PROFILE**: ax-build 실행 중 codex exec 프로세스 부팅 시간 실측 로그 — 태스크 ID × (구현 소요 / 리뷰 소요 / 부팅 overhead 추정) 기록. 향후 배정 기준 튜닝 + 체감 속도 저하 정량화 근거. orchestrator에 타이머 훅
 
 ### v0.8.4+ 후보 (paperwork audit 결과 이관)
 
