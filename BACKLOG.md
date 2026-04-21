@@ -15,6 +15,8 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 
 ### ax-build 병렬 흐름 관련 (v0.7.2 이후 후속)
 
+- B-AXBUILD-TRUST-DIALOG: **첫 워크트리 진입 시 "trust this folder?" 다이얼로그가 자동화를 차단** — v0.7.2 실검증(2026-04-21)에서 발견. `claude -p`는 trust dialog를 자동 skip했으나 `-p` 제거로 부활. 각 워크트리 첫 실행 때 오너가 `1` 입력해야 진행됨 → 진짜 병렬 자동화 안 됨. 해결 후보: (a) 워크트리 생성 후 `claude` 호출 전에 trust 레지스트리(`~/.claude/…`)에 경로 등록, (b) `--dangerously-skip-permissions` 또는 유사 플래그 재검토(의미상 다르지만 효과는 유사할 수 있음), (c) tmux send-keys로 `1 Enter` 자동 주입
+- B-AXBUILD-TMUX-NESTED: SKILL.md 사전 점검 / 릴리즈 노트에 "이미 tmux 안인 경우 새 세션 만들지 말고 기존 세션 사용" 분기 추가 — owner가 `tmux new-session -s ax-build`를 시도했다가 "sessions should be nested with care" 경고 받음
 - B-AXBUILD-CLAUDENATIVE: Claude CLI 빌트인 `--worktree --tmux` 활용 검토 — `claude --help`에 `-w/--worktree [name]`, `--tmux` 플래그 존재 (iTerm2 native panes 우선, `--tmux=classic` 옵션). 현재 우리 orchestrator가 직접 git worktree + tmux new-window를 쓰는데 빌트인으로 위임 가능 여부 분석. 단 branch 네이밍(`version/vX.Y.Z-<name>`) / `.ax-status` 초기화 / 포트 할당 등 커스텀 훅 지점 유지 방법 필요
 - B-AXBUILD-BRIEF-INJECT: `.ax-brief.md` 주입 방식 재설계 — 현재 positional prompt로 "Read .ax-brief.md and follow" 지시만 주입. brief 내용을 Claude가 Read 도구로 읽는 2-step 구조. 옵션 재검토: (A) `claude "$(cat .ax-brief.md)"` 내용 직접 주입(escape 문제), (B) `--append-system-prompt` 활용, (C) CLAUDE.md/hook으로 자동 참조
 - B-AXBUILD-MCP-SHARE: 병렬 워커 MCP 중복 부팅 이슈 — 워커 N개마다 MCP 서버 전체 스폰(남편분 환경 7개). 워커별 축소된 `.mcp.json` 지정 가능한지 / 부모-자식 MCP 공유 옵션 있는지 조사. 성능 이슈지 기능 버그 아님
