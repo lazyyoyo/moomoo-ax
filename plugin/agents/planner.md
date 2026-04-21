@@ -83,6 +83,37 @@ tools: ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
 4. **UX 흐름 묶기** — 연결된 UX 흐름(같은 화면, 이동 경로 공유)은 나누지 않음. 파일이 같아질 가능성이 높음
 5. **분할 불가능한 전역 리팩토링** — 단일 태스크 1워커로 폴백. 병렬 강제 안 함
 6. **워커 수 상한** — 1라운드 병렬 대상 최대 5 (기본 2-3). 초과 시 태스크를 묶거나 `blockedBy`로 분할
+7. **glue 태스크 의무 분리** — placeholder/mock 쓰던 호출부를 실체 컴포넌트로 교체하거나, A가 만든 함수를 B의 콜사이트에서 사용하는 "연결" 작업은 **별도 태스크**로 분리. 양쪽 파일이 서로 다른 whitelist에 속하면 어느 쪽도 수정 못해서 사각지대가 됨 (§glue 태스크 참조)
+
+## glue 태스크
+
+병렬 + 파일 whitelist 격리의 구조적 약점: **경계 연결(glue) 작업이 사각지대**가 된다. planner는 이를 능동적으로 탐지하고 분리해야 한다.
+
+**전형적 케이스:**
+- T-a: `library/page.tsx`에 placeholder 컴포넌트 렌더 (whitelist: `library/**`)
+- T-b: `shelves-grid.tsx` 컴포넌트 신규 생성 (whitelist: `components/shelves/**`)
+- 필요한 glue: `library/page.tsx`에서 placeholder를 ShelvesGrid로 교체 — 어느 워커도 못함 (T-a whitelist가 library 가능이지만 컴포넌트 존재 전이라 못씀, T-b whitelist는 library 안 됨)
+
+**분리 규칙:**
+
+1. **탐지** — plan.json 초안 작성 후 각 태스크 쌍에 대해 "둘 사이의 연결 지점(import, 호출, 컴포넌트 교체)이 필요한가?" self-check
+2. **glue 태스크 생성** — 연결 필요 시 별도 id로 분리:
+   ```json
+   {
+     "id": "T-a-b-glue",
+     "kind": "glue",
+     "title": "library placeholder → ShelvesGrid 교체",
+     "files": ["library/page.tsx"],
+     "blockedBy": ["T-a", "T-b"],
+     "instructions": "T-b에서 만든 ShelvesGrid를 T-a의 placeholder 자리에 연결. import + JSX 교체 + placeholder 정의 제거."
+   }
+   ```
+3. **kind: glue**는 `common`과 구분된 유형. 순차 처리는 아니지만 `blockedBy`로 양쪽 완료 후 실행
+4. **crowd-out 방지** — glue 태스크는 소규모(1-3줄 변경)가 일반적. 과하게 만들지 않음
+
+**없으면 lead 검증에서 탐지됨** (ax-build SKILL.md의 placeholder 잔존 스캔 훅). 하지만 planner가 선제 분리하는 게 본질적 해결.
+
+## 자동 검증 (planner 자신이 수행)
 
 ## 자동 검증 (planner 자신이 수행)
 
@@ -93,6 +124,7 @@ tools: ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
 - [ ] `kind: common` 태스크가 있으면 모든 다른 태스크의 `blockedBy`에 포함되는지
 - [ ] 사이클 없음 (blockedBy 그래프)
 - [ ] `instructions` 비어있지 않음
+- [ ] **연결 지점 체크** — 태스크 쌍 중 placeholder→실체 교체 / 콜사이트 연결이 필요하면 `kind: glue` 태스크 분리됐는지
 
 검증 실패 시 자체 수정하거나 오너 게이트에서 보고.
 
