@@ -60,4 +60,4 @@ ax-paperwork 실행 시 사용하는 세부 체크리스트.
 
 - [ ] 수정 대상이 `.md`만인지 확인 (코드 파일 제외)
 - [ ] 삭제 대상은 `mv ~/.Trash/`로만 처리
-- [ ] ax-build 워크트리 활성 여부 확인 (`.claude/worktrees/` 존재 시 중단 권고)
+- [ ] ax-build 병렬 활성 여부 확인 (`.ax/workers/` 존재 또는 `ax-workers` tmux 윈도우 시 중단 권고)
