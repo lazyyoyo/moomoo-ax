@@ -1,33 +1,33 @@
 #!/usr/bin/env bash
 # ax-build 오케스트레이터
 #
-# 병렬 엔진: 단일 브랜치 + Codex 워커 + 파일 whitelist 격리. 워커는 메인 window를 split한 pane에 떠서 오너가 한 화면에서 관찰 가능.
-# 스크립트는 원시 도구(브랜치/pane/상태 수집)만 제공하고, 태스크 선택·커밋 등의 로직은 lead(Claude)의 SKILL.md가 담당한다.
+# 병렬 엔진: 단일 브랜치 + Codex 워커 + 파일 whitelist 격리.
+# 워커는 **백그라운드 프로세스**로 실행되며 stdout/stderr은 로그 파일로 저장된다.
+# tmux 의존 없음. 모든 터미널에서 동작.
 #
 # 사용법:
 #   ax-build-orchestrator.sh precheck
 #   ax-build-orchestrator.sh init <version>        — version branch 생성 + 폴더 승격
 #   ax-build-orchestrator.sh spawn <version> <task_id> [model]
-#                                                  — 메인 window에 pane split + codex exec '$ax-execute <inbox>' 기동
-#   ax-build-orchestrator.sh status                — .ax/workers/*/result.json 집계
-#   ax-build-orchestrator.sh cleanup               — 워커 pane 전부 kill
+#                                                  — codex exec 워커를 백그라운드로 기동, stdout→stdout.log, pid 저장
+#   ax-build-orchestrator.sh status                — pid + result.json 집계
+#   ax-build-orchestrator.sh logs <task_id>        — 워커 stdout.log 출력 (tail -f용: `logs <id> -f`)
+#   ax-build-orchestrator.sh cleanup               — 남은 워커 프로세스 kill
 #
 # 전제:
-#   - 메인 세션이 tmux 안에서 기동 (precheck 확인)
 #   - codex CLI 설치 + 로그인 (precheck 확인)
 #   - .ax/plan.json 이 이미 생성됨 (planner 산출)
 #   - .ax/workers/<task_id>/inbox.md 가 미리 기록됨 (lead가 생성)
 #
 # 모델:
-#   - 기본: codex CLI 자체 기본값 (~/.codex/config.toml 설정) 사용
+#   - 기본: codex CLI 자체 기본값 (~/.codex/config.toml) 사용
 #   - 오버라이드: 3번째 인자 또는 AX_CODEX_MODEL env
 
 set -euo pipefail
 
 WORKERS_DIR=".ax/workers"
-WORKER_TAG_PREFIX="ax:"   # pane title prefix — 워커 pane 식별용
 
-COMMAND="${1:?사용법: ax-build-orchestrator.sh <precheck|init|spawn|status|cleanup> [args]}"
+COMMAND="${1:?사용법: ax-build-orchestrator.sh <precheck|init|spawn|status|logs|cleanup> [args]}"
 
 # -----------------------------------------------------------------------------
 # helpers
@@ -38,18 +38,10 @@ die() {
   exit 1
 }
 
-need_tmux() {
-  if [[ -z "${TMUX:-}" ]]; then
-    die "tmux 세션 밖에서 실행 중. ax-build는 tmux 안에서만 동작.
-  → tmux new-session -s ax
-  → 그 안에서 claude 세션 시작 → /ax-build 재실행"
-  fi
-}
-
-# 현재 window에서 첫 워커 pane을 찾음 (추가 스폰의 split 기준)
-find_first_worker_pane() {
-  tmux list-panes -F '#{pane_id} #{pane_title}' 2>/dev/null \
-    | awk -v tag="^${WORKER_TAG_PREFIX}" '$2 ~ tag {print $1; exit}'
+# pid가 살아있는지
+is_alive() {
+  local pid="$1"
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
 }
 
 # -----------------------------------------------------------------------------
@@ -58,14 +50,6 @@ find_first_worker_pane() {
 
 cmd_precheck() {
   local fail=0
-
-  if [[ -z "${TMUX:-}" ]]; then
-    echo "✗ tmux: 세션 밖에서 실행 중"
-    echo "  → tmux new-session -s ax  → 그 안에서 claude 시작"
-    fail=1
-  else
-    echo "✓ tmux: $(tmux display-message -p '#S')"
-  fi
 
   if ! command -v codex >/dev/null 2>&1; then
     echo "✗ codex CLI: 미설치"
@@ -79,7 +63,7 @@ cmd_precheck() {
     if codex login status >/dev/null 2>&1; then
       echo "✓ codex login: OK"
     else
-      echo "? codex login: 상태 확인 불가 (codex login status 지원 안 함). 호출 시 인증 에러 나면 'codex login' 실행"
+      echo "? codex login: 상태 확인 불가. 호출 시 인증 에러 나면 'codex login' 실행"
     fi
   fi
 
@@ -135,70 +119,66 @@ cmd_init() {
 }
 
 # -----------------------------------------------------------------------------
-# spawn — 메인 window에 워커 pane split + codex 기동
+# spawn — 백그라운드 codex 워커 기동
 # -----------------------------------------------------------------------------
 #
-# 레이아웃:
-#   첫 워커 스폰 → 현재 window를 수직 split (왼쪽 메인 60%, 오른쪽 워커 40%)
-#   추가 워커 스폰 → 첫 워커 pane을 수평 split (워커 영역 안에서 나눔)
+# 각 워커는 `codex exec`를 백그라운드로 돌리고:
+#   - stdout/stderr → .ax/workers/<task_id>/stdout.log
+#   - pid          → .ax/workers/<task_id>/pid
+#   - 종료 코드     → .ax/workers/<task_id>/exit_code (nohup wrapper가 기록)
 #
-# 메인 pane은 건드리지 않고, 워커 pane만 title로 식별한다.
+# 워커 종료 후에도 로그가 파일로 남아 디버깅 가능.
 
 cmd_spawn() {
   local version="${1:?사용법: spawn <version> <task_id> [model]}"
   local task_id="${2:?task_id 필요}"
-  local model="${3:-${AX_CODEX_MODEL:-}}"   # 빈 값이면 codex CLI 기본 모델 사용
-  local inbox=".ax/workers/${task_id}/inbox.md"
-  local pane_tag="${WORKER_TAG_PREFIX}${task_id}"
+  local model="${3:-${AX_CODEX_MODEL:-}}"   # 빈 값이면 codex 기본 모델
+  local worker_dir=".ax/workers/${task_id}"
+  local inbox="${worker_dir}/inbox.md"
+  local log="${worker_dir}/stdout.log"
+  local pid_file="${worker_dir}/pid"
+  local exit_file="${worker_dir}/exit_code"
 
-  need_tmux
   [[ -f "$inbox" ]] || die "inbox 없음: ${inbox}
   → lead가 .ax/plan.json 기반으로 inbox.md를 먼저 생성해야 함"
 
-  # 중복 방지 — 현재 window에 이미 같은 tag의 pane이 있으면 skip
-  if tmux list-panes -F '#{pane_title}' 2>/dev/null | grep -qx "$pane_tag"; then
-    echo "pane 이미 존재: ${task_id} (건너뜀)"
-    return 0
+  mkdir -p "$worker_dir"
+
+  # 이미 살아있는 pid가 있으면 skip
+  if [[ -f "$pid_file" ]]; then
+    local existing
+    existing=$(cat "$pid_file" 2>/dev/null || echo "")
+    if is_alive "$existing"; then
+      echo "worker 이미 실행 중: ${task_id} (pid=${existing})"
+      return 0
+    fi
   fi
 
-  # 워커 비정상 종료 시 pane 보존 (디버깅용)
-  tmux set-option remain-on-exit on 2>/dev/null || true
-
-  local repo_root
-  repo_root=$(git rev-parse --show-toplevel)
-
-  # 모델 옵션 — 비우면 codex 기본
   local model_arg=""
   if [[ -n "$model" ]]; then
     model_arg="-c model=${model}"
   fi
 
-  # 스폰 명령 문자열
-  local spawn_cmd="codex exec --dangerously-bypass-approvals-and-sandbox -s workspace-write ${model_arg} \"\$ax-execute ${inbox}\""
+  # 백그라운드 실행 + 로그 redirect + exit code 캡처
+  # subshell에서 codex 실행 → 종료 코드를 exit_code 파일로 남김
+  (
+    codex exec --dangerously-bypass-approvals-and-sandbox -s workspace-write ${model_arg} \
+      "\$ax-execute ${inbox}" >"$log" 2>&1
+    echo $? > "$exit_file"
+  ) &
 
-  local first_worker
-  first_worker=$(find_first_worker_pane)
+  local pid=$!
+  echo "$pid" > "$pid_file"
+  # 이전 exit_code 제거 (재스폰 대비)
+  rm -f "$exit_file"
 
-  if [[ -z "$first_worker" ]]; then
-    # 첫 워커: 현재 window를 수직 split. 왼쪽 메인(60%), 오른쪽 워커(40%)
-    tmux split-window -h -l 40% -c "$repo_root" "$spawn_cmd"
-  else
-    # 추가 워커: 첫 워커 pane을 수평 split (워커 영역 안에서 나눔)
-    tmux split-window -v -t "$first_worker" -c "$repo_root" "$spawn_cmd"
-  fi
-
-  # 새로 만든 pane에 title 부착 (`{last}` = 마지막으로 생성된 pane)
-  tmux select-pane -t '{last}' -T "$pane_tag"
-
-  # 포커스를 메인으로 복귀
-  tmux last-pane 2>/dev/null || true
-
-  echo "spawn: ${task_id} (model=${model:-codex 기본})"
+  echo "spawn: ${task_id} (pid=${pid}, model=${model:-codex 기본})"
   echo "  inbox: ${inbox}"
+  echo "  log:   ${log}"
 }
 
 # -----------------------------------------------------------------------------
-# status — 워커 result.json 집계
+# status — 워커 pid + result.json 집계
 # -----------------------------------------------------------------------------
 
 cmd_status() {
@@ -207,7 +187,7 @@ cmd_status() {
     return 0
   fi
 
-  local done_count=0 blocked_count=0 error_count=0 inprogress_count=0 total=0
+  local done_count=0 blocked_count=0 error_count=0 running_count=0 pending_count=0 total=0
 
   echo "=== 워커 상태 ==="
   for worker_dir in "$WORKERS_DIR"/*/; do
@@ -215,7 +195,15 @@ cmd_status() {
     local task_id
     task_id=$(basename "$worker_dir")
     local result="${worker_dir}result.json"
+    local pid_file="${worker_dir}pid"
+    local exit_file="${worker_dir}exit_code"
     total=$((total + 1))
+
+    local pid=""
+    [[ -f "$pid_file" ]] && pid=$(cat "$pid_file" 2>/dev/null || echo "")
+
+    local alive="no"
+    is_alive "$pid" && alive="yes"
 
     if [[ -f "$result" ]]; then
       local status
@@ -226,42 +214,76 @@ cmd_status() {
         done)    done_count=$((done_count+1)) ;;
         blocked) blocked_count=$((blocked_count+1)) ;;
         error)   error_count=$((error_count+1)) ;;
-        *)       inprogress_count=$((inprogress_count+1)) ;;
+        *)       pending_count=$((pending_count+1)) ;;
       esac
-      echo "  ${task_id}: ${status:-?} — ${summary:-}"
+      echo "  ${task_id}: ${status:-?} (pid=${pid:-?} alive=${alive}) — ${summary:-}"
     else
-      inprogress_count=$((inprogress_count+1))
-      echo "  ${task_id}: (진행 중 — result.json 없음)"
+      # result.json 없음
+      if [[ "$alive" == "yes" ]]; then
+        running_count=$((running_count+1))
+        echo "  ${task_id}: running (pid=${pid})"
+      elif [[ -f "$exit_file" ]]; then
+        # 프로세스 죽었는데 result.json 없음 = 비정상 종료
+        local code
+        code=$(cat "$exit_file" 2>/dev/null || echo "?")
+        error_count=$((error_count+1))
+        echo "  ${task_id}: ✗ 비정상 종료 (exit=${code}, result.json 없음 — 로그 확인: logs ${task_id})"
+      else
+        pending_count=$((pending_count+1))
+        echo "  ${task_id}: (대기 중 — 스폰 안 됨)"
+      fi
     fi
   done
 
   echo "---"
-  echo "total=${total} done=${done_count} blocked=${blocked_count} error=${error_count} in-progress=${inprogress_count}"
+  echo "total=${total} done=${done_count} blocked=${blocked_count} error=${error_count} running=${running_count} pending=${pending_count}"
 }
 
 # -----------------------------------------------------------------------------
-# cleanup — 워커 pane 전부 kill
+# logs — 워커 stdout.log 출력
+# -----------------------------------------------------------------------------
+
+cmd_logs() {
+  local task_id="${1:?사용법: logs <task_id> [-f]}"
+  local follow="${2:-}"
+  local log=".ax/workers/${task_id}/stdout.log"
+
+  [[ -f "$log" ]] || die "로그 없음: ${log}"
+
+  if [[ "$follow" == "-f" ]]; then
+    tail -f "$log"
+  else
+    cat "$log"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# cleanup — 살아있는 워커 프로세스 전부 kill
 # -----------------------------------------------------------------------------
 
 cmd_cleanup() {
-  need_tmux
-  local worker_panes
-  worker_panes=$(tmux list-panes -a -F '#{pane_id} #{pane_title}' 2>/dev/null \
-    | awk -v tag="^${WORKER_TAG_PREFIX}" '$2 ~ tag {print $1}')
-
-  if [[ -z "$worker_panes" ]]; then
-    echo "워커 pane 없음"
+  if [[ ! -d "$WORKERS_DIR" ]]; then
+    echo "(워커 디렉토리 없음)"
     return 0
   fi
 
   local killed=0
-  while IFS= read -r pane; do
-    [[ -z "$pane" ]] && continue
-    if tmux kill-pane -t "$pane" 2>/dev/null; then
-      echo "kill pane: $pane"
-      killed=$((killed+1))
+  for worker_dir in "$WORKERS_DIR"/*/; do
+    [[ -d "$worker_dir" ]] || continue
+    local task_id
+    task_id=$(basename "$worker_dir")
+    local pid_file="${worker_dir}pid"
+    [[ -f "$pid_file" ]] || continue
+    local pid
+    pid=$(cat "$pid_file" 2>/dev/null || echo "")
+    if is_alive "$pid"; then
+      if kill "$pid" 2>/dev/null; then
+        echo "kill: ${task_id} (pid=${pid})"
+        killed=$((killed+1))
+      fi
     fi
-  done <<<"$worker_panes"
+  done
+
   echo "---"
   echo "killed: ${killed}"
 }
@@ -275,15 +297,14 @@ case "$COMMAND" in
   init)      shift; cmd_init "$@" ;;
   spawn)     shift; cmd_spawn "$@" ;;
   status)    cmd_status ;;
+  logs)      shift; cmd_logs "$@" ;;
   cleanup)   cmd_cleanup ;;
-  # prepare-window 는 v0.8.0의 레거시 서브커맨드. 이제 spawn이 알아서 처리하므로 nop으로 허용 (하위 호환).
+  # 레거시 서브커맨드 — no-op (하위 호환)
   prepare-window)
-    need_tmux
-    tmux set-option remain-on-exit on 2>/dev/null || true
-    echo "prepare-window: 이제 spawn이 메인 window split으로 처리합니다 (no-op)."
+    echo "prepare-window: deprecated. spawn이 백그라운드로 직접 기동합니다."
     ;;
   *)
     die "알 수 없는 명령: ${COMMAND}
-사용법: $(basename "$0") <precheck|init|spawn|status|cleanup> [args]"
+사용법: $(basename "$0") <precheck|init|spawn|status|logs|cleanup> [args]"
     ;;
 esac

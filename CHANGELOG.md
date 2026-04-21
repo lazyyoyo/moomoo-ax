@@ -2,6 +2,37 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.8.2 — 2026-04-21 (hotfix)
+
+v0.8.0 rubato 실검증 8건 피드백 반영. **워커 실행 모델을 tmux pane split → 백그라운드 프로세스 + 로그 파일**로 근본 단순화. tmux 의존 제거, pane 관리 복잡성 전부 소멸.
+
+### Changed (core)
+- **워커 실행 모델 단순화** — `tmux split-window`로 워커 pane 띄우던 것을 제거하고 `codex exec`를 **백그라운드로 직접 기동**. stdout/stderr은 `.ax/workers/<id>/stdout.log`, pid는 `.ax/workers/<id>/pid`, 종료 코드는 `.ax/workers/<id>/exit_code`에 기록.
+  - tmux 의존 제거 — iTerm/Ghostty/VS Code 어느 터미널에서든 동작
+  - pane title race, `remain-on-exit` ambiguous, `{last}` 경쟁조건 등 **전부 자연 소멸**
+  - 로그가 파일로 보존돼 종료 후 디버깅 가능
+  - 가시성: lead `status` 집계 + 필요 시 `logs <task_id>` 또는 `tail -f`
+
+### Added
+- `logs` 서브커맨드 — `bash orchestrator.sh logs <task_id> [-f]`로 워커 stdout 조회 (`-f`는 tail follow)
+- `exit_code` 파일 — 비정상 종료 감지용 (exit_code 있고 result.json 없으면 lead가 error로 처리)
+- **재개 모드** (`ax-build` §2.5단계) — version branch + plan.json + 일부 커밋이 이미 존재할 때 미완료 태스크만 스폰하는 재진입 절차 명시
+- **planner glue 태스크 규칙** — placeholder→실체 교체, A/B 연결 등 경계 작업을 `kind: glue` 독립 태스크로 분리. 파일 whitelist 격리의 사각지대 해소. (rubato T3-8 ↔ T3-9 재현)
+- **lead 검증에 placeholder/TODO 스캔 훅** — 3-e에서 이번 라운드 변경 파일에 `grep -nE 'Placeholder|TODO|FIXME'` → 잔존 시 오너 보고
+
+### Fixed
+- **ax-execute 동시 라운드 self-check 오판정** — 병렬 라운드에서 타 워커가 만든 untracked 파일을 자기 whitelist 밖으로 오인해 `status: error` 리턴하던 이슈 (rubato T3-2/T3-9/T3-10 전부 재현). 이제 `.ax/plan.json`을 읽어 **모든 task whitelist 합집합**을 인지. (내 whitelist 밖이면서 다른 task whitelist에도 없는 파일)만 진짜 침범.
+- **타겟 기반 backpressure** — 전역 `npm run lint` / `npm test`가 기존 오류 / Missing script로 항상 실패하던 이슈. 이제 변경 파일 타겟 `npx eslint <files>`, test script 부재 시 `npx vitest run` / `npx jest` 자동 폴백. 환경 실패(command not found 등)는 `blocked`, 코드 실패는 `error`로 구분.
+- **SKILL.md 스크립트 경로 resolve** — `bash plugin/scripts/...`가 설치된 플러그인 환경에서 경로 불일치하던 이슈. SKILL.md 본문에 `$ORCH` resolve 가이드 추가 (설치된 캐시 경로 자동 탐색).
+
+### Removed
+- tmux 관련 로직 전부 — `prepare-window`는 no-op 하위호환만 남김, `set-option remain-on-exit`, `split-window`, `select-pane`, pane tag 전부 제거
+- v0.8.1에서 이미 해결된 항목(`-c model=` 기본 주입, pane_count=1 분기)은 자연 유지
+
+### Docs
+- `docs/specs/parallel-dev-spec.md` — 전면 재작성. 백그라운드 프로세스 모델, glue 태스크, 재개 모드 반영. §breaking change 섹션 제거(이제 CHANGELOG+migration guide로 역사 일원화)
+- `plugin/skills/ax-build/SKILL.md` — 워커 기동 / 가시성 / 검증 훅 / 재개 모드 / 경로 resolve 가이드 재작성
+
 ## v0.8.1 — 2026-04-21 (hotfix)
 
 v0.8.0 실검증에서 발견된 3건 수정.
