@@ -2,6 +2,23 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.8.1 — 2026-04-21 (hotfix)
+
+v0.8.0 실검증에서 발견된 3건 수정.
+
+### Fixed
+- **모델 하드코딩 제거** — `ax-build-orchestrator.sh`가 `-c model='gpt-5-codex'`를 주입했으나 `gpt-5-codex`는 존재하지 않는 모델명. 워커가 바로 실패. 이제 `-c model=` 옵션을 **주지 않고** codex CLI 기본값(`~/.codex/config.toml`의 `model`)을 사용. `AX_CODEX_MODEL` env 또는 spawn 3번째 인자로만 오버라이드.
+- **워커 pane이 보이지 않던 이슈** — v0.8.0은 별도 `ax-workers` tmux window에 pane tiled split했으나, 사용자가 `Ctrl-b w`로 전환해야 보여 v0.7.2 worker-visibility 이슈 재현. 이제 **메인 window를 수직 split**해서 왼쪽 pane=lead(claude main), 오른쪽 pane=워커들(추가 spawn 시 수평 split)로 배치. 오너가 한 화면에서 전부 관찰 가능.
+
+### Changed
+- `orchestrator.sh` 서브커맨드 간소화 — `prepare-window` 제거(spawn이 알아서 메인 window split 처리). 하위 호환을 위해 no-op으로 허용.
+- 워커 pane 식별 태그 → `ax:<task_id>` prefix로 표준화. `cleanup` 및 상태 감지에서 `ax:` prefix로 필터.
+
+### Docs
+- 문서 전반에서 "v0.8부터 바뀌었다" 류의 시간축 주석 제거. 현재 상태만 서술하고 역사는 CHANGELOG와 `docs/guides/v0.7-to-v0.8-migration.md`, `docs/specs/parallel-dev-spec.md §호환성` 섹션에만 남김. (PROJECT_BRIEF §6 "시간 축 본문 금지" 원칙 복원)
+- `ax-build` SKILL.md §가시성 / §3-c 흐름 / 참조 섹션을 메인 window split 모델에 맞게 재서술
+- `ax-execute` SKILL.md 호출 예시의 `gpt-5-codex` 하드코딩 제거
+
 ## v0.8.0 — 2026-04-21
 
 **ax-build 병렬 엔진 재설계 (breaking).** worktree 제거 + Codex 워커 N개 + 파일 whitelist 격리 + 단일 브랜치. lead(Claude main session)는 오케스트레이션만, 코드 작성은 전부 codex로 이관해 Claude 토큰 부담 완화 + tmux pane grid로 병렬 관찰성 확보.

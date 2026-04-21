@@ -34,7 +34,7 @@ team-ax 플러그인 안내.
 | `/ax-design` | 컴포넌트 단위 디자인 확정 (ax-build 안에서 자동 호출되거나 독립 실행) |
 | `/ax-review doc` | 문서 리뷰 (codex 위임) |
 | `/ax-review code` | 코드 리뷰 (codex 위임) |
-| `/ax-execute` | 워커 프로토콜 엔진 (codex 전용). ax-build v0.8이 병렬 워커마다 호출. 단일 수동 실행도 동일 진입점 |
+| `/ax-execute` | 워커 프로토콜 엔진 (codex 전용). ax-build가 병렬 워커마다 호출. 단일 수동 실행도 동일 진입점 |
 | `/ax-status` | statusline 설치/토글/상태 |
 | `/ax-codex` | codex 스킬 동기화 관리 (`ax-review`/`ax-execute` → `~/.codex/skills/`) |
 | `/ax-paperwork` | 문서-코드 정합성 점검 + in-place 갱신 |
@@ -51,8 +51,8 @@ versions/vX.Y.Z/ 존재            → define 완료
 version/vX.Y.Z 브랜치 존재        → build 진행 중 또는 완료
 versions/vX.Y.Z/qa-report.md 존재 → QA 완료
 versions/vX.Y.Z/build-plan.md 존재 → build plan 수립됨
-.ax/plan.json 또는 .ax/workers/ 존재 → 병렬 빌드 진행 중 (v0.8)
-ax-workers tmux 윈도우 활성      → 워커 live
+.ax/plan.json 또는 .ax/workers/ 존재 → 병렬 빌드 진행 중
+ax: prefix pane 활성             → 워커 live
 ```
 
 **출력 예시:**
@@ -64,12 +64,12 @@ ax-workers tmux 윈도우 활성      → 워커 live
   qa:     ⏳ 대기
   deploy: ⏳ 대기
 
-  워커: 2개 활성 (.ax/workers/T1, T2 — ax-workers 윈도우)
+  워커: 2개 활성 (.ax/workers/T1, T2 — 메인 window 수직 split pane)
 ```
 
 ### 4. build 중 안전 작업 가이드
 
-build가 병렬 진행 중일 때 (`ax-workers` 윈도우 활성):
+build가 병렬 진행 중일 때 (워커 pane 활성):
 
 ```
 ✅ 안전한 작업 (메인 세션에서):
@@ -89,6 +89,6 @@ build가 병렬 진행 중일 때 (`ax-workers` 윈도우 활성):
 1. `versions/` 디렉토리 스캔
 2. `git branch` 확인
 3. `.ax/plan.json` / `.ax/workers/` 존재 확인
-4. `tmux list-windows`에서 `ax-workers` 윈도우 확인
+4. `tmux list-panes -F '#{pane_title}'`에서 `ax:` prefix pane 확인
 5. qa-report.md / build-plan.md 존재 확인
 6. 결과 조합 → 상태 출력
