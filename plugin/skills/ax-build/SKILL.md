@@ -1,291 +1,272 @@
 ---
 name: ax-build
-description: "team-ax 빌드 스킬. 개발팀 역할 전체 — plan(실행 전략) → 공통 기반 → 구현(순차/병렬) → 오너 확인 → 머지 → QA. Use when: /ax-build, 구현, 빌드, 개발."
+description: "team-ax 빌드 스킬 (v0.8 병렬 엔진). 개발팀 역할 전체 — plan(파일 분할) → 공통 기반 → 병렬 라운드(codex 워커 N개) → 오너 확인 → QA. worktree 없음, 단일 브랜치. Use when: /ax-build, 구현, 빌드, 개발."
 argument-hint: "<대상 제품 리포 경로>"
 ---
 
 # /ax-build
 
-team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — plan 수립부터 구현/리뷰/오너 확인/QA 넘기기까지.
+team-ax의 빌드 스킬. **개발팀의 업무 시작부터 끝까지** — plan 수립 → 공통 기반 → 병렬 구현 → 오너 확인 → QA 넘기기.
 
 > **역할 경계**
 > - ax-define = PM ("무엇을 만들지" — scope 확정)
 > - ax-build = 개발팀 ("어떻게 만들지" — plan → 구현 → 리뷰 → 오너 확인)
 > - ax-qa = QA ("제대로 됐는지" — 통합 테스트)
+>
+> **v0.8 재설계**: worktree/워커 브랜치 제거. 단일 브랜치 위에서 **파일 whitelist 격리**로 Codex 워커 N개 병렬. lead(Claude main session)는 오케스트레이션만, 코드 작성은 전부 codex가 담당.
+
+## 모델
+
+```
+lead (Claude main session)
+  ├─ planner (agent)       → .ax/plan.json 생성
+  ├─ orchestrator (script) → version branch / tmux pane / 워커 스폰 / 상태 수집
+  ├─ polling + commit      → result.json 읽고 lead가 일괄 커밋
+  └─ workers (codex × N)   → /ax-execute <inbox.md> (각 tmux pane에서 one-shot)
+```
+
+- **단일 브랜치**: `version/vX.Y.Z`. 워커 브랜치 없음, 머지 없음.
+- **격리**: 파일 whitelist. planner가 파일 경로가 겹치지 않게 태스크 분할.
+- **워커**: codex `exec` one-shot. lead 일괄 커밋이므로 워커는 커밋/푸시 금지.
+- **프로토콜**: 파일시스템만 (`.ax/plan.json`, `.ax/workers/<id>/inbox.md`, `.ax/workers/<id>/result.json`). 공식 team-mode/MCP 불필요.
+- **가시성**: tmux 윈도우 `ax-workers` 안에 워커 pane tiled. 메인 윈도우는 lead 대화 입구로 별도.
 
 ## 입력 / 출력
 
 | 구분 | 내용 |
 |---|---|
-| **입력** | `versions/undefined/scope.md` (ax-define 산출물), `docs/specs/`, `flows/`, `DESIGN_SYSTEM.md`, 기존 코드 |
-| **출력** | `versions/vX.Y.Z/build-plan.md`, version branch, 구현 코드, 테스트, 오너 확인 완료 상태 |
+| **입력** | `versions/undefined/scope.md` (ax-define 산출), `docs/specs/`, `flows/`, `DESIGN_SYSTEM.md`, 기존 코드 |
+| **출력** | `versions/vX.Y.Z/build-plan.md` (사람 계획서), `.ax/plan.json` (기계 SSOT), 구현 커밋, 오너 확인 완료 상태 |
 
-## 에이전트 구성
+## 전제
 
-| 에이전트 | 담당 | 책임 |
-|---|---|---|
-| `planner` | 1단계 | gap 분석 + 작업 분해 + 실행 전략 결정 |
-| `executor` (claude) | 3단계 | BE/FE 구현 (TDD + backpressure + 영역 침범 가드) |
-| `ax-execute` 스킬 (codex) | 3단계 | 동일 책임을 codex가 수행 (`executor.engine=codex` 토글 시) |
-| `design-builder` | 3단계 | 디자인 필요 작업에서 ax-design 호출 후 FE 구현 |
+- **codex CLI 설치 + 로그인** — `npm install -g @openai/codex` + `codex login`
+- **tmux 안에서 기동** — `echo $TMUX` 비어있지 않아야 함
+- **ax-execute 스킬 codex 설치** — `/ax-codex install` 1회 필요
 
-### executor.engine 토글
-
-3단계 코드 구현의 작성 엔진을 **claude / codex** 중 선택할 수 있다. 위치는 프로젝트 `.claude/settings.json`:
-
-```json
-{
-  "executor": { "engine": "claude" }
-}
-```
-
-| 값 | 동작 |
-|---|---|
-| `claude` (기본) | `executor` 에이전트(`plugin/agents/executor.md`)를 메인 세션의 Task 도구로 호출 |
-| `codex` | `codex exec '$ax-execute <task-spec> [--allow ...] [--block ...]'`로 위임 (`plugin/skills/ax-execute/SKILL.md`) |
-
-두 엔진 모두 동일한 제약(TDD / backpressure / 영역 침범 가드 / 보안)을 따른다. ax-build 오케스트레이터(워크트리 / tmux / 머지)는 그대로 유지되고 **executor 단계만 분기**한다.
-
-산출물 인터페이스도 동일: 태스크 단위 git 커밋 + 결과 요약. codex의 경우 stdout 첫 줄이 `DONE` / `BLOCKED: {이유}`이며, 메인 세션이 이를 보고 다음 태스크 진행 또는 오너 보고 결정.
+사전 점검은 아래 `0단계`에서 스크립트가 검증.
 
 ## 동작 순서
 
-### 사전 점검
+### 0단계 — 사전 점검
 
-1. 제품 리포 루트에 있는지 확인 (`pwd`).
-2. `versions/undefined/scope.md` 존재 확인 (ax-define 완료 전제).
-3. `docs/specs/` 존재 확인.
-4. **메인 claude 세션이 tmux 안에서 기동 중인지 확인** (`echo $TMUX`가 비어있지 않아야 함). 3-b(워크트리 병렬) 흐름은 같은 tmux 세션에 새 윈도우를 여는 방식이므로, 메인이 tmux 밖이면 orchestrator가 ERROR로 중단한다. 밖이면 `tmux new-session -s ax-build` 후 그 안에서 claude를 다시 시작할 것.
+```bash
+bash plugin/scripts/ax-build-orchestrator.sh precheck
+```
 
-### 1단계 — plan (구현 계획 수립)
+tmux / codex CLI / codex login / git / ax-execute 스킬 설치 상태 확인. 실패 시 안내 출력 + 중단.
 
-메인 세션에서 `planner` 에이전트가 실행. **전체 버전의 구현 계획을 세운다.**
+### 1단계 — plan (구현 계획 + 파일 분할)
+
+**메인 세션에서 `planner` 에이전트 호출.** planner는 전체 버전의 구현 계획 수립 + **파일 집합 단위 태스크 분할**을 담당.
 
 **입력:**
-- `versions/undefined/scope.md` (§Story Map, §수정 계획)
-- `flows/` (UX 플로우, 있으면)
-- `docs/specs/` (기존 스펙)
-- 기존 코드 gap 분석 (subagent로 탐색 — "구현되어있다고 가정하지 말고 확인")
-- `DESIGN_SYSTEM.md` (기존 DS, 있으면)
+- `versions/undefined/scope.md`
+- `flows/`, `docs/specs/`, `DESIGN_SYSTEM.md` (있으면)
+- 기존 코드 gap 분석
 
-**planner가 결정하는 것:**
-1. **공통 기반** — 여러 작업이 공유하는 DB/API/타입/DS 식별
-2. **작업 단위 분해** — Story 단위가 아닌 **구현 단위**로 분해
-3. **의존 관계** — 작업 간 선후 관계
-4. **디자인 필요 여부** — 작업별 판단
-5. **실행 전략** — 워크트리 병렬 여부 결정
+**산출물 (동시 2개):**
+- `versions/vX.Y.Z/build-plan.md` — 사람이 읽는 계획서 (templates/build-plan.md 포맷)
+- **`.ax/plan.json`** — 기계가 읽는 SSOT (lead가 이걸 보고 스폰·폴링·커밋)
 
-**실행 전략 결정 기준:**
+`.ax/plan.json` 스키마는 `plugin/agents/planner.md` 참조. 필드:
 
-| 조건 | 전략 |
-|---|---|
-| 작업이 1~2개이고 작음 | 워크트리 없이 version branch에서 순차 |
-| 독립 작업이 2개 이상 + 각각 규모 있음 | 워크트리 분리 → 병렬 |
-| 연결된 UX 흐름 | 같은 워크트리에서 함께 |
-| 작업 B가 작업 A에 의존 | A 완료 후 B 시작 |
-| 전체가 한 흐름 | 워크트리 불필요 — version branch에서 순차 |
+- `tasks[].id` — 고유 식별자 (예: `T0-common`, `T1`, `T2`)
+- `tasks[].title` — 사람 제목
+- `tasks[].kind` — `common` (공통 기반, 최우선) | `task` (일반 병렬)
+- `tasks[].files` — 편집 허용 파일/디렉토리 glob (whitelist 원천)
+- `tasks[].blockedBy` — 선행 태스크 id 배열
+- `tasks[].instructions` — 구체 지시 (scope/spec에서 추출)
+- `tasks[].hints` — (옵션) 참고 spec, 기존 패턴 등
 
-**산출물: `versions/vX.Y.Z/build-plan.md`** (templates/build-plan.md 포맷)
+**분할 규칙 (planner가 적용):**
+1. 두 태스크가 같은 파일 건드리면 → 병렬 불가 (`blockedBy`로 순차화)
+2. 공유 파일(타입, 공통 유틸)은 `kind: common`으로 분리 → 최우선
+3. 1라운드 병렬 대상 최대 5 (기본 2-3)
+4. 분할 불가능한 전역 리팩토링 → 단일 태스크 1워커 폴백
 
-**오너 확인**: build-plan.md를 오너에게 보여주고 승인. **승인 없이 구현 착수 금지.**
+**오너 게이트:** lead가 plan.json 요약(태스크 수 / 라운드 수 / 라운드별 워커 수 / 파일 분할 요약 / 위험 신호)을 오너에게 보여주고 **승인**. 반려 시 planner 재분할.
 
-→ **커밋** (`docs(build): vX.Y.Z build-plan 수립`)
+→ **커밋** (`docs(build): vX.Y.Z plan + 파일 분할`)
 
-### 2단계 — 공통 기반 구축
-
-여러 작업이 공유하는 기반을 version branch에서 먼저 구축. **공통 기반 없으면 워크트리 생성 금지.**
-
-**version branch 생성** (없으면):
-```bash
-git checkout -b version/vX.Y.Z
-```
-
-**폴더 승격** (Phase B에서 이동):
-```bash
-# Phase A 산출물 커밋
-git add versions/undefined/
-git commit -m "Phase A 완료 — vX.Y.Z scope 확정"
-
-# 폴더 승격
-mv versions/undefined versions/vX.Y.Z
-git add versions/
-git commit -m "vX.Y.Z 폴더 승격"
-```
-
-**공통 기반 구축 순서**: DB → API → 타입 → DS (하위 레이어부터)
-
-| 영역 | 내용 |
-|---|---|
-| DB | 공통 테이블/컬럼 마이그레이션 |
-| API | 여러 작업이 쓰는 공통 엔드포인트 |
-| 타입 | 공통 타입/인터페이스 정의 |
-| DS | 신규 컴포넌트 (ax-design 호출 → 오너 확정 → DS 등록) |
-
-build-plan.md에 공통 기반 항목이 없으면 이 단계 스킵.
-
-각 항목 완료 → backpressure (lint/typecheck/unit/build) → **커밋**.
-
-### 3단계 — 실행
-
-build-plan.md의 실행 전략에 따라 진행.
-
-**진입 시 `executor.engine` 확인:**
-```bash
-ENGINE=$(jq -r '.executor.engine // "claude"' .claude/settings.json 2>/dev/null || echo "claude")
-```
-
-- `claude` → `executor` 에이전트 호출 (메인 세션의 Task 도구)
-- `codex` → `codex exec '$ax-execute <task-spec> --allow <허용경로> --block <차단경로>'`
-
-두 엔진 모두 **차단 파일 경로를 반드시 명시해서 호출**한다 (영역 침범 가드 발동 조건).
-
-#### 3-a. 워크트리 없이 (version branch에서 순차)
-
-메인 세션에서 `executor` 에이전트(claude) 또는 `$ax-execute` 스킬(codex)로 직접 구현:
-
-```
-태스크 선택 → 차단 영역 명시 → 구현 → backpressure → git status self-check
-        → 커밋 → codex code review → 다음 태스크
-```
-
-완료 → 서버 띄우기 → 4단계(오너 확인)로.
-
-#### 3-b. 워크트리 병렬
-
-메인 세션이 `ax-build-orchestrator.sh`를 실행:
-
-1. **워크트리 생성** (build-plan의 작업 단위별)
-2. **`.ax-brief.md` 생성** (templates/ax-brief.md 포맷으로 작업 지시서 작성 → 워크트리에 저장)
-3. **tmux 윈도우 자동 생성 (백그라운드):**
-   ```bash
-   tmux new-window -d -n "work-a" \
-     "cd .claude/worktrees/work-a && claude 'Read .ax-brief.md and follow the instructions.'"
-   ```
-
-   **세 가지 중요:**
-   - `-d` — 메인에 포커스 유지. 미지정 시 새 윈도우로 자동 전환되어 오너 키 입력이 워커 stdin으로 샌다 (과거 "메인 화면 깨짐" 사고 원인).
-   - `-p` 없음 — claude 기본이 인터랙티브 TUI이며, `-p`는 "응답 1회 출력 후 종료" 모드라 워커가 조용히 죽는다.
-   - positional prompt — TUI 시작과 동시에 brief 참조 지시 주입. Claude가 MCP 부팅 후 Read 도구로 `.ax-brief.md`를 읽어 작업을 시작한다.
-
-**각 세션 내부 흐름:**
-
-```
-.ax-brief.md 읽기 (현재 작업 + 차단 영역 + executor.engine 확인)
-  → 디자인 필요? → ax-design 실행 → 구현
-  → 디자인 불필요? → 바로 구현
-  → 태스크별: 구현 → backpressure → git status self-check → 커밋
-  → 전체 완료 → codex code review
-  → 서버 띄우기 (할당 포트)
-  → .ax-status = "review-ready"
-```
-
-`.ax-brief.md`에는 반드시 **차단 영역**을 명시한다. `executor.engine=codex`로 호출 시 `--allow` / `--block` 인자에 그대로 전달된다.
-
-**backpressure (모든 세션 공통):**
-- lint + typecheck + unit + build 통과 전 다음 태스크 금지
-- 태스크 완료 = 커밋 (커밋 없이 다음 태스크 금지)
-- placeholder/stub 금지
-
-**code review (Codex 위임):**
-```bash
-codex exec '$ax-review code {변경 파일 경로}'
-```
-- **변경 파일 경로만 전달** — 전체 컨텍스트/diff를 프롬프트에 붙이지 않음 (속도)
-- **작업 단위 diff만** — 전체 diff가 아니라 이번 작업에서 변경된 파일만
-- spec 정합 / DS 준수 / silent failure / 보안 / 텍스트 하드코딩 검증
-- APPROVE → review-ready. REQUEST_CHANGES → 수정 후 재리뷰.
-- **동일 사유 2회 연속 REQUEST_CHANGES → 오너에게 위임** (무한 루프 방지)
-- **사전 체크**: `$ax-review code`가 stub(구 버전 캐시)이면 경고 출력 + 플러그인 업데이트 안내
-
-**포트 할당:**
-```
-기본 포트 + 10 + 작업 번호
-예: rubato(3001) → work-a: 3011, work-b: 3012
-```
-
-**오너 대화**: 빌드 중 오너가 tmux 윈도우 전환으로 해당 세션에 직접 대화 가능.
-
-### 4단계 — 오너 확인
-
-빌드 완료된 작업은 dev server가 떠 있는 상태.
-
-**`.ax-status` 상태 전이:**
-
-| 상태 | 의미 |
-|---|---|
-| `building` | 빌드 진행 중 |
-| `review-ready` | 빌드 + code review 완료, 서버 실행 중, 오너 확인 대기 |
-| `needs-fix` | 오너 피드백 → 수정 중 |
-| `merge-ready` | 오너 OK → 머지 대기 |
-
-**오너 흐름:**
-1. tmux 윈도우 전환 → 해당 세션
-2. `localhost:{포트}` 접속 → 동작 확인
-3. OK → `merge-ready`
-4. 수정 필요 → 세션에서 피드백 → 수정 → 재확인
-
-워크트리 없이 진행한 경우: version branch에서 서버 띄우고 메인 세션에서 오너 확인.
-
-### 5단계 — 머지
-
-전체 `merge-ready` 후 메인 세션에서 version branch에 순차 머지.
+### 2단계 — version branch + 폴더 승격
 
 ```bash
-git merge version/vX.Y.Z-work-a
-git merge version/vX.Y.Z-work-b
+bash plugin/scripts/ax-build-orchestrator.sh init vX.Y.Z
 ```
 
-충돌 시 → 오너에게 보고 + 해소 방법 제안.
-워크트리 없이 진행한 경우 이미 version branch에 있으므로 스킵.
+- `versions/undefined/` 산출 커밋 (있으면)
+- `versions/undefined/` → `versions/vX.Y.Z/` 승격
+- `version/vX.Y.Z` 브랜치 생성/체크아웃
+- `.ax/workers/` 디렉토리 확보
 
-### 6단계 — 오너 최종 확인
+### 3단계 — 병렬 라운드 루프
 
-전체 머지 상태에서 통합 동작 확인.
+공통 기반(`kind: common`)을 최우선 순차 처리한 뒤, 병렬 가능 태스크를 라운드 단위로 돌린다. 모든 태스크 `done` 될 때까지 반복.
 
-- version branch에서 dev server 실행 (기본 포트)
-- **전체 그림 확인** — 개별 작업이 아니라 통합 상태
-- 오너 피드백 → 메인 세션에서 직접 수정
-- 확인 완료 → ax-qa로 넘기기
+**한 라운드 흐름:**
 
-### 7단계 — QA 넘기기
+#### 3-a. 라운드 태스크 선정 (lead)
 
-`/ax-qa` 실행 안내. ax-qa가 통합 테스트 후 PR → main 머지까지 진행.
+`.ax/plan.json`에서 다음 조건을 만족하는 태스크 집합 추출:
+
+- 아직 완료(commit)되지 않음
+- `blockedBy`가 전부 완료됨
+- 이번 라운드 우선순위: `kind: common` > `kind: task`
+- `common` 태스크가 있으면 **이번 라운드는 common 1개만** (순차 처리)
+- `common`이 전부 끝나면 이후 라운드는 `task` 병렬
+
+라운드 워커 수 = 선정된 태스크 수 (최대 5).
+
+#### 3-b. inbox.md 생성 (lead)
+
+선정된 각 태스크에 대해:
+
+```
+.ax/workers/<task_id>/inbox.md
+```
+
+`plugin/skills/ax-build/templates/worker-inbox.md.tmpl` 포맷으로 채운다. 필수 필드:
+
+- `task_id`, `title`, `instructions`
+- `whitelist` = plan.json의 `files`
+- `result_path` = `.ax/workers/<task_id>/result.json`
+- `hints` (옵션)
+
+preamble/가드 룰은 inbox에 복제하지 않음 (ax-execute SKILL.md에 내재).
+
+#### 3-c. tmux 윈도우 + 워커 스폰 (orchestrator)
+
+```bash
+bash plugin/scripts/ax-build-orchestrator.sh prepare-window
+```
+
+→ `ax-workers` 윈도우 준비 (tiled 레이아웃).
+
+각 태스크마다:
+
+```bash
+bash plugin/scripts/ax-build-orchestrator.sh spawn vX.Y.Z <task_id> [model]
+```
+
+내부적으로 pane split + 아래 명령 주입:
+
+```bash
+codex exec --dangerously-bypass-approvals-and-sandbox -s workspace-write \
+  -c model='gpt-5-codex' \
+  '$ax-execute .ax/workers/<task_id>/inbox.md'
+```
+
+- `$AX_CODEX_MODEL` env 또는 명령 3번째 인자로 모델 오버라이드 가능 (기본 `gpt-5-codex`)
+- pane title = task_id (식별 용이)
+- `remain-on-exit on` — 비정상 종료 시 pane 잔존 (디버깅)
+
+#### 3-d. 폴링 + 수렴 감지 (lead)
+
+```bash
+bash plugin/scripts/ax-build-orchestrator.sh status
+```
+
+10초 간격으로 호출. 집계 예시:
+```
+total=3 done=2 blocked=0 error=0 in-progress=1
+```
+
+**판정:**
+- 모든 워커 `status: done` → 3-e로
+- 1개라도 `status: error` → 즉시 중단 + 오너 보고 (notes 출력)
+- `status: blocked` → notes 기반 오너 개입 유도 (외부 답변 필요 / 공유 파일 미처리 등)
+- **timeout 30분** (result.json 미작성) → pane 로그 캡처 + 오너 알림 + `tmux kill-pane` 후 순차 재시도 옵션
+
+진행 중엔 lead가 요약을 출력 — `workers: N done / M in-progress` 형식.
+
+#### 3-e. lead 검증 + 일괄 커밋 (lead)
+
+1. 각 `result.json`의 `files_touched` 집계
+2. `git status --porcelain`과 대조 → **whitelist 밖 변경 탐지** (2중 가드: 워커 preamble + lead 검증)
+3. 범위 밖 변경 발견 시 즉시 중단 + 오너 보고, **임의 되돌리기 금지**
+4. 태스크 단위 커밋 (워커별 1개 또는 논리 묶음 1-2개)
+5. 커밋 메시지 표준: `<task_id>: <제목> — <주요 변경 요약>` (한글)
+6. 빈 워커 (`done`인데 `files_touched=[]`) → 로그만 남기고 커밋 스킵
+
+#### 3-f. plan 업데이트 + 다음 라운드 (lead)
+
+`.ax/plan.json`에서 완료 태스크 제거(또는 상태 마킹). 다른 태스크의 `blockedBy`에서도 해제. 남은 태스크가 있으면 3-a로 루프. 전부 완료면 4단계로.
+
+### 4단계 — 오너 최종 확인 (통합)
+
+전체 커밋 상태에서 통합 동작 확인.
+
+- `version/vX.Y.Z`에서 dev server 실행 (기본 포트)
+- **전체 그림 확인** — 개별 태스크가 아니라 통합 상태
+- 오너 피드백 → 메인 세션에서 직접 수정 (필요 시 소규모 핫픽스 인라인)
+- 확인 완료 → ax-qa로
+
+### 5단계 — QA 넘기기
+
+```bash
+bash plugin/scripts/ax-build-orchestrator.sh cleanup
+```
+
+→ `ax-workers` 윈도우 제거. `.ax/` 디렉토리는 로그로 남김(선택).
+
+`/ax-qa` 실행 안내. ax-qa가 통합 테스트 + code review + PR → main.
 
 ## 디자인 중 스펙 변경 처리
 
 **프로토콜:**
-1. 스펙 변경이 **해당 작업 내부에서만 영향** → 워크트리에서 직접 수정
-2. 스펙 변경이 **다른 작업에도 영향** → version branch에서 수정 후 영향받는 워크트리에 merge 전파
-3. 스펙 변경이 **scope 자체를 바꿈** → 메인 세션에서 scope.md 갱신 → build-plan 재조정
+1. 스펙 변경이 **해당 태스크 내부에서만 영향** → 워커가 `status: blocked` + notes → lead가 scope/plan 갱신 후 재스폰
+2. 스펙 변경이 **다른 태스크에도 영향** → lead가 `.ax/plan.json`의 `files`/`blockedBy` 재조정 → 필요 시 새 라운드
+3. 스펙 변경이 **scope 자체를 바꿈** → 메인 세션에서 scope.md 갱신 → build-plan 재조정 → plan.json 재생성
 
 ## 가드레일
 
-1. **build-plan 오너 승인 필수** — plan 없이 구현 착수 금지.
-2. **공통 기반 없으면 워크트리 금지** — 공통 DB/API/타입/DS가 안 깔렸으면 분리 금지.
-3. **backpressure** — lint/typecheck/unit/build 통과 전 다음 태스크 금지.
-4. **태스크 완료 = 커밋** — 커밋 없이 다음 태스크 금지.
-5. **placeholder/stub 금지** — 모든 기능 완전 구현.
-6. **텍스트 하드코딩 금지** — i18n/copy 경유.
-7. **보안 하드코딩 금지** — 키/토큰은 환경 변수.
-8. **env 파일 읽기 금지** — 변수명만 .env.example에서 확인.
-9. **code review는 Codex 위임** — 작성 엔진 ≠ 검증 엔진.
-10. **발견한 버그** → 해결하거나 plan에 기록 (무시 금지).
-11. **스펙 불일치** → 메인 세션에 보고.
-12. **영역 침범 가드 필수** — executor 호출 시 차단 영역 명시 + 각 태스크 후 `git status` self-check. 침범 발견 시 임의 되돌리기 금지, 오너 보고. claude/codex 양쪽 동일 적용.
-13. **공유 파일은 공통 기반에서 처리** — 타입 정의 등 여러 태스크 공유 파일은 2단계(공통 기반)에서 미리. 3단계의 individual executor가 만지지 않음.
+1. **build-plan + plan.json 오너 승인 필수** — 승인 없이 스폰 금지
+2. **공통 기반 선행** — `kind: common` 태스크가 있으면 첫 라운드에서 순차 처리
+3. **backpressure** — 워커의 ax-execute가 `lint + typecheck + unit + build` 통과를 강제. 통과 전 `done` 불가
+4. **워커 커밋 금지** — lead가 일괄. 이중 커밋 방지
+5. **placeholder/stub 금지** — ax-execute가 강제
+6. **텍스트/보안 하드코딩 금지** — i18n/env
+7. **영역 침범 가드 2중** — 워커 preamble + lead git status 대조
+8. **공유 파일은 공통 기반에서** — 개별 워커에서 만지지 않음 (만지면 blocked)
+9. **범위 밖 변경 시 되돌리기 금지** — lead/오너 판단
+10. **워커 수 상한 5** — 초과 시 라운드 분할
+
+## 호환성 / breaking change (v0.7 → v0.8)
+
+- **worktree 흐름 제거** — `.claude/worktrees/` 생성 안 함. 워커 브랜치(`version/vX.Y.Z-<name>`)도 없음
+- **`executor.engine` 토글 제거** — codex 고정. `.claude/settings.json`의 `executor.engine`은 무시됨
+- **Claude `executor` 에이전트 경로 deprecated** — legacy 보존이 필요하면 별도 플래그로만 (사전 협의)
+- **`.ax-brief.md` (단일 공유) 폐기** → 워커별 `.ax/workers/<id>/inbox.md`
+- **`.ax-status` (파일 기반 상태) 폐기** → `.ax/workers/<id>/result.json` 스키마
+- **ax-execute의 stdout DONE/BLOCKED 공식 계약 → result.json 파일**. stdout은 보조 로그
+- **ax-execute 커밋 금지** (v0.7은 태스크 단위 커밋했음)
+
+v0.7 사용자 migration: `/ax-codex install` 재실행으로 새 ax-execute 주입 → ax-build가 자동으로 v0.8 흐름 사용.
 
 ## 참조
 
 - `references/backpressure-pattern.md` — backpressure + fresh context 패턴
 - `references/preflight-checklist.md` — 빌드 전 체크리스트
 - `references/security-rules.md` — 보안 규칙
-- `templates/build-plan.md` — build-plan 포맷
-- `templates/ax-brief.md` — 워크트리 작업 지시서 포맷
-- `plugin/scripts/ax-build-orchestrator.sh` — tmux + 워크트리 + 머지 자동화
-- `plugin/agents/planner.md` — 구현 계획 에이전트
-- `plugin/agents/executor.md` — 구현 에이전트 (claude 분기, 영역 침범 가드 포함)
-- `../ax-execute/SKILL.md` — 코드 구현 스킬 (codex 분기, `$ax-execute`로 호출)
-- `../ax-codex/SKILL.md` — codex 스킬 동기화 (install/uninstall/status)
+- `templates/build-plan.md` — 사람 읽는 계획서 포맷
+- `templates/worker-inbox.md.tmpl` — 워커 inbox 포맷 (v0.8 신규)
+- `plugin/scripts/ax-build-orchestrator.sh` — v0.8 orchestrator (precheck/init/prepare-window/spawn/status/cleanup)
+- `plugin/agents/planner.md` — 계획 + 파일 분할 에이전트
+- `../ax-execute/SKILL.md` — 워커 프로토콜 엔진 (codex 스킬, `$ax-execute`)
+- `../ax-codex/SKILL.md` — codex 스킬 동기화
 - `../ax-design/SKILL.md` — 디자인 필요 시 호출
 - `../ax-qa/SKILL.md` — QA 넘기기
 - `../ax-review/SKILL.md` — code review (Codex 위임)
+
+## Final Checklist
+
+- [ ] 0단계 precheck 통과
+- [ ] 1단계 plan.json 오너 승인
+- [ ] 2단계 version branch + 폴더 승격
+- [ ] `kind: common` 태스크 순차 완료
+- [ ] 병렬 라운드 루프에서 모든 task 완료
+- [ ] 모든 result.json `status: done` + lead 일괄 커밋 완료
+- [ ] 4단계 오너 통합 확인 완료
+- [ ] `ax-workers` 윈도우 cleanup
+- [ ] `/ax-qa` 안내

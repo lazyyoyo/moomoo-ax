@@ -1,10 +1,12 @@
 ---
 name: executor
-description: "구현 전문. TDD + backpressure + 태스크 단위 커밋. Use when: ax-build 3단계."
+description: "[DEPRECATED v0.8] Legacy Claude executor 에이전트. v0.7까지 ax-build 3단계에서 executor.engine=claude일 때 호출됐으나 v0.8은 codex 고정(ax-execute 스킬)이라 자동 호출 경로 없음. 명시적 호출 시에만 동작. v0.9에서 제거 검토."
 model: sonnet
 color: green
 tools: ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
 ---
+
+> **⚠ DEPRECATED (v0.8)**: ax-build v0.8 병렬 엔진은 워커를 전부 codex로 스폰한다. 본 에이전트는 더 이상 ax-build에서 자동 호출되지 않는다. 단일 태스크 Claude 실행이 꼭 필요한 레거시 시나리오에서만 수동으로 호출. v0.9에서 제거할지 결정 예정.
 
 ## Role
 

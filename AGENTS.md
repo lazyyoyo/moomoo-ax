@@ -4,11 +4,12 @@ team-ax 플러그인의 활성 스킬·에이전트와 호출 규약. 정본은 
 
 ## 활성 스킬
 
-| 스킬 | 위치 | 책임 | v0.1 상태 |
+| 스킬 | 위치 | 책임 | 상태 |
 |---|---|---|---|
 | `ax-define` | `plugin/skills/ax-define/` | 제품 버전 스코프 결정 (Phase A) + 스펙 in-place 갱신 사이클 (Phase C) | 구현 |
-| `ax-review` | `plugin/skills/ax-review/` | 범용 리뷰 (codex 위임) — `doc` / `code` / `pr` | `doc`만 구현. `code`/`pr`는 stub |
-| `ax-execute` | `plugin/skills/ax-execute/` | 코드 구현 (codex 위임 가능) — TDD + backpressure + 영역 침범 가드 | 구현 (v0.7) |
+| `ax-build` | `plugin/skills/ax-build/` | 개발팀 오케스트레이터 — plan(파일 분할) → 공통 기반 → codex 워커 병렬 라운드 → 일괄 커밋 → QA. **v0.8 재설계**(worktree 제거 + 단일 브랜치 + 파일 whitelist) | 구현 (v0.8) |
+| `ax-execute` | `plugin/skills/ax-execute/` | **워커 프로토콜 엔진** (codex 전용). inbox.md 과제 1건 실행 + whitelist 가드 + TDD + backpressure + result.json 출력. 단일/병렬 공통 진입점 | 재작성 (v0.8 breaking) |
+| `ax-review` | `plugin/skills/ax-review/` | 범용 리뷰 (codex 위임) — `doc` / `code` / `pr` | `doc` 구현, `code`/`pr` stub |
 | `ax-codex` | `plugin/skills/ax-codex/` | codex 스킬 동기화 관리 — install / uninstall / status | 구현 (v0.7.1) |
 
 ## 활성 에이전트 (Claude 서브에이전트)
@@ -56,10 +57,20 @@ Codex에서는 `$ax-review` / `$ax-execute`로 직접 호출 (`/ax-codex install
 
 ```text
 $ax-review doc versions/undefined/scope.md
-$ax-review code <대상>   # v0.1 stub — NOT_IMPLEMENTED 한 줄 출력 후 중단
-$ax-review pr <번호>     # v0.1 stub — NOT_IMPLEMENTED 한 줄 출력 후 중단
-$ax-execute <task-spec> --allow <경로> --block <경로>
+$ax-review code <대상>   # stub — NOT_IMPLEMENTED 한 줄 출력 후 중단
+$ax-review pr <번호>     # stub — NOT_IMPLEMENTED 한 줄 출력 후 중단
+$ax-execute <inbox.md 경로>    # v0.8: inbox 1건 실행 + result.json 출력. v0.7의 --allow/--block 인자 폐기
 ```
+
+**v0.8 ax-execute 호출 방식 (ax-build 워커)**:
+
+```bash
+codex exec --dangerously-bypass-approvals-and-sandbox -s workspace-write \
+  -c model='gpt-5-codex' \
+  '$ax-execute .ax/workers/<task_id>/inbox.md'
+```
+
+inbox.md는 `plugin/skills/ax-build/templates/worker-inbox.md.tmpl` 포맷을 따른다. preamble/whitelist/TDD/no-commit 룰은 ax-execute SKILL.md에 내재되어 있으므로 inbox는 과제 본문과 허용 범위만 담는다.
 
 ## 사용 방식 2 — Claude가 Codex에게 위임
 

@@ -1,101 +1,229 @@
-# 병렬 개발 오케스트레이션 스펙 (v0.3 구현용)
+# 병렬 개발 오케스트레이션 스펙 (v0.8)
 
-> v0.2에서 Phase B가 Story별 worktree를 생성한다. 본 문서는 그 worktree 위에서 **Story별 병렬 Claude 세션을 어떻게 실행·조율·머지하는지** 정의한다.
+> v0.7까지 이 문서는 Story별 worktree + Claude 병렬 세션을 기술했다. **v0.8부터 워크트리는 제거**되고 단일 브랜치 위에서 **파일 whitelist 격리**로 codex 워커 N개를 병렬 실행한다. 본 문서는 v0.8 기준으로 전면 재작성된 사본이다.
 
-## 전제
+## 설계 목표
 
-- Phase B 완료 상태: version branch + Story별 worktree N개 존재
-- 각 worktree에서 Claude + Codex 독립 실행 가능 (v0.2에서 검증)
-- scope.md §Story Map이 Story 분해의 SSOT
+- **build 단계 최대 속도** — 병렬 가능한 태스크는 병렬로
+- **Claude 토큰 부담 최소화** — 워커는 codex, lead(Claude)는 오케스트레이션만
+- **격리 비용 최소화** — worktree/브랜치/머지 대신 파일 whitelist
+- **오너 관찰성** — tmux pane grid로 모든 워커를 한눈에
 
-## 1. 파일 의존성 분석
-
-### 문제
-
-Story A와 B가 같은 파일을 수정하면 머지 시 충돌 발생.
-
-### 분석 방법
-
-Phase C 완료 후 (§수정 계획이 채워진 상태), 각 Story의 §수정 계획에서 수정 대상 파일 목록을 추출한다.
+## 구성 요소
 
 ```
-Story 1 → [profile.md, user.md, BACKLOG.md]
-Story 2 → [theme.md, BACKLOG.md]
-Story 3 → [password.md, user.md]
+lead (Claude main session)
+  ├─ planner agent            → .ax/plan.json (파일 집합 단위 태스크 분할)
+  ├─ orchestrator script      → version branch / tmux pane / codex 스폰 / 상태 수집
+  ├─ polling + commit         → result.json 수집 + whitelist 대조 + 일괄 커밋
+  └─ workers (codex exec × N) → /ax-execute <inbox.md> (tmux pane에서 one-shot)
 ```
 
-**교차 판정:**
+- **단일 브랜치** `version/vX.Y.Z` — 워커 브랜치/머지 없음
+- **파일 프로토콜** — `.ax/plan.json`, `.ax/workers/<id>/inbox.md`, `.ax/workers/<id>/result.json`
+- **lead 커밋** — 워커는 커밋 금지, lead가 result.json 집계 후 일괄 커밋
 
-| 관계 | 조건 | 대응 |
-|---|---|---|
-| 독립 | 파일 교차 없음 | 완전 병렬 실행 |
-| 공유 파일 (비충돌) | BACKLOG.md 등 append-only 파일만 교차 | 병렬 실행, 머지 시 수동 해소 (낮은 충돌 확률) |
-| 공유 파일 (충돌 예상) | 같은 spec 파일의 같은 섹션 수정 | 순차 실행 또는 선행 Story 머지 후 후행 Story rebase |
-
-### 자동 vs 오너 확인
-
-- **자동**: 파일 교차 탐지 + 관계 분류
-- **오너 확인**: 충돌 예상 Story에 대한 실행 순서 결정
-
-## 2. 머지 순서
+## 1. 파일 집합 단위 태스크 분할 (planner)
 
 ### 원칙
 
-1. 독립 Story는 어떤 순서로든 version branch에 머지 가능
-2. 공유 파일이 있는 Story 쌍은 한쪽 먼저 머지 → 다른 쪽 rebase 후 머지
-3. 기능 선행 관계 (Story B가 Story A의 결과를 전제)는 A 먼저 머지
-
-### 머지 흐름
+태스크의 병렬 가능성은 **파일 집합 겹침 여부**로 판정한다.
 
 ```
-story-1 ──완료──→ version/vX.Y.Z에 머지
-story-2 ──완료──→ rebase (story-1 반영) → version/vX.Y.Z에 머지
-story-3 ──완료──→ rebase (story-1+2 반영) → version/vX.Y.Z에 머지
-                                           ↓
-                                    통합 QA → main 머지 → 배포
+Task A → files: [src/admin/timeseries/**, src/api/timeseries/route.ts]
+Task B → files: [src/admin/users/**,      src/api/users/route.ts]
+Task C → files: [src/types/timeseries.ts, src/types/users.ts]  (공유)
 ```
 
-### 충돌 해소
+- A ∩ B = ∅ → **병렬 가능**
+- A ∩ C ≠ ∅ → C를 공통 기반(`kind: common`)으로 분리, A는 `blockedBy: [C]`
+- B ∩ C ≠ ∅ → 마찬가지
 
-- 자동 rebase 성공 → 바로 머지
-- 자동 rebase 실패 (conflict) → 오너에게 충돌 파일 보고 + 해소 방법 제안
+### 분할 규칙
 
-## 3. Story별 태스크 계획
-
-### Story → 구현 태스크 분해
-
-각 Story에 대해 ax-define Phase C(§수정 계획)가 이미 spec 수준 태스크를 정의한다. Build 단계에서는 이를 **구현 태스크**로 변환:
-
-| spec 수준 (§수정 계획) | 구현 수준 (Build) |
-|---|---|
-| `profile.md` 갱신 — 프로필 카드 시나리오 추가 | 컴포넌트 구현 + API + 테스트 |
-| `theme.md` 신규 — 테마 변경 시나리오 | 페이지 구현 + 스토리지 + 테스트 |
-
-### worktree 컨텍스트 전달
-
-각 worktree의 Claude 세션에 전달해야 하는 정보:
-
-| 항목 | 소스 |
-|---|---|
-| 이 Story의 JTBD 기여 | scope.md §JTBD |
-| 이 Story의 태스크 목록 | scope.md §Story Map > 해당 Story |
-| 수정 대상 spec 파일 | scope.md §수정 계획 (이 Story 대응 행만) |
-| 다른 Story와의 파일 교차 | 의존성 분석 결과 |
-| version branch 이름 | Phase B 출력 |
-
-### 세션 실행 방식 (후보)
-
-| 방식 | 장점 | 단점 |
+| 관계 | 조건 | 대응 |
 |---|---|---|
-| 수동 (`cd worktree && claude`) | 유연, 오너가 각 세션 관찰 가능 | N개 터미널 수동 관리 |
-| 스크립트 (`ax-build` 스킬) | 자동화, 컨텍스트 자동 전달 | 구현 복잡도 |
-| 서브에이전트 (`isolation: worktree`) | Claude Code 네이티브, 정리 자동 | 커스텀 worktree 위치 불가 (Phase B가 이미 만든 것과 별도) |
+| 독립 | `files` 교차 없음 | 같은 라운드에 병렬 스폰 |
+| 공유 파일 (공통 기반) | 여러 task가 같은 타입/DB/유틸 수정 필요 | `kind: common` 태스크로 분리. 최우선 순차 처리 후 다른 태스크 스폰 |
+| 논리 의존 | B가 A의 함수/타입에 의존 | `B.blockedBy: [A]` |
+| 파일 겹침 | 같은 파일의 다른 변경 | 병합해서 한 task로 or `blockedBy`로 순차 |
+| 분할 불가 | 전역 리팩토링 등 | 단일 task 1워커 순차 폴백 |
 
-> v0.3 초기에는 **수동 방식**으로 시작하고, 패턴이 안정되면 `ax-build` 스킬로 코드화 (Progressive Codification).
+### planner 산출물
 
-## 미결 사항
+- `versions/vX.Y.Z/build-plan.md` — 사람 읽는 계획서
+- `.ax/plan.json` — 기계 SSOT (스키마는 `plugin/agents/planner.md`)
 
-- [ ] Story 간 기능 선행 관계를 어떻게 표현할지 (scope.md에 섹션 추가? 별도 파일?)
-- [ ] 통합 QA의 범위와 실행 방법
-- [ ] 병렬 세션 수 제한 (토큰 비용 / API 동시 호출 한도)
-- [ ] Story 완료 기준 — 테스트 통과? 코드 리뷰? 둘 다?
+### 자체 검증
+
+planner가 plan.json 작성 후 자체 검증:
+
+- 모든 task에 `files` 존재
+- task 간 `files` 겹침 스캔 → 겹치면 `blockedBy` 필수
+- `kind: common`은 모든 다른 task의 `blockedBy`에 포함
+- `blockedBy` 그래프에 사이클 없음
+
+오너 게이트에서 승인 후 2단계 진행.
+
+## 2. 실행 단위 — 병렬 라운드
+
+### 라운드 선정
+
+`.ax/plan.json`에서 이번 라운드 태스크 집합 추출:
+
+1. 미완료
+2. `blockedBy` 전부 완료
+3. `kind: common` 우선. common이 하나라도 있으면 **그 라운드는 common 1개만** (순차)
+4. common 전부 끝나면 이후 라운드는 `task` 병렬 (최대 5)
+
+### 워커 스폰
+
+```bash
+# 공통
+bash plugin/scripts/ax-build-orchestrator.sh prepare-window   # 1회
+bash plugin/scripts/ax-build-orchestrator.sh spawn vX.Y.Z T1
+bash plugin/scripts/ax-build-orchestrator.sh spawn vX.Y.Z T2
+...
+```
+
+내부적으로:
+
+```bash
+codex exec --dangerously-bypass-approvals-and-sandbox -s workspace-write \
+  -c model='gpt-5-codex' \
+  '$ax-execute .ax/workers/T1/inbox.md'
+```
+
+- `ax-workers` tmux 윈도우에 pane tiled split
+- pane title = task_id (구분 용이)
+- `remain-on-exit on` — 비정상 종료 pane 잔존(디버깅)
+
+### 폴링 + 수렴
+
+```bash
+bash plugin/scripts/ax-build-orchestrator.sh status
+```
+
+10초 간격. 집계 예:
+```
+total=3 done=2 blocked=0 error=0 in-progress=1
+```
+
+판정:
+- 모두 `done` → lead 검증 + 커밋 단계로
+- `error` → 즉시 중단 + 오너 보고
+- `blocked` → 오너 개입 유도 (notes 기반)
+- timeout 30분 → pane 로그 캡처 + 재시도 옵션
+
+### lead 검증 + 일괄 커밋
+
+1. `result.json.files_touched` 집계
+2. `git status --porcelain`과 대조 → whitelist 밖 변경 탐지 (**2중 가드**: 워커 preamble + lead 검증)
+3. 범위 밖 변경 시 즉시 중단 + 오너 보고, **임의 revert 금지**
+4. 태스크 단위 커밋 (`<task_id>: <title> — <요약>` 한글)
+
+### 라운드 루프
+
+완료 task를 `.ax/plan.json`에서 마킹, 다른 task의 `blockedBy`에서 해제. 남은 task가 있으면 라운드 선정으로 돌아감.
+
+## 3. 워커 계약 (ax-execute)
+
+워커는 **codex one-shot**. 프로토콜 엔진은 `plugin/skills/ax-execute/SKILL.md`가 담당한다.
+
+### 입력
+
+`inbox.md` 경로 인자 1개. inbox 필수 필드:
+
+- `task_id`, `title`, `instructions`
+- `whitelist` — 편집 허용 파일/디렉토리 glob
+- `result_path` — result.json 저장 경로
+- (옵션) `hints`
+
+누락 시 워커는 `result.json.status = error`로 즉시 종료.
+
+### 출력
+
+`result.json` 스키마:
+
+```json
+{
+  "task_id": "T1",
+  "status": "done | blocked | error",
+  "summary": "1-2 문장",
+  "files_touched": ["src/a.ts"],
+  "notes": "optional"
+}
+```
+
+stdout은 보조 로그. lead의 공식 계약은 **result.json 파일**.
+
+### 금지 사항 (워커 preamble)
+
+- sub-agent / Task tool 호출
+- tmux orchestration
+- `git commit` / `git push`
+- whitelist 밖 파일 편집
+- `git reset` / `git checkout --` / `git stash` (임의 revert)
+
+### 가드 5종
+
+v0.7 sprint-7에서 확정된 영역 침범 가드 유지:
+
+1. whitelist 명시 의무 (inbox 필수)
+2. 작업 전 whitelist stdout 출력
+3. `git status --porcelain` self-check
+4. 침범 시 `status: error` + notes, revert 금지
+5. 공유 파일은 공통 기반 선행 (미처리면 `status: blocked`)
+
+## 4. 가시성
+
+- **메인 윈도우** (lead) — 오너 대화 + polling 요약 (`workers: N done / M in-progress`)
+- **`ax-workers` 윈도우** — 워커 pane tiled grid. 오너가 `Ctrl-b w`로 이동해 진행 관찰
+- **(옵션) statusline 요약** — `.ax/workers/*/result.json` 집계 값 노출
+
+## 5. 실패 모드
+
+| 모드 | 감지 | 대응 |
+|---|---|---|
+| 워커 `status: error` | result.json 파싱 | 즉시 중단, 오너 보고, notes 출력 |
+| 워커 `status: blocked` | result.json 파싱 | 오너 개입 (외부 답변, 공유 파일 미처리 등) |
+| timeout (result.json 미작성) | 30분 경과 | pane 로그 캡처, 오너 알림, kill-pane, 순차 재시도 옵션 |
+| whitelist 밖 변경 | lead git status 대조 | 즉시 중단, 오너 보고, revert 금지 |
+| 분할 불가능 | planner 판단 | 단일 task 1워커 폴백 (오너 승인) |
+
+## 6. v0.7에서 v0.8 breaking change
+
+| 항목 | v0.7 | v0.8 |
+|---|---|---|
+| 격리 | git worktree per worker | 파일 whitelist per task |
+| 브랜치 | `version/vX.Y.Z` + `-<name>` 워커 브랜치 | `version/vX.Y.Z` 단일 |
+| 머지 | 워커 브랜치 → version | 머지 개념 없음 |
+| 워커 | claude or codex (`executor.engine`) | codex 고정 |
+| 지시 | 공유 `.ax-brief.md` | 워커별 `.ax/workers/<id>/inbox.md` |
+| 상태 | `.ax-status` (building/review-ready/...) | `.ax/workers/<id>/result.json` (done/blocked/error) |
+| 출력 계약 | stdout `DONE` / `BLOCKED` | result.json 파일 스키마 |
+| 커밋 | 워커가 태스크 단위 커밋 | lead 일괄 커밋 |
+| 가시성 | tmux window 1개씩 | tmux `ax-workers` 윈도우 pane grid |
+| trust dialog | claude 워커라 repo당 1회 수동 dismiss | codex는 claude trust와 무관 |
+| MCP | 워커마다 MCP 중복 부팅 | codex는 MCP 미사용 → 해소 |
+
+v0.7 사용자 migration은 `docs/guides/v0.7-to-v0.8-migration.md` 참조.
+
+## 7. 미결 사항 (v0.9+ 검토)
+
+- [ ] **heartbeat 워치독** — result.json 미작성이지만 pane은 살아있는 경우의 상세 감지. 현재는 단순 timeout
+- [ ] **role routing** — 태스크 종류별 모델 분기 (예: 리뷰어는 o3, executor는 gpt-5-codex). OMC 패턴 차용 시
+- [ ] **gemini 워커** — 현재 codex만 지원
+- [ ] **공식 Claude team-mode 연동** — claude teammate도 섞을 수 있는 하이브리드. `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 이 안정화된 뒤
+- [ ] **MCP 서버 공유 옵션** — codex 측 MCP가 필요해질 때
+
+## 8. 참조
+
+- `plugin/skills/ax-build/SKILL.md` — lead 흐름
+- `plugin/skills/ax-execute/SKILL.md` — 워커 프로토콜
+- `plugin/agents/planner.md` — 파일 분할 책임
+- `plugin/scripts/ax-build-orchestrator.sh` — 원시 도구 6종 (precheck/init/prepare-window/spawn/status/cleanup)
+- `plugin/skills/ax-build/templates/worker-inbox.md.tmpl` — inbox 포맷
+- `docs/sprints/sprint-8/sprint-8-plan.md` — v0.8 스프린트 계획
+- `docs/sprints/sprint-8/build-flow.html` — v0.8 플로우 시각화
+- `docs/guides/v0.7-to-v0.8-migration.md` — 마이그레이션 가이드

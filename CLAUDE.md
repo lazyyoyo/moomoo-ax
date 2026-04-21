@@ -17,7 +17,8 @@ moomoo-ax는 **스프린트 단위**로 돌린다. 각 스프린트는 **작업 
 
 | 스프린트 | 목표 | 상태 |
 |---|---|---|
-| sprint-7 | team-ax **v0.7** 배포 — statusline v2 + executor 엔진 토글 + wireframe + preflight fix | 완료 (2026-04-20) |
+| sprint-7 | team-ax **v0.7** 배포 — statusline v2 + executor 엔진 토글 + wireframe + preflight fix | 완료 (2026-04-20), hotfix v0.7.1/v0.7.2 포함 |
+| sprint-8 | team-ax **v0.8** 배포 — ax-build 병렬 엔진 재설계 (worktree 제거 + Codex 워커 + 파일 whitelist) | plan 확정 (2026-04-21) |
 
 ## 디렉토리
 
