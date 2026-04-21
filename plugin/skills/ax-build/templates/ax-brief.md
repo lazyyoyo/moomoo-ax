@@ -1,8 +1,5 @@
 # .ax-brief — {작업명}
 
-> **⚠ DEPRECATED (v0.8)**: v0.7까지 워크트리 기반 병렬 워커의 공유 지시서로 사용. v0.8은 워커별 `.ax/workers/<task_id>/inbox.md`로 대체. 새 포맷은 `worker-inbox.md.tmpl` 참조. 이 파일은 legacy 참조용으로 당분간 유지, v0.9에서 제거 예정.
-
-
 ## 작업 내용
 {작업 설명}
 

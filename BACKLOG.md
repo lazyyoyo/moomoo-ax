@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-21 (v0.8.3 hotfix — 사고 기록·외부 제품·시간축 주석 제거)
+last-updated: 2026-04-21 (sprint-9 완료 — v0.9.0 롤백 릴리즈)
 ---
 
 # moomoo-ax 백로그
@@ -14,6 +14,8 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품의 BACKLOG는 각
 ## inbox
 
 ### v0.8.4+ 후보 (paperwork audit 결과 이관)
+
+> **주의 (sprint-9 이후)**: 아래 항목들은 v0.8 계열 구조 기반. sprint-9 롤백 후엔 상당수가 무의미해짐 (ax-execute inbox 프로토콜, ax-build orchestrator v2 경로 등). sprint-9 머지 후 재평가 필요.
 
 - B-SCRIPTS-RESOLVE: `plugin/scripts/...` 경로 systematic resolve — 현재 ax-build만 `$ORCH` 패턴 사용. 다른 스킬(ax-codex, ax-deploy, ax-clean, ax-design, ax-paperwork, ax-status, ax-review, ax-execute)은 여전히 `bash plugin/scripts/...` 직접 참조. 설치된 플러그인 cache 경로로 wrapper 인프라(ax-status hud-wrapper 패턴 차용) 또는 ax-build처럼 각 SKILL.md resolve 가이드 추가
 - B-DESIGN-GATE-CODIFY: `ax-design` 7단계 게이트 자동 재작업 로직(keep/discard/루프 3회)이 SKILL.md 본문에 자연어로 기술됨 → `design-gate.sh` 결정론 로직 강화 (progressive codification)
@@ -62,7 +64,17 @@ my-agent-office `plugins/statusline/scripts/statusline.sh` 대비 `ax-statusline
 
 ## done
 
-### hotfix v0.8.3 — 사고 기록·외부 제품·시간축 주석 제거 (2026-04-21)
+### sprint-9 — 플러그인 v0.9.0 롤백 릴리즈 (2026-04-21)
+
+v0.7.2 구조 복원. v0.8 병렬 엔진 재설계 중 유실된 태스크 단위 Ralph loop(`$ax-review code` + APPROVE/REQUEST_CHANGES + 2회 연속 오너 위임) 복구. v0.8의 codex 병렬 아이디어는 sprint-10+에서 "Ralph loop 우선, 병렬 나중" 순서로 재도입 검토.
+
+- B-ROLLBACK-V072: `plugin/` 전체 v0.7.2 태그 상태로 복원 + `.claude-plugin/marketplace.json` · `plugin/.claude-plugin/plugin.json` 버전 `0.9.0`으로 bump. `docs/specs/parallel-dev-spec.md` v0.7.2 본 복원. `docs/guides/v0.7-to-v0.8-migration.md` + `plugin/skills/ax-build/templates/worker-inbox.md.tmpl` 휴지통
+- B-V09-CHANGELOG: CHANGELOG v0.9.0 엔트리 + v0.8 계열 4건(0.8.0/0.8.1/0.8.2/0.8.3) 헤딩에 "⚠ v0.9.0에서 롤백됨" 주석
+- B-V09-BACKLOG-SYNC: BACKLOG done 섹션에 본 엔트리 + v0.8 엔트리 4건 롤백 주석. inbox "v0.8.4+ 후보" 블록에 재평가 경고
+
+**Kept (역사 기록)**: `docs/sprints/sprint-8/*` (plan/task/flow), BACKLOG done 엔트리들은 삭제하지 않고 주석만.
+
+### hotfix v0.8.3 — 사고 기록·외부 제품·시간축 주석 제거 (2026-04-21) ⚠ v0.9.0에서 롤백됨
 
 PROJECT_BRIEF §6 "스킬 본문은 현재 규칙만" 원칙 재확립.
 
@@ -73,7 +85,7 @@ PROJECT_BRIEF §6 "스킬 본문은 현재 규칙만" 원칙 재확립.
 - ax-define / product-owner 가드레일 "(v0.1.1 신설/변경)" 주석 제거
 - ax-deploy cleanup `$ORCH` resolve 패턴 통일
 
-### hotfix v0.8.2 — 워커 모델 백그라운드화 + 8건 실검증 피드백 (2026-04-21)
+### hotfix v0.8.2 — 워커 모델 백그라운드화 + 8건 실검증 피드백 (2026-04-21) ⚠ v0.9.0에서 롤백됨
 
 - 워커 실행 모델 tmux pane split → 백그라운드 프로세스 + stdout.log/pid/exit_code 파일. tmux 의존 제거. pane 관리 복잡성(remain-on-exit 실패, pane id race 등) 자연 소멸
 - ax-execute 동시 라운드 self-check 개선 — `.ax/plan.json` 모든 task whitelist 합집합 인지하여 타 워커 산출 파일 오판정 방지
@@ -85,13 +97,13 @@ PROJECT_BRIEF §6 "스킬 본문은 현재 규칙만" 원칙 재확립.
 - orchestrator `logs <task_id>` 서브커맨드 신설
 - parallel-dev-spec 전면 재작성 (백그라운드 모델 + glue + 재개)
 
-### hotfix v0.8.1 — 모델 하드코딩 제거 + 메인 window split + 시간축 주석 정리 (2026-04-21)
+### hotfix v0.8.1 — 모델 하드코딩 제거 + 메인 window split + 시간축 주석 정리 (2026-04-21) ⚠ v0.9.0에서 롤백됨
 
 - `-c model=` 옵션 기본 제거 → codex CLI 기본값 사용 (`gpt-5-codex` 하드코딩으로 워커 즉사하던 이슈 해결)
 - 별도 `ax-workers` window → 메인 window 수직 split (Ctrl-b w 전환 없이 한 화면 관찰) — v0.8.2에서 백그라운드 모델로 재구성됨
 - 시간축 주석 1차 정리 — 이후 v0.8.3에서 원칙 재확립
 
-### sprint-8 — 플러그인 v0.8.0 (2026-04-21)
+### sprint-8 — 플러그인 v0.8.0 (2026-04-21) ⚠ v0.9.0에서 롤백됨
 
 ax-build 병렬 엔진 재설계. worktree 제거 + Codex 워커 + 파일 whitelist 격리 + 단일 브랜치. lead(Claude main)는 오케스트레이션만, 코드 작성은 전부 codex로 이관해 Claude 토큰 부담 완화 + tmux pane grid로 병렬 관찰성 확보.
 
