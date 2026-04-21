@@ -61,7 +61,7 @@ ax-clean 실행 시 사용하는 세부 탐지 규칙.
 
 ### C-2. 임시 파일
 
-- [ ] `.ax-status`, `.ax-brief.md` (워크트리 종료 후 잔존)
+- [ ] `.ax/workers/*/` 디렉토리 잔재 (build 완료 후). (v0.7 레거시: `.ax-status`, `.ax-brief.md`)
 - [ ] `HANDOFF.md` (처리 완료 후 잔존)
 
 ### C-3. env 백업
@@ -85,4 +85,4 @@ ax-clean 실행 시 사용하는 세부 탐지 규칙.
 - [ ] `git ls-files`에 있는 파일은 오너 명시 승인 필요
 - [ ] `versions/` 전체는 기본 보호 (archive 이동만 허용)
 - [ ] `.git/`, `node_modules/`, `.next/cache/`는 스캔 제외
-- [ ] `.claude/worktrees/` 활성 시 중단
+- [ ] `.ax/workers/` 존재 또는 `ax-workers` 윈도우 활성 시 중단

@@ -50,7 +50,7 @@ team-ax의 디렉토리/파일 정리 스킬. **이 파일 아직 필요한가?*
 | 유형 | 판정 기준 |
 |---|---|
 | 루트 스크린샷 | 루트의 `*.png`, `*-snapshot.png` — `.ax/screenshots/`로 이동 또는 삭제 |
-| 임시 파일 | `.ax-status`, `.ax-brief.md` (build 완료 후에도 남음) |
+| 임시 파일 | `.ax/plan.json`, `.ax/workers/*/` (build 완료 후에도 남음). (v0.7 레거시: `.ax-status`, `.ax-brief.md`) |
 | `.env` 백업 | `.env.bak`, `.env.old`, `.env.*.backup` |
 | 빌드 아티팩트 | repo에 실수 커밋된 `dist/`, `build/`, `.next/` |
 
@@ -113,7 +113,7 @@ mv {파일} ~/.Trash/ax-clean-{날짜}/
 1. **삭제 금지, 이동만** — 모든 정리는 `mv ~/.Trash/`로. `rm -rf` 금지.
 2. **git-tracked 보호** — `git ls-files`에 있는 파일은 오너 명시 승인 없이 이동 금지.
 3. **대량 이동 확인** — 50건 이상 이동 시 오너 재확인 (카테고리별 분할 승인).
-4. **ax-build 중 실행 금지** — `.claude/worktrees/` 활성이면 중단 권고 (워크트리 깨질 위험).
+4. **ax-build 중 실행 금지** — `.ax/workers/` 존재 또는 `ax-workers` tmux 윈도우 활성이면 중단 권고.
 5. **versions/ 삭제 금지** — release 완료된 versions도 기록. 정리는 별도 archive 정책 (v0.7+).
 
 ## 참조

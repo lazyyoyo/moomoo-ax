@@ -62,7 +62,7 @@ scope.md `§Story Map` 표기:
 - 비밀번호 모달 + 인라인 검증 + 성공 화면 (spec: auth.md)
 ```
 
-> Story 단위가 곧 build 단계의 worktree 분기 단위가 된다 (플러그인 v0.3+ 예정). 지금은 **scope.md 안의 그룹핑**만 책임진다.
+> Story 단위는 build 단계에서 planner가 **파일 집합 단위로 재분할**하는 입력이 된다 (ax-build v0.8 — worktree가 아니라 파일 whitelist 기반 격리). scope 단계의 책임은 scope.md 안의 Story 그룹핑까지.
 
 ## 참고
 

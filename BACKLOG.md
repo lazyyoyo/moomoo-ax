@@ -1,5 +1,5 @@
 ---
-last-updated: 2026-04-21 (sprint-8 편입 — ax-build 병렬 엔진 재설계로 일괄 해소)
+last-updated: 2026-04-21 (sprint-8 완료 — v0.8.0 릴리즈 + paperwork 정리 완료)
 ---
 
 # moomoo-ax 백로그
@@ -10,17 +10,6 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 > - inbox: 아이디어 캡처. 스프린트 미배정.
 > - ready: 다음 스프린트 후보로 정제된 항목 (sprint-N-plan 진입 대기).
 > - done: 스프린트/hotfix 종료 시 이관. 스프린트 번호 or hotfix 버전 표기.
-
-## ready (sprint-8 편입)
-
-**v0.7.2 실검증(2026-04-21) 후속 6건** — ax-build 병렬 엔진 재설계(worktree 제거 + Codex 워커 + 파일 whitelist)로 일괄 해소. 상세는 `docs/sprints/sprint-8/sprint-8-plan.md` 참조.
-
-- B-AXBUILD-WORKER-VISIBILITY → sprint-8 T9 (tmux pane grid로 해결)
-- B-AXBUILD-TMUX-NESTED → sprint-8 T6 (precheck에서 `$TMUX` 감지 처리)
-- B-AXBUILD-TRUST-DIALOG → **자연 해소** (워커가 codex라 Claude trust dialog 무관)
-- B-AXBUILD-MCP-SHARE → **자연 해소** (codex는 MCP 호출 안 함)
-- B-AXBUILD-BRIEF-INJECT → **자연 해소** (inbox.md + ax-execute 스킬 분리 구조)
-- B-AXBUILD-CLAUDENATIVE → **폐기** (worktree 자체 제거하므로 빌트인 검토 불필요)
 
 ## inbox
 
@@ -60,6 +49,31 @@ my-agent-office `plugins/statusline/scripts/statusline.sh` 대비 `ax-statusline
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### sprint-8 — 플러그인 v0.8.0 (2026-04-21)
+
+ax-build 병렬 엔진 재설계. worktree 제거 + Codex 워커 + 파일 whitelist 격리 + 단일 브랜치. lead(Claude main)는 오케스트레이션만, 코드 작성은 전부 codex로 이관해 Claude 토큰 부담 완화 + tmux pane grid로 병렬 관찰성 확보.
+
+- B-AXEXECUTE-AS-PROTOCOL: `plugin/skills/ax-execute/SKILL.md` 재작성 — 워커 프로토콜 엔진 (inbox 1건 실행 + whitelist 가드 + result.json 출력 + no-commit). v0.7의 `--allow/--block` 인자 및 stdout DONE/BLOCKED 계약 폐기
+- B-FILE-WHITELIST-PLAN: planner 확장 — `.ax/plan.json` 스키마 + 파일 집합 기반 분할 규칙 + 자체 검증
+- B-WORKER-INBOX: `plugin/skills/ax-build/templates/worker-inbox.md.tmpl` 신규 + `.ax-brief.md` deprecated
+- B-ORCHESTRATOR-V2: `ax-build-orchestrator.sh` 6개 원시 커맨드 재작성 (precheck/init/prepare-window/spawn/status/cleanup). worktree 로직 제거, tmux pane tiled split 도입
+- B-CODEX-WORKER-SPAWN: `codex exec '$ax-execute <inbox>'` 스폰 표준화. 기본 모델 `gpt-5-codex`
+- B-WORKER-POLL / B-COMMIT-STRATEGY / B-ROUND-LOOP: lead 측 흐름 — 폴링/수렴/일괄 커밋/라운드 루프 (ax-build SKILL.md에 정의)
+- B-WORKER-VISIBILITY-PANE: `ax-workers` 윈도우 tiled grid로 병렬 관찰성 확보
+- B-CODEX-PRECHECK: 사전 점검 자동화 (tmux / codex / codex login / git / ax-execute 스킬)
+- B-AXEXECUTE-REPOSITION: ax-execute를 단일/병렬 공통 진입점으로 재정의
+- B-DOC-UPDATE: `parallel-dev-spec.md` 전면 재작성 + `v0.7-to-v0.8-migration.md` 신규 + AGENTS/README/CHANGELOG 반영
+- B-PAPERWORK-V08: 릴리즈 직후 `/ax-paperwork` 실행 — v0.7 잔재 17건 일괄 갱신 (ax-design/ax-deploy/ax-help/ax-clean/ax-paperwork + ax-define 계열 + deprecated 표기 + 상태 문서)
+
+**자연 해소 (v0.7.2 inbox 6건)** — 구조 변경으로 이슈 자체 소멸:
+
+- B-AXBUILD-TRUST-DIALOG: 워커가 codex라 Claude trust dialog 무관
+- B-AXBUILD-MCP-SHARE: codex는 MCP 호출 안 함
+- B-AXBUILD-BRIEF-INJECT: inbox.md + ax-execute 스킬 분리 구조
+- B-AXBUILD-CLAUDENATIVE: worktree 자체 제거로 `claude --worktree` 빌트인 검토 불필요
+- B-AXBUILD-WORKER-VISIBILITY: tmux pane tiled grid로 해결
+- B-AXBUILD-TMUX-NESTED: precheck에서 `$TMUX` 감지 처리
 
 ### hotfix v0.7.2 — ax-build 병렬 흐름 fix (2026-04-21)
 

@@ -10,6 +10,8 @@ tools: ["Read", "Grep", "Glob", "Bash", "Write", "Edit"]
 
 ## Role
 
+> **⚠ DEPRECATED (v0.8)** — 본 에이전트는 v0.7 `executor.engine=claude` 경로 전용. v0.8부터 ax-build는 codex 고정(`ax-execute` 스킬)이라 자동 호출 경로가 없다. 아래 본문은 레거시 참조용으로 유지되며 `.ax-brief.md` 등 v0.7 포맷을 언급하는 부분은 v0.8 `ax-build` SKILL.md의 inbox.md + `.ax-brief` 대체로 해석할 것. v0.9 제거 검토.
+
 구현 전문. BE/FE 구현 + TDD + backpressure.
 
 ## Constraints
