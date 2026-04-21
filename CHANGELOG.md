@@ -2,6 +2,50 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.8.0 — 2026-04-21
+
+**ax-build 병렬 엔진 재설계 (breaking).** worktree 제거 + Codex 워커 N개 + 파일 whitelist 격리 + 단일 브랜치. lead(Claude main session)는 오케스트레이션만, 코드 작성은 전부 codex로 이관해 Claude 토큰 부담 완화 + tmux pane grid로 병렬 관찰성 확보.
+
+v0.7.2 실검증(남편분 환경 재현 포함)에서 드러난 구조적 한계 — workertree별 tmux window는 1개씩만 보여 "병렬 모니터링" 효용 낮음, 워커가 전부 Claude라 N배 토큰, trust dialog/MCP 중복/brief 주입 등 부대 이슈 — 를 아키텍처 레벨에서 일괄 해소.
+
+### Breaking
+- `.claude/worktrees/` 워크트리 기반 병렬 흐름 전면 폐기. 단일 브랜치(`version/vX.Y.Z`) 위에서 동작
+- `.claude/settings.json`의 `executor.engine: claude|codex` 토글 제거 (codex 고정, 설정값 무시)
+- `.ax-brief.md` (공유 지시서) → `.ax/workers/<task_id>/inbox.md` (워커별)
+- `.ax-status` (building/review-ready/...) → `.ax/workers/<task_id>/result.json` (done/blocked/error)
+- `ax-execute` 스킬의 stdout `DONE`/`BLOCKED` 공식 계약 → `result.json` 파일 스키마
+- `ax-execute` `--allow` / `--block` 인자 폐기 — inbox.md 내부 `whitelist`로 통합
+- `ax-execute`가 태스크 단위 커밋하던 동작 제거 — **lead가 일괄 커밋**
+- 워커 브랜치(`version/vX.Y.Z-<name>`) 생성/머지 로직 제거
+
+v0.7 사용자 마이그레이션은 `docs/guides/v0.7-to-v0.8-migration.md` 참조.
+
+### Changed
+- `plugin/skills/ax-build/SKILL.md` — 5단계 흐름 재작성 (precheck → plan(파일 분할) → init → 병렬 라운드 루프 → QA). 공식 team-mode/OMC 분석 결과 반영
+- `plugin/skills/ax-execute/SKILL.md` — 워커 프로토콜 엔진으로 재정의. inbox 1건 실행 + whitelist 가드 + result.json 출력 + no-commit
+- `plugin/agents/planner.md` — 파일 집합 단위 태스크 분할 책임 추가. `.ax/plan.json` 스키마 + 분할 규칙 + 자체 검증 체크리스트 정의
+- `plugin/scripts/ax-build-orchestrator.sh` — 원시 도구 6개(precheck/init/prepare-window/spawn/status/cleanup). worktree 관련 제거, tmux pane tiled split 도입, `codex exec '$ax-execute <inbox>'` 스폰
+- `docs/specs/parallel-dev-spec.md` — v0.8 모델로 전면 재작성
+
+### Added
+- `plugin/skills/ax-build/templates/worker-inbox.md.tmpl` — 워커 과제 입력 포맷
+- `.ax/plan.json` / `.ax/workers/<id>/inbox.md` / `.ax/workers/<id>/result.json` 파일 프로토콜
+- `ax-workers` tmux 윈도우에 워커 pane tiled grid 자동 배치 (가시성 개선)
+- `docs/guides/v0.7-to-v0.8-migration.md` — 마이그레이션 가이드 (절차/대체물/트러블슈팅)
+- `docs/sprints/sprint-8/` — plan + task + build-flow.html 시각화
+
+### Deprecated
+- `plugin/agents/executor.md` — Claude legacy executor. v0.8 ax-build에서 자동 호출 경로 없음. 수동 호출만 유효. v0.9 제거 검토
+- `plugin/skills/ax-build/templates/ax-brief.md` — v0.7 공유 지시서 포맷. worker-inbox.md.tmpl로 대체. v0.9 제거 검토
+
+### 자연 해소 (구조 변경으로)
+- **B-AXBUILD-TRUST-DIALOG** — 워커가 codex라 Claude trust dialog 무관
+- **B-AXBUILD-MCP-SHARE** — codex는 MCP 호출 안 함
+- **B-AXBUILD-BRIEF-INJECT** — inbox.md + ax-execute 스킬 분리 구조
+- **B-AXBUILD-CLAUDENATIVE** — worktree 폐기로 `claude --worktree` 빌트인 검토 불필요
+- **B-AXBUILD-WORKER-VISIBILITY** — tmux pane tiled grid로 해결
+- **B-AXBUILD-TMUX-NESTED** — precheck에서 `$TMUX` 감지 처리
+
 ## v0.7.2 — 2026-04-21 (hotfix)
 
 **ax-build 병렬(워크트리) 흐름 — 실동작 fix.** v0.4부터 내재된 dead code였음 (my-agent-office 재현 리포트에서 발견).
