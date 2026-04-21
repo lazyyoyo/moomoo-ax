@@ -1,10 +1,10 @@
 ---
-last-updated: 2026-04-21 (sprint-8 완료 — v0.8.0 릴리즈 + paperwork 정리 완료)
+last-updated: 2026-04-21 (v0.8.3 hotfix — 사고 기록·외부 제품·시간축 주석 제거)
 ---
 
 # moomoo-ax 백로그
 
-team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-world 등)의 BACKLOG는 각 제품 리포 안에 있다 (혼동 금지).
+team-ax 플러그인 자체 개발의 인박스. 외부 제품의 BACKLOG는 각 제품 리포 안에 있다 (혼동 금지).
 
 > **운영 규칙**
 > - inbox: 아이디어 캡처. 스프린트 미배정.
@@ -12,6 +12,18 @@ team-ax 플러그인 자체 개발의 인박스. 외부 제품(rubato, rofan-wor
 > - done: 스프린트/hotfix 종료 시 이관. 스프린트 번호 or hotfix 버전 표기.
 
 ## inbox
+
+### v0.8.4+ 후보 (paperwork audit 결과 이관)
+
+- B-SCRIPTS-RESOLVE: `plugin/scripts/...` 경로 systematic resolve — 현재 ax-build만 `$ORCH` 패턴 사용. 다른 스킬(ax-codex, ax-deploy, ax-clean, ax-design, ax-paperwork, ax-status, ax-review, ax-execute)은 여전히 `bash plugin/scripts/...` 직접 참조. 설치된 플러그인 cache 경로로 wrapper 인프라(ax-status hud-wrapper 패턴 차용) 또는 ax-build처럼 각 SKILL.md resolve 가이드 추가
+- B-DESIGN-GATE-CODIFY: `ax-design` 7단계 게이트 자동 재작업 로직(keep/discard/루프 3회)이 SKILL.md 본문에 자연어로 기술됨 → `design-gate.sh` 결정론 로직 강화 (progressive codification)
+- B-AXHELP-DEPRECATED: `ax-help` 보조 스킬 목록에서 deprecated 표기된 `executor` 에이전트 제외
+
+### 사소한 일관성 (BACKLOG inbox 보관만)
+
+- B-AXCODEX-REF: `ax-codex/SKILL.md` §참조 설명에 "rsync 대상은 ax-review / ax-execute 자체이며, 본 스킬은 경로 동기화만 담당" 명시
+- B-AXSTATUS-SCOPE: `ax-status/SKILL.md` §도입부에 "~/.claude/ 및 ~/.claude/hud/ 책임 경계" 명확화
+- B-AXHELP-TMUX: `ax-help` 상태 감지 로직에 tmux 유무 조건부 표기 (ax-build가 tmux 의존하지 않으므로)
 
 ### ax-codex
 
@@ -32,12 +44,12 @@ my-agent-office `plugins/statusline/scripts/statusline.sh` 대비 `ax-statusline
 
 ## inbox (장기 후보)
 
-### sprint-9+ 후보 — ax-deploy v2 묶음 (rubato admin 도그푸딩 피드백)
+### sprint-9+ 후보 — ax-deploy v2 묶음
 
 - B-TRACKTYPE: ax-deploy 트랙별 정책 분기 — `scope.md §버전 메타`에 `track-type: product | admin | infra` 추가. admin/internal-tools는 (1) CHANGELOG 작성 강제 부적합(GitHub Release만 사용), (2) BACKLOG done 이관 강제 부적합(Release로 추적), (3) 제품 semver 기반 `/product-deploy` 부적합 → ax-deploy가 트랙 타입에 따라 분기
-- B-WTHOST: ax-build/ax-deploy worktree 환경 호환성 — (1) `gh pr merge --squash --delete-branch` 시 "main is already checked out at <other-worktree>" 에러(머지는 정상이나 사용자 혼란), (2) main 워크트리가 다른 트랙 점유 중일 때 pull 차단 → 임시 worktree 패턴(`git worktree add /tmp/<name> main` → pull → `.vercel/` 복사 → vercel --prod → worktree remove) 가이드 + ax-deploy가 `git worktree list`로 환경 인지 + main checkout 실패 시 자동 안내
-- B-VERCELIGN: ax-deploy Vercel "Ignored Build Step" 인지 — git push deploy를 모두 cancel하는 프로젝트(rubato 등)에서 dashboard "Redeploy"가 빌드 skip → 6단계 실행 전 `vercel ls <project>` 최근 5건 status 검사. 모두 Canceled면 자동 배포 disabled 안내 + vercel CLI 직접 실행 절차로 분기
-- B-CLEANUPPR: ax-deploy 후처리 cleanup PR 패턴 명문화 — 머지·태그·Release 완료 후 ⏳ planned 마커 제거 + build-plan 체크박스 [x] 처리는 별도 cleanup PR로 분리해야 함(rubato admin-v0.2.0 PR #17). 1단계 preflight가 차단 사유로 잡지만 처리 절차 안내 부족 → main 기반 임시 브랜치(`chore/<version>-cleanup`) → 마커 제거 + 체크박스 → push → squash merge 패턴 매뉴얼화 + 가능하면 자동화
+- B-WTHOST: ax-deploy 환경 호환성 — (1) `gh pr merge --squash --delete-branch` 시 "main is already checked out at <other-worktree>" 에러(머지는 정상이나 사용자 혼란), (2) main 워크트리가 다른 트랙 점유 중일 때 pull 차단 → 임시 worktree 패턴 가이드 + ax-deploy가 `git worktree list`로 환경 인지 + main checkout 실패 시 자동 안내
+- B-VERCELIGN: ax-deploy Vercel "Ignored Build Step" 인지 — git push deploy를 모두 cancel하는 프로젝트에서 dashboard "Redeploy"가 빌드 skip → 6단계 실행 전 `vercel ls <project>` 최근 5건 status 검사. 모두 Canceled면 자동 배포 disabled 안내 + vercel CLI 직접 실행 절차로 분기
+- B-CLEANUPPR: ax-deploy 후처리 cleanup PR 패턴 명문화 — 머지·태그·Release 완료 후 ⏳ planned 마커 제거 + build-plan 체크박스 [x] 처리는 별도 cleanup PR로 분리해야 함. 1단계 preflight가 차단 사유로 잡지만 처리 절차 안내 부족 → main 기반 임시 브랜치(`chore/<version>-cleanup`) → 마커 제거 + 체크박스 → push → squash merge 패턴 매뉴얼화 + 가능하면 자동화
 
 ### 장기
 
@@ -49,6 +61,35 @@ my-agent-office `plugins/statusline/scripts/statusline.sh` 대비 `ax-statusline
 - [infra] 대시보드 연동 — 오너 개입 횟수 / 토큰 / iteration 등 북극성 지표 추적
 
 ## done
+
+### hotfix v0.8.3 — 사고 기록·외부 제품·시간축 주석 제거 (2026-04-21)
+
+PROJECT_BRIEF §6 "스킬 본문은 현재 규칙만" 원칙 재확립.
+
+- 사고 기록 제거 (ax-execute 영역 침범 가드 도입부 / product-owner Why This Matters 사고 단락 / executor 가드 괄호 / ax-define 제품 예시 / spec-lifecycle 섹션 제목 / pr-checklist) — 개선된 규칙 본문은 유지
+- references 학습 예시에서 외부 제품 이름 제거 (jtbd / slc / story-map / semver / docs-structure / templates/scope)
+- pane→백그라운드 전환 잔재 9건 정리 (ax-help / ax-deploy / ax-paperwork / ax-clean 및 checklist / build-plan 템플릿 / ax-execute preamble / README)
+- 구현 상태 시간축 주석 제거 (ax-review "v0.4 구현 / v0.1 stub" → "stub")
+- ax-define / product-owner 가드레일 "(v0.1.1 신설/변경)" 주석 제거
+- ax-deploy cleanup `$ORCH` resolve 패턴 통일
+
+### hotfix v0.8.2 — 워커 모델 백그라운드화 + 8건 실검증 피드백 (2026-04-21)
+
+- 워커 실행 모델 tmux pane split → 백그라운드 프로세스 + stdout.log/pid/exit_code 파일. tmux 의존 제거. pane 관리 복잡성(remain-on-exit 실패, pane id race 등) 자연 소멸
+- ax-execute 동시 라운드 self-check 개선 — `.ax/plan.json` 모든 task whitelist 합집합 인지하여 타 워커 산출 파일 오판정 방지
+- 타겟 기반 backpressure — 전역 lint/test 금지, 변경 파일 한정 `npx eslint` + test script 자동 폴백 (vitest/jest)
+- planner glue 태스크 규칙 (`kind: glue`) — 경계 연결 작업 독립 분리로 파일 whitelist 격리 사각지대 해소
+- lead 검증에 placeholder/TODO 스캔 훅 추가 (3-e 단계)
+- ax-build 재개 모드 §2.5 명시 — version branch + plan.json + 일부 커밋 있을 때 미완료만 스폰
+- SKILL.md 스크립트 경로 `$ORCH` resolve 가이드
+- orchestrator `logs <task_id>` 서브커맨드 신설
+- parallel-dev-spec 전면 재작성 (백그라운드 모델 + glue + 재개)
+
+### hotfix v0.8.1 — 모델 하드코딩 제거 + 메인 window split + 시간축 주석 정리 (2026-04-21)
+
+- `-c model=` 옵션 기본 제거 → codex CLI 기본값 사용 (`gpt-5-codex` 하드코딩으로 워커 즉사하던 이슈 해결)
+- 별도 `ax-workers` window → 메인 window 수직 split (Ctrl-b w 전환 없이 한 화면 관찰) — v0.8.2에서 백그라운드 모델로 재구성됨
+- 시간축 주석 1차 정리 — 이후 v0.8.3에서 원칙 재확립
 
 ### sprint-8 — 플러그인 v0.8.0 (2026-04-21)
 

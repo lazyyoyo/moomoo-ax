@@ -2,6 +2,40 @@
 
 team-ax 플러그인 변경 이력. [semver](https://semver.org/lang/ko/) 준수.
 
+## v0.8.3 — 2026-04-21 (hotfix)
+
+v0.8.2 릴리즈 직후 paperwork 재점검 + skill-creator audit 결과를 한 번에 반영. 스킬/에이전트 본문에서 **사고 기록·외부 제품 언급·시간축 주석**을 제거하고 개선된 규칙만 남겼다. pane→백그라운드 전환 잔재도 마저 정리.
+
+PROJECT_BRIEF §6 원칙 재확립:
+> 스킬/에이전트 본문은 **현재 규칙과 프로토콜**만. 사고 스토리/역사/구체 제품 예시는 CHANGELOG / 회고 / BACKLOG / spec 사례 섹션으로 이관.
+
+### Removed (사고 기록 / 외부 제품 언급 / 시간축)
+- `ax-execute/SKILL.md` §영역 침범 가드 도입부의 구체 사고 서술 제거 (가드 5종 규칙은 그대로)
+- `product-owner.md` §Why This Matters의 "v0.1.0 dogfooding 사고 기록 — yoyowiki…" 단락 제거. "흔한 실패 패턴" 일반 원칙은 유지
+- `executor.md` "(rubato admin 도그푸딩 피드백)" 괄호 삭제
+- `ax-define/SKILL.md` "외부 IT 제품(rubato, rofan-world 등)" → 제품명 제거
+- `ax-define/references/spec-lifecycle.md` 섹션 제목 "rubato specs/ 증식 사례" → "spec 파일 증식의 원인 4가지"
+- references 학습 예시(jtbd/slc/story-map/semver/docs-structure/templates/scope)에서 "rubato v1.7.0" / "rubato v1.5.1" 류 외부 제품 이름 제거
+- `ax-review/SKILL.md` + `pr-checklist.md` 구현 상태 시간축 주석 제거 ("v0.4 구현" / "v0.1 stub" → `stub`만)
+- `ax-define/SKILL.md` + `product-owner.md` 가드레일의 "(v0.1.1 신설/변경)" 주석 제거
+
+### Fixed (pane→백그라운드 잔재)
+- `ax-help/SKILL.md` — 상태 감지 로직을 `.ax/workers/*/pid` 프로세스 기반으로 갱신, "ax: prefix pane / tmux list-panes" 제거
+- `ax-deploy/SKILL.md` — cleanup 안내 "워커 pane 정리" → "워커 프로세스 정리", `$ORCH` resolve 패턴 통일
+- `ax-paperwork/SKILL.md` / `ax-clean/SKILL.md` — ax-build 진행 중 감지 로직을 워커 프로세스 기반으로
+- `paperwork-checklist.md` / `clean-checklist.md` — 동일 패턴
+- `ax-build/templates/build-plan.md` — "tmux pane 폭 제약" → "병렬 효율 저하"
+- `ax-execute/SKILL.md` preamble — "NEVER run tmux orchestration" → "NEVER 오케스트레이션 환경 조작"
+- `README.md` — "tmux 안에서 claude 기동 + pane split" 전제 제거. 어떤 터미널에서든 동작 명시
+
+### Docs
+- paperwork-report / HANDOFF / BACKLOG 갱신 (릴리즈 외 운영 문서)
+
+### 이관 (v0.8.4+ 또는 BACKLOG inbox)
+- plugin/scripts 경로 systematic resolve (wrapper 또는 hud 인프라) — 현재는 ax-build만 `$ORCH` 패턴
+- ax-design 게이트 자동 재작업 로직 script 이관 (progressive codification)
+- ax-help 보조 스킬 목록에서 deprecated executor 제외
+
 ## v0.8.2 — 2026-04-21 (hotfix)
 
 v0.8.0 rubato 실검증 8건 피드백 반영. **워커 실행 모델을 tmux pane split → 백그라운드 프로세스 + 로그 파일**로 근본 단순화. tmux 의존 제거, pane 관리 복잡성 전부 소멸.

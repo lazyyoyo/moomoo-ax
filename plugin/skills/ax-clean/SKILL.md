@@ -113,7 +113,7 @@ mv {파일} ~/.Trash/ax-clean-{날짜}/
 1. **삭제 금지, 이동만** — 모든 정리는 `mv ~/.Trash/`로. `rm -rf` 금지.
 2. **git-tracked 보호** — `git ls-files`에 있는 파일은 오너 명시 승인 없이 이동 금지.
 3. **대량 이동 확인** — 50건 이상 이동 시 오너 재확인 (카테고리별 분할 승인).
-4. **ax-build 중 실행 금지** — `.ax/workers/` 존재 또는 `ax:` prefix pane 활성이면 중단 권고.
+4. **ax-build 중 실행 금지** — `.ax/workers/` 존재 또는 워커 프로세스 살아있으면 중단 권고.
 5. **versions/ 삭제 금지** — release 완료된 versions도 기록. 정리는 별도 archive 정책 (v0.7+).
 
 ## 참조

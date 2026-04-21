@@ -87,9 +87,9 @@ git push origin vX.Y.Z
 
 - Playwright 스크린샷 (루트에 방치된 `.png` 파일)
 - 임시 파일 (`.ax/` 디렉토리 — `.ax/plan.json`, `.ax/workers/*/`). `.gitignore`에 있으면 자동 정리, 아니면 `mv ~/.Trash/`
-- 워커 pane이 남아있으면 정리:
+- 남은 워커 프로세스가 있으면 ax-build orchestrator로 정리 (`$ORCH` resolve는 ax-build SKILL.md §오케스트레이터 스크립트 경로 resolve 참조):
   ```bash
-  bash plugin/scripts/ax-build-orchestrator.sh cleanup
+  bash "$ORCH" cleanup
   ```
 - **version branch 삭제** (main 머지 완료 후):
   ```bash

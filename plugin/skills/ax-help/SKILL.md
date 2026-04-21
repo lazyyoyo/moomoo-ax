@@ -52,7 +52,7 @@ version/vX.Y.Z 브랜치 존재        → build 진행 중 또는 완료
 versions/vX.Y.Z/qa-report.md 존재 → QA 완료
 versions/vX.Y.Z/build-plan.md 존재 → build plan 수립됨
 .ax/plan.json 또는 .ax/workers/ 존재 → 병렬 빌드 진행 중
-ax: prefix pane 활성             → 워커 live
+.ax/workers/*/pid 살아있음         → 워커 live
 ```
 
 **출력 예시:**
@@ -64,12 +64,12 @@ ax: prefix pane 활성             → 워커 live
   qa:     ⏳ 대기
   deploy: ⏳ 대기
 
-  워커: 2개 활성 (.ax/workers/T1, T2 — 메인 window 수직 split pane)
+  워커: 2개 활성 (.ax/workers/T1, T2 — 백그라운드 프로세스)
 ```
 
 ### 4. build 중 안전 작업 가이드
 
-build가 병렬 진행 중일 때 (워커 pane 활성):
+build가 병렬 진행 중일 때 (워커 프로세스 활성):
 
 ```
 ✅ 안전한 작업 (메인 세션에서):
@@ -89,6 +89,6 @@ build가 병렬 진행 중일 때 (워커 pane 활성):
 1. `versions/` 디렉토리 스캔
 2. `git branch` 확인
 3. `.ax/plan.json` / `.ax/workers/` 존재 확인
-4. `tmux list-panes -F '#{pane_title}'`에서 `ax:` prefix pane 확인
+4. `.ax/workers/*/pid` 파일이 가리키는 프로세스가 살아있는지 확인
 5. qa-report.md / build-plan.md 존재 확인
 6. 결과 조합 → 상태 출력

@@ -12,7 +12,7 @@
 | **MINOR** | 새 기능 추가 (호환 유지) | new feature, additive API, additive schema |
 | **PATCH** | 버그 수정 / 내부 개선 (호환 유지) | bug fix, perf, refactor, copy 변경 |
 
-> 0.x 시리즈는 "공개 안정 보장 전" 상태로 간주 — 0.MINOR.PATCH 자리에서 breaking change가 일어나도 MAJOR(`1.0.0`)로 올리지 않을 수 있다. 단, 본 프로젝트는 외부 사용자가 있는 제품(rubato, rofan-world)이므로 0.x여도 가급적 정식 규칙을 따른다.
+> 0.x 시리즈는 "공개 안정 보장 전" 상태로 간주 — 0.MINOR.PATCH 자리에서 breaking change가 일어나도 MAJOR(`1.0.0`)로 올리지 않을 수 있다. 단, 외부 사용자가 있는 제품은 0.x여도 가급적 정식 규칙을 따른다.
 
 ## 판정 플로우
 
@@ -41,7 +41,7 @@
 | 로그인 화면 카피 수정 | PATCH |
 | 정렬 알고리즘 내부 변경 (사용자 영향 없음) | PATCH |
 | 로그인 모달에 소셜 로그인 버튼 추가 | MINOR |
-| 마이페이지 신규 도입 (rubato v1.7.0) | MINOR |
+| 마이페이지 신규 도입 (v1.7.0) | MINOR |
 | package.json 의존성 보안 패치만 | PATCH |
 | 환경 변수 이름 변경 (배포 문서 갱신 필요) | MAJOR (배포자 입장 호환 깨짐) |
 

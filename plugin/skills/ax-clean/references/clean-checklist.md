@@ -85,4 +85,4 @@ ax-clean 실행 시 사용하는 세부 탐지 규칙.
 - [ ] `git ls-files`에 있는 파일은 오너 명시 승인 필요
 - [ ] `versions/` 전체는 기본 보호 (archive 이동만 허용)
 - [ ] `.git/`, `node_modules/`, `.next/cache/`는 스캔 제외
-- [ ] `.ax/workers/` 존재 또는 `ax:` prefix pane 활성 시 중단
+- [ ] `.ax/workers/` 존재 또는 워커 프로세스 살아있을 시 중단
